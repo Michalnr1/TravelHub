@@ -1,8 +1,62 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Mapa";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@* <h2>Mapa</h2>
+
+<input id="start" type="text" placeholder="Punkt początkowy" style="width:300px;">
+<input id="end" type="text" placeholder="Cel" style="width:300px;">
+<button id="routeBtn">Pokaż trasę</button>
+
+<div id="map" style="height:500px;width:100%;margin-top:10px;"></div>
+
+@section Scripts {
+    <script async
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDsy18XuFA1z6LO-BeymnEYhIvG5Z40kXc&libraries=places&callback=initMap">
+    </script>
+
+    <script>
+        let map, directionsService, directionsRenderer;
+        let startAutocomplete, endAutocomplete;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 52.2297, lng: 21.0122 }, // Warszawa
+                zoom: 12,
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer();
+            directionsRenderer.setMap(map);
+
+            // Autocomplete dla miejsc
+            startAutocomplete = new google.maps.places.Autocomplete(
+                document.getElementById("start")
+            );
+            endAutocomplete = new google.maps.places.Autocomplete(
+                document.getElementById("end")
+            );
+
+            document.getElementById("routeBtn").addEventListener("click", calcRoute);
+        }
+
+        function calcRoute() {
+            const start = document.getElementById("start").value;
+            const end = document.getElementById("end").value;
+
+            const request = {
+                origin: start,
+                destination: end,
+                travelMode: google.maps.TravelMode.DRIVING
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    directionsRenderer.setDirections(result);
+                } else {
+                    alert("Nie udało się wyznaczyć trasy: " + status);
+                }
+            });
+        }
+    </script>
+} *@
