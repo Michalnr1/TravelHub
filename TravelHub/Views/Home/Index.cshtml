@@ -1,8 +1,12 @@
 ﻿@{
     ViewData["Title"] = "Mapa";
+
+    var apiKey = ViewData["GoogleApiKey"];
 }
 
-@* <h2>Mapa</h2>
+<h2>Mapa</h2>
+
+<p>Api Key: @apiKey</p>
 
 <input id="start" type="text" placeholder="Punkt początkowy" style="width:300px;">
 <input id="end" type="text" placeholder="Cel" style="width:300px;">
@@ -12,7 +16,7 @@
 
 @section Scripts {
     <script async
-            src="https://maps.googleapis.com/maps/api/js?key=<YourKey>&libraries=places&callback=initMap">
+            src="https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places&callback=initMap">
     </script>
 
     <script>
@@ -59,4 +63,4 @@
             });
         }
     </script>
-} *@
+}
