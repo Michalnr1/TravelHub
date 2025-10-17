@@ -1,11 +1,11 @@
-﻿namespace TravelHub.Domain.Entities;
+﻿using Microsoft.AspNetCore.Identity;
 
-public class Person
+namespace TravelHub.Domain.Entities;
+
+public class Person : IdentityUser
 {
-    public int Id { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
-    public string UserName { get; set; }
     public string Nationality { get; set; }
     public DateTime Birthday { get; set; }
 

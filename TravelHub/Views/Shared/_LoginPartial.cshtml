@@ -1,15 +1,19 @@
 ﻿@using Microsoft.AspNetCore.Identity
-@using TravelHub.Infrastructure.Identity
+@using TravelHub.Domain.Entities
 
 @* Tutaj trzeba zmienić na ApplicationUser *@
-@inject SignInManager<IdentityUser> SignInManager
-@inject UserManager<IdentityUser> UserManager
+@inject SignInManager<Person> SignInManager
+@inject UserManager<Person> UserManager
+
+@{
+    var user = await UserManager.GetUserAsync(User);
+}
 
 <ul class="navbar-nav">
 @if (SignInManager.IsSignedIn(User))
 {
     <li class="nav-item">
-        <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @UserManager.GetUserName(User)!</a>
+            <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @user.FirstName @user.LastName!</a>
     </li>
     <li class="nav-item">
         <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">

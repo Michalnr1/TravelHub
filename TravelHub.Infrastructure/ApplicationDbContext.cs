@@ -1,17 +1,15 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
-using TravelHub.Infrastructure.Identity;
 
 // Ensure you have a 'using' statement for the namespace where your entities are located.
 // using YourProject.Entities; 
 
 namespace TravelHub.Infrastructure;
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+public class ApplicationDbContext : IdentityDbContext<Person>
 {
     // Add DbSet for each of your entities
-    public DbSet<Person> Persons { get; set; }
     public DbSet<Trip> Trips { get; set; }
     public DbSet<Day> Days { get; set; }
     public DbSet<Activity> Activities { get; set; }
@@ -38,18 +36,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // --- Person Configuration ---
         builder.Entity<Person>(entity =>
         {
-            entity.HasKey(p => p.Id);
             entity.Property(p => p.FirstName).IsRequired().HasMaxLength(100);
             entity.Property(p => p.LastName).IsRequired().HasMaxLength(100);
-            entity.Property(p => p.UserName).IsRequired().HasMaxLength(100);
-            entity.HasIndex(p => p.UserName).IsUnique(); // Usernames should be unique
             entity.Property(p => p.Nationality).HasMaxLength(100);
             entity.Property(p => p.Birthday).HasColumnType("date");
 
             // M:N self-referencing relationship for Friends
             entity.HasMany(p => p.Friends)
                   .WithMany(p => p.FriendOf)
-                  .UsingEntity(j => j.ToTable("PersonFriends"));
+                  .UsingEntity<Dictionary<string, object>>(
+                          "PersonFriends",
+                          j => j.HasOne<Person>().WithMany().HasForeignKey("FriendId"),
+                          j => j.HasOne<Person>().WithMany().HasForeignKey("UserId"),
+                          j =>
+                          {
+                              j.HasKey("UserId", "FriendId");
+                              j.ToTable("PersonFriends");
+                          });
 
             // M:N relationship with Expense
             entity.HasMany(p => p.ExpensesToCover)

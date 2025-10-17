@@ -7,7 +7,7 @@ public class Expense
     public string Name { get; set; }
 
     // Foreign Key for the person who paid
-    public int PaidById { get; set; }
+    public string PaidById { get; set; }
     // Navigation Property to the person who paid
     public Person PaidBy { get; set; }
 

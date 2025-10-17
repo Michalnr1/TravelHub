@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using TravelHub.Domain.Entities;
+using TravelHub.Domain.Interfaces;
 using TravelHub.Infrastructure;
-using TravelHub.Infrastructure.Identity;
+using TravelHub.Infrastructure.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,12 +11,26 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Email Configuration
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEmailSender, EmailSender>();
+
 // Identity
-builder.Services.AddDefaultIdentity<IdentityUser>(options => // Tutaj trzeba zmienić na ApplicationUser
+builder.Services.AddIdentity<Person, IdentityRole>(options =>  // ← Person!
 {
-    options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
 })
-.AddEntityFrameworkStores<ApplicationDbContext>();
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
+
+builder.Services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender>(provider =>
+    (Microsoft.AspNetCore.Identity.UI.Services.IEmailSender)provider.GetRequiredService<IEmailSender>());
+
+builder.Services.AddRazorPages();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

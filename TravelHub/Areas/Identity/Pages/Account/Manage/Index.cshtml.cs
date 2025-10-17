@@ -9,17 +9,18 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using TravelHub.Domain.Entities;
 
 namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
 {
     public class IndexModel : PageModel
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly UserManager<Person> _userManager;
+        private readonly SignInManager<Person> _signInManager;
 
         public IndexModel(
-            UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager)
+            UserManager<Person> userManager,
+            SignInManager<Person> signInManager)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -58,9 +59,25 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
             [Phone]
             [Display(Name = "Phone number")]
             public string PhoneNumber { get; set; }
+
+            [Required]
+            [Display(Name = "First Name")]
+            public string FirstName { get; set; }
+
+            [Required]
+            [Display(Name = "Last Name")]
+            public string LastName { get; set; }
+
+            [Display(Name = "Nationality")]
+            public string Nationality { get; set; }
+
+            [Required]
+            [Display(Name = "Birthday")]
+            [DataType(DataType.Date)]
+            public DateTime Birthday { get; set; }
         }
 
-        private async Task LoadAsync(IdentityUser user)
+        private async Task LoadAsync(Person user)
         {
             var userName = await _userManager.GetUserNameAsync(user);
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
@@ -69,7 +86,11 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
 
             Input = new InputModel
             {
-                PhoneNumber = phoneNumber
+                PhoneNumber = phoneNumber,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Nationality = user.Nationality,
+                Birthday = user.Birthday
             };
         }
 
@@ -109,6 +130,20 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
                     return RedirectToPage();
                 }
             }
+
+            if (Input.FirstName != user.FirstName)
+                user.FirstName = Input.FirstName;
+
+            if (Input.LastName != user.LastName)
+                user.LastName = Input.LastName;
+
+            if (Input.Nationality != user.Nationality)
+                user.Nationality = Input.Nationality;
+
+            if (Input.Birthday != user.Birthday)
+                user.Birthday = Input.Birthday;
+
+            await _userManager.UpdateAsync(user);  // ← Zapisuje zmiany w Person!
 
             await _signInManager.RefreshSignInAsync(user);
             StatusMessage = "Your profile has been updated";

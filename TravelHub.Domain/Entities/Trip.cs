@@ -9,7 +9,7 @@ public class Trip
     public DateTime EndDate { get; set; }
 
     // Foreign Key for Person
-    public int PersonId { get; set; }
+    public string PersonId { get; set; }
     // Navigation Property for the person who owns the trip (1:N)
     public Person Person { get; set; }
 

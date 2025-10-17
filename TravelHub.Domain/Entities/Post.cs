@@ -8,7 +8,7 @@ public class Post
     public DateTime? EditDate { get; set; } // Nullable, as a post may not be edited
 
     // Foreign Key for Author
-    public int AuthorId { get; set; }
+    public string AuthorId { get; set; }
     // Navigation Property to the author (Person)
     public Person Author { get; set; }
 
