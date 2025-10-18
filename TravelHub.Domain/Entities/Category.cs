@@ -6,6 +6,9 @@ public class Category
     public string Name { get; set; }
     public string Color { get; set; } // e.g., Hex code like "#FF5733"
 
-    // A category can have many expenses
+    // A category can have many Activities
+    public ICollection<Activity> Activities { get; set; } = new List<Activity>();
+
+    // A category can have many Expenses
     public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
 }

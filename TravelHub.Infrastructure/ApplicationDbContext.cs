@@ -85,7 +85,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(d => d.Trip)
                   .WithMany(t => t.Days)
                   .HasForeignKey(d => d.TripId)
-                  .OnDelete(DeleteBehavior.Cascade); // If a trip is deleted, its days are deleted.
+                  .OnDelete(DeleteBehavior.Restrict); // If a trip is deleted, its days are deleted.
         });
 
         // --- Activity Configuration ---
@@ -96,11 +96,24 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(a => a.Description).HasMaxLength(1000);
             entity.Property(a => a.Duration).HasPrecision(18, 2);
 
+            // 1:N relationship with Trip
+            entity.HasOne(a => a.Trip)
+                    .WithMany(t => t.Activities)
+                    .HasForeignKey(a => a.TripId)
+                    .OnDelete(DeleteBehavior.Cascade); // If a trip is deleted, its activities are deleted.
+
             // 1:N relationship with Day
             entity.HasOne(a => a.Day)
                   .WithMany(d => d.Activities)
                   .HasForeignKey(a => a.DayId)
-                  .OnDelete(DeleteBehavior.Cascade); // If a day is deleted, its activities are deleted.
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull); // If a day is deleted, set DayId to NULL.
+
+            // 1:N relationship with Category
+            entity.HasOne(a => a.Category)
+                    .WithMany(c => c.Activities)
+                    .HasForeignKey(a => a.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Spot Configuration ---
@@ -170,6 +183,12 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasKey(c => c.Id);
             entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
             entity.Property(c => c.Color).HasMaxLength(7); // e.g., #RRGGBB
+
+            // Dodajemy relację 1:N z Activity
+            entity.HasMany(c => c.Activities)
+                  .WithOne(a => a.Category)
+                  .HasForeignKey(a => a.CategoryId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Currency Configuration ---

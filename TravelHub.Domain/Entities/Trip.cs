@@ -16,6 +16,9 @@ public class Trip
     // A trip consists of multiple days (1:N)
     public ICollection<Day> Days { get; set; } = new List<Day>();
 
+    // A trip can have many activities (1:N)
+    public ICollection<Activity> Activities { get; set; } = new List<Activity>();
+
     // A trip can have multiple transport legs (1:N)
     public ICollection<Transport> Transports { get; set; } = new List<Transport>();
 }
