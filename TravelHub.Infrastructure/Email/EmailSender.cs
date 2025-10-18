@@ -3,10 +3,11 @@ using System.Net.Mail;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TravelHub.Domain.Interfaces;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace TravelHub.Infrastructure.Email;
 
-public class EmailSender : IEmailSender
+public class EmailSender : Domain.Interfaces.IEmailSender, Microsoft.AspNetCore.Identity.UI.Services.IEmailSender
 {
     private readonly EmailSettings _emailSettings;
     private readonly ILogger<EmailSender> _logger;
