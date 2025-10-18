@@ -1,5 +1,5 @@
-﻿// TravelHub.Web/Controllers/TripsController.cs
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
@@ -13,11 +13,13 @@ public class TripsController : Controller
 {
     private readonly ITripService _tripService;
     private readonly ILogger<TripsController> _logger;
+    private readonly UserManager<Person> _userManager;
 
-    public TripsController(ITripService tripService, ILogger<TripsController> logger)
+    public TripsController(ITripService tripService, ILogger<TripsController> logger, UserManager<Person> userManager)
     {
         _tripService = tripService;
         _logger = logger;
+        _userManager = userManager;
     }
 
     // GET: Trips
@@ -321,24 +323,7 @@ public class TripsController : Controller
 
     private string GetCurrentUserId()
     {
-        // Pobieranie ID zalogowanego użytkownika
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim != null && !string.IsNullOrEmpty(userIdClaim.Value))
-        {
-            return userIdClaim.Value;
-        }
-
-        // Fallback dla różnych typów autentykacji
-        userIdClaim = User.FindFirst("sub"); // Dla JWT
-        if (userIdClaim != null)
-        {
-            return userIdClaim.Value;
-        }
-
-        // Jeśli używasz Identity, możesz użyć:
-        // return _userManager.GetUserId(User);
-
-        throw new UnauthorizedAccessException("User is not authenticated");
+        return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 
     private async Task<bool> TripExists(int id)
