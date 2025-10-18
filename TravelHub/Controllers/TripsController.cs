@@ -98,7 +98,7 @@ public class TripsController : Controller
                     PersonId = GetCurrentUserId()
                 };
 
-                await _tripService.CreateTripAsync(trip);
+                await _tripService.AddAsync(trip);
                 // W rzeczywistej aplikacji tutaj byłoby zapisanie zmian w bazie
                 // await _unitOfWork.SaveChangesAsync();
 
@@ -118,7 +118,7 @@ public class TripsController : Controller
     // GET: Trips/Edit/5
     public async Task<IActionResult> Edit(int id)
     {
-        var trip = await _tripService.GetTripByIdAsync(id);
+        var trip = await _tripService.GetByIdAsync(id);
         if (trip == null)
         {
             return NotFound();
@@ -155,7 +155,7 @@ public class TripsController : Controller
         {
             try
             {
-                var trip = await _tripService.GetTripByIdAsync(id);
+                var trip = await _tripService.GetByIdAsync(id);
                 if (trip == null)
                 {
                     return NotFound();
@@ -171,7 +171,7 @@ public class TripsController : Controller
                 trip.EndDate = viewModel.EndDate;
                 trip.Status = viewModel.Status;
 
-                await _tripService.UpdateTripAsync(trip);
+                await _tripService.UpdateAsync(trip);
                 // W rzeczywistej aplikacji tutaj byłoby zapisanie zmian w bazie
                 // await _unitOfWork.SaveChangesAsync();
 
@@ -199,7 +199,7 @@ public class TripsController : Controller
     // GET: Trips/Delete/5
     public async Task<IActionResult> Delete(int id)
     {
-        var trip = await _tripService.GetTripByIdAsync(id);
+        var trip = await _tripService.GetByIdAsync(id);
         if (trip == null)
         {
             return NotFound();
@@ -227,7 +227,7 @@ public class TripsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var trip = await _tripService.GetTripByIdAsync(id);
+        var trip = await _tripService.GetByIdAsync(id);
         if (trip == null)
         {
             return NotFound();
@@ -238,7 +238,7 @@ public class TripsController : Controller
             return Forbid();
         }
 
-        await _tripService.DeleteTripAsync(trip.Id);
+        await _tripService.DeleteAsync(trip.Id);
         // W rzeczywistej aplikacji tutaj byłoby zapisanie zmian w bazie
         // await _unitOfWork.SaveChangesAsync();
 
@@ -249,7 +249,7 @@ public class TripsController : Controller
     // GET: Trips/AddDay/5
     public async Task<IActionResult> AddDay(int id)
     {
-        var trip = await _tripService.GetTripByIdAsync(id);
+        var trip = await _tripService.GetByIdAsync(id);
         if (trip == null)
         {
             return NotFound();
@@ -310,7 +310,7 @@ public class TripsController : Controller
         }
 
         // Ponownie ustaw właściwości potrzebne dla widoku
-        var trip = await _tripService.GetTripByIdAsync(id);
+        var trip = await _tripService.GetByIdAsync(id);
         if (trip != null)
         {
             viewModel.TripName = trip.Name;

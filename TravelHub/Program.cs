@@ -55,11 +55,16 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSende
     (Microsoft.AspNetCore.Identity.UI.Services.IEmailSender)provider.GetRequiredService<IEmailSender>());
 
 // Repositories
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ITripRepository, TripRepository>();
 builder.Services.AddScoped<IDayRepository, DayRepository>();
+builder.Services.AddScoped<ICurrencyRepository, CurrencyRepository>();
+builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 
 // Services
+builder.Services.AddScoped(typeof(IGenericService<>), typeof(IGenericService<>));
 builder.Services.AddScoped<ITripService, TripService>();
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
 
 builder.Services.AddRazorPages();
 

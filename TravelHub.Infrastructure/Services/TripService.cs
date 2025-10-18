@@ -4,20 +4,17 @@ using TravelHub.Domain.Interfaces.Services;
 
 namespace TravelHub.Infrastructure.Services;
 
-public class TripService : ITripService
+public class TripService : GenericService<Trip>, ITripService
 {
+    // Repozytoria są potrzebne dla metod specyficznych
     private readonly ITripRepository _tripRepository;
     private readonly IDayRepository _dayRepository;
 
     public TripService(ITripRepository tripRepository, IDayRepository dayRepository)
+        : base(tripRepository)
     {
         _tripRepository = tripRepository;
         _dayRepository = dayRepository;
-    }
-
-    public async Task<Trip?> GetTripByIdAsync(int id)
-    {
-        return await _tripRepository.GetByIdAsync(id);
     }
 
     public async Task<Trip?> GetTripWithDetailsAsync(int id)
@@ -30,41 +27,20 @@ public class TripService : ITripService
         return await _tripRepository.GetByUserIdAsync(userId);
     }
 
-    public async Task<Trip> CreateTripAsync(Trip trip)
-    {
-        await _tripRepository.AddAsync(trip);
-        return trip;
-    }
-
-    public async Task UpdateTripAsync(Trip trip)
-    {
-        _tripRepository.Update(trip);
-    }
-
-    public async Task DeleteTripAsync(int id)
-    {
-        var trip = await _tripRepository.GetByIdAsync(id);
-        if (trip != null)
-        {
-            _tripRepository.Delete(trip);
-        }
-    }
-
     public async Task<Day> AddDayToTripAsync(int tripId, Day day)
     {
-        var trip = await _tripRepository.GetByIdAsync(tripId);
+        var trip = await GetByIdAsync(tripId);
         if (trip == null)
         {
             throw new ArgumentException($"Trip with ID {tripId} not found");
         }
 
-        // Validate that the day date is within trip date range
+        // Walidacja logiki biznesowej
         if (day.Date < trip.StartDate || day.Date > trip.EndDate)
         {
             throw new ArgumentException("Day date must be within trip date range");
         }
 
-        // Set the trip ID and validate day number
         day.TripId = tripId;
 
         var existingDays = await _dayRepository.GetByTripIdAsync(tripId);
@@ -84,7 +60,7 @@ public class TripService : ITripService
 
     public async Task<bool> UserOwnsTripAsync(int tripId, string userId)
     {
-        var trip = await _tripRepository.GetByIdAsync(tripId);
+        var trip = await GetByIdAsync(tripId);
         return trip?.PersonId == userId;
     }
 
