@@ -65,6 +65,7 @@ public class TripsController : Controller
             {
                 Id = d.Id,
                 Number = d.Number,
+                Name = d.Name,
                 Date = d.Date,
                 ActivitiesCount = d.Activities?.Count ?? 0
             }).ToList() ?? new List<DayViewModel>(),
@@ -288,6 +289,7 @@ public class TripsController : Controller
                 var day = new Day
                 {
                     Number = viewModel.Number,
+                    Name = viewModel.Name,
                     Date = viewModel.Date
                 };
 

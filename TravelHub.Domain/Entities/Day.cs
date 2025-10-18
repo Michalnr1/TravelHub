@@ -3,7 +3,8 @@
 public class Day
 {
     public int Id { get; set; }
-    public int Number { get; set; } // The number of the day in the trip, e.g., Day 1
+    public int? Number { get; set; } // The number of the day in the trip, e.g., Day 1
+    public string Name { get; set; } = string.Empty;
     public DateTime Date { get; set; }
 
     // Foreign Key for Trip

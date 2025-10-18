@@ -1,0 +1,45 @@
+﻿@model IEnumerable<TravelHub.Web.ViewModels.Activities.SpotDetailsViewModel>
+
+@{
+    ViewData["Title"] = "Spots";
+}
+
+<h1>Spots</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New Spot</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>@Html.DisplayNameFor(model => model.Name)</th>
+            <th>Coordinates</th>
+            <th>@Html.DisplayNameFor(model => model.Cost)</th>
+            <th>@Html.DisplayNameFor(model => model.Duration)</th>
+            <th>Category</th>
+            <th>Trip</th>
+            <th>Photos</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@Html.DisplayFor(modelItem => item.Name)</td>
+                <td>@item.Latitude.ToString("F4"), @item.Longitude.ToString("F4")</td>
+                <td>@Html.DisplayFor(modelItem => item.Cost)</td>
+                <td>@Html.DisplayFor(modelItem => item.Duration)h</td>
+                <td>@Html.DisplayFor(modelItem => item.CategoryName)</td>
+                <td>@Html.DisplayFor(modelItem => item.TripName)</td>
+                <td>@item.PhotoCount</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">Details</a>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

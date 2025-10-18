@@ -64,10 +64,13 @@ public class AddDayViewModel
     public int TripId { get; set; }
     public string TripName { get; set; } = string.Empty;
 
-    [Required]
     [Display(Name = "Day Number")]
     [Range(1, 365)]
-    public int Number { get; set; } = 1;
+    public int Number { get; set; }
+
+    [Required]
+    [Display(Name = "Name")]
+    public string Name { get; set; } = string.Empty;
 
     [Required]
     [Display(Name = "Date")]
@@ -80,7 +83,8 @@ public class AddDayViewModel
 public class DayViewModel
 {
     public int Id { get; set; }
-    public int Number { get; set; }
+    public int? Number { get; set; }
+    public string Name { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     public int ActivitiesCount { get; set; }
 }
