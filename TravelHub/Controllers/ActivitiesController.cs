@@ -16,13 +16,13 @@ public class ActivitiesController : Controller
 {
     private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
-    private readonly IGenericService<Trip> _tripService;
+    private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
 
     public ActivitiesController(
         IActivityService activityService,
         IGenericService<Category> categoryService,
-        IGenericService<Trip> tripService,
+        ITripService tripService,
         IGenericService<Day> dayService)
     {
         _activityService = activityService;

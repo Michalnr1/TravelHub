@@ -14,4 +14,7 @@ public interface ISpotService : IGenericService<Spot>
 
     // Oblicza sumaryczny koszt wstępu do wszystkich spotów w danym dniu
     Task<decimal> CalculateDailySpotCostAsync(int dayId);
+
+    // Pobiera wszystkie spoty dla danej podróży
+    Task<IReadOnlyList<Spot>> GetSpotsByTripAsync(int tripId);
 }

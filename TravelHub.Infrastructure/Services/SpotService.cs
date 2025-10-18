@@ -37,6 +37,11 @@ public class SpotService : GenericService<Spot>, ISpotService
         return spotsInDay.Sum(s => s.Cost);
     }
 
+    public async Task<IReadOnlyList<Spot>> GetSpotsByTripAsync(int tripId)
+    {
+        return await _spotRepository.GetByTripIdAsync(tripId);
+    }
+
     // Placeholder. It will need to get this info from Google API not from our DB.
     public async Task<IReadOnlyList<Spot>> FindNearbySpotsAsync(double latitude, double longitude, double radiusKm)
     {

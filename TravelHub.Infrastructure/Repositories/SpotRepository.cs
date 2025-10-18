@@ -30,6 +30,13 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
         return spots;
     }
 
+    public async Task<IReadOnlyList<Spot>> GetByTripIdAsync(int tripId)
+    {
+        return await _context.Set<Spot>()
+            .Where(s => s.TripId == tripId)
+            .ToListAsync();
+    }
+
     // Implementacja metody FindNearbySpotsAsync byłaby zbyt skomplikowana w standardowym LINQ
     // i wymagałaby użycia zewnętrznego API. Pominięta, by utrzymać czystość kodu.
 }

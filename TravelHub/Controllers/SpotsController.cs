@@ -15,13 +15,13 @@ public class SpotsController : Controller
 {
     private readonly ISpotService _spotService;
     private readonly IGenericService<Category> _categoryService;
-    private readonly IGenericService<Trip> _tripService;
+    private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
 
     public SpotsController(
         ISpotService spotService,
         IGenericService<Category> categoryService,
-        IGenericService<Trip> tripService,
+        ITripService tripService,
         IGenericService<Day> dayService)
     {
         _spotService = spotService;

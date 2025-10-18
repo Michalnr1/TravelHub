@@ -1,0 +1,62 @@
+﻿@model TravelHub.Web.ViewModels.Transports.TransportDetailsViewModel
+
+@{
+    ViewData["Title"] = "Transport Details";
+}
+
+<h1>Transport Details</h1>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Type)
+        </dt>
+        <dd class="col-sm-10">
+            <span class="badge badge-info">@Html.DisplayFor(model => model.Type)</span>
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Duration)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Duration) hours
+        </dd>
+
+        <dt class="col-sm-2">
+            Trip
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.TripName)
+        </dd>
+
+        <dt class="col-sm-2">
+            From Spot
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.FromSpotName)
+            <br />
+            <small class="text-muted">@Model.FromSpotCoordinates</small>
+        </dd>
+
+        <dt class="col-sm-2">
+            To Spot
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.ToSpotName)
+            <br />
+            <small class="text-muted">@Model.ToSpotCoordinates</small>
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>
