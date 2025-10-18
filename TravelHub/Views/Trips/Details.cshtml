@@ -1,0 +1,73 @@
+﻿@model TravelHub.Web.ViewModels.Trips.TripDetailViewModel
+
+@{
+    ViewData["Title"] = "Trip Details";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@Model.Name</h1>
+    <div>
+        <a asp-action="AddDay" asp-route-id="@Model.Id" class="btn btn-success">Add Day</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Trip Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Status:</strong> <span class="badge bg-info">@Model.Status</span></p>
+                <p><strong>Start Date:</strong> @Model.StartDate.ToString("MMM dd, yyyy")</p>
+                <p><strong>End Date:</strong> @Model.EndDate.ToString("MMM dd, yyyy")</p>
+                <p><strong>Duration:</strong> @((Model.EndDate - Model.StartDate).Days + 1) days</p>
+                <p><strong>Transport Legs:</strong> @Model.TransportsCount</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Days</h5>
+                <span class="badge bg-primary">@Model.Days.Count</span>
+            </div>
+            <div class="card-body">
+                @if (Model.Days.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var day in Model.Days.OrderBy(d => d.Number))
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">Day @day.Number</h6>
+                                        <small class="text-muted">@day.Date.ToString("MMM dd, yyyy")</small>
+                                        <br>
+                                        <small>Activities: @day.ActivitiesCount</small>
+                                    </div>
+                                    <div>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No days added to this trip yet.</p>
+                    <a asp-action="AddDay" asp-route-id="@Model.Id" class="btn btn-sm btn-success">Add First Day</a>
+                }
+            </div>
+        </div>
+    </div>
+</div>

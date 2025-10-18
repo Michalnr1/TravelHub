@@ -2,8 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces;
+using TravelHub.Domain.Interfaces.Repositories;
+using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure;
 using TravelHub.Infrastructure.Email;
+using TravelHub.Infrastructure.Repositories;
+using TravelHub.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +34,13 @@ builder.Services.AddIdentity<Person, IdentityRole>(options =>  // ← Person!
 
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender>(provider =>
     (Microsoft.AspNetCore.Identity.UI.Services.IEmailSender)provider.GetRequiredService<IEmailSender>());
+
+// Repositories
+builder.Services.AddScoped<ITripRepository, TripRepository>();
+builder.Services.AddScoped<IDayRepository, DayRepository>();
+
+// Services
+builder.Services.AddScoped<ITripService, TripService>();
 
 builder.Services.AddRazorPages();
 

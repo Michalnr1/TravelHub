@@ -1,0 +1,47 @@
+﻿@model IEnumerable<TravelHub.Web.ViewModels.Trips.TripViewModel>
+
+@{
+    ViewData["Title"] = "My Trips";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Trips</h1>
+    <a asp-action="Create" class="btn btn-primary">Create New Trip</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<div class="row">
+    @foreach (var trip in Model)
+    {
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">@trip.Name</h5>
+                    <p class="card-text">
+                        <strong>Status:</strong> <span class="badge bg-info">@trip.Status</span><br>
+                        <strong>Dates:</strong> @trip.StartDate.ToString("MMM dd, yyyy") - @trip.EndDate.ToString("MMM dd, yyyy")<br>
+                        <strong>Days:</strong> @trip.DaysCount
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="Details" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                    <a asp-action="Edit" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <h3>No trips found</h3>
+        <p class="text-muted">You haven't created any trips yet. Start by creating your first trip!</p>
+        <a asp-action="Create" class="btn btn-primary btn-lg">Create Your First Trip</a>
+    </div>
+}
