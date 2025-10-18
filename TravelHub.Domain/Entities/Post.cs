@@ -1,4 +1,6 @@
-﻿namespace TravelHub.Domain.Entities;
+﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+
+namespace TravelHub.Domain.Entities;
 
 public class Post
 {
@@ -14,4 +16,7 @@ public class Post
 
     // A post can have many comments
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    
+    // A post can have many photos (1:N)
+    public ICollection<Photo> Photos { get; set; } = new List<Photo>();
 }

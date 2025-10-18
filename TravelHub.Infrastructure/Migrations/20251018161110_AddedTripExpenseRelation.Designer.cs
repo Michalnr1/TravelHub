@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelHub.Infrastructure;
 
@@ -11,9 +12,11 @@ using TravelHub.Infrastructure;
 namespace TravelHub.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251018161110_AddedTripExpenseRelation")]
+    partial class AddedTripExpenseRelation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -481,25 +484,18 @@ namespace TravelHub.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int?>("CommentId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<int?>("PostId")
+                    b.Property<int>("Rating")
                         .HasColumnType("int");
 
                     b.Property<int>("SpotId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CommentId");
-
-                    b.HasIndex("PostId");
 
                     b.HasIndex("SpotId");
 
@@ -764,7 +760,7 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasOne("TravelHub.Domain.Entities.Post", "Post")
                         .WithMany("Comments")
                         .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Author");
@@ -820,25 +816,11 @@ namespace TravelHub.Infrastructure.Migrations
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Photo", b =>
                 {
-                    b.HasOne("TravelHub.Domain.Entities.Comment", "Comment")
-                        .WithMany("Photos")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TravelHub.Domain.Entities.Post", "Post")
-                        .WithMany("Photos")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("TravelHub.Domain.Entities.Spot", "Spot")
                         .WithMany("Photos")
                         .HasForeignKey("SpotId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Comment");
-
-                    b.Navigation("Post");
 
                     b.Navigation("Spot");
                 });
@@ -899,11 +881,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Navigation("Expenses");
                 });
 
-            modelBuilder.Entity("TravelHub.Domain.Entities.Comment", b =>
-                {
-                    b.Navigation("Photos");
-                });
-
             modelBuilder.Entity("TravelHub.Domain.Entities.Currency", b =>
                 {
                     b.Navigation("Expenses");
@@ -928,8 +905,6 @@ namespace TravelHub.Infrastructure.Migrations
             modelBuilder.Entity("TravelHub.Domain.Entities.Post", b =>
                 {
                     b.Navigation("Comments");
-
-                    b.Navigation("Photos");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Trip", b =>

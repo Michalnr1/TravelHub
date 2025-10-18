@@ -16,6 +16,11 @@ public class Expense
     // Navigation Property to the category
     public Category Category { get; set; }
 
+    // Foreign Key for Trip
+    public int TripId { get; set; }
+    // Navigation Property to the trip
+    public Trip Trip { get; set; }
+
     // Foreign Key for Currency
     public string CurrencyKey { get; set; }
     // Navigation Property to the currency

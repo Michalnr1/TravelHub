@@ -161,6 +161,20 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .WithMany(s => s.Photos)
                   .HasForeignKey(p => p.SpotId)
                   .OnDelete(DeleteBehavior.Cascade);
+
+            // 1:N relationship with Post
+            entity.HasOne(p => p.Post)
+                    .WithMany(post => post.Photos)
+                    .HasForeignKey(p => p.PostId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull); // If a Post is deleted, set PostId to NULL.
+
+            // 1:N relationship with Comment
+            entity.HasOne(p => p.Comment)
+                    .WithMany(c => c.Photos)
+                    .HasForeignKey(p => p.CommentId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull); // If a Comment is deleted, set CommentId to NULL.
         });
 
         // --- Expense Configuration ---
@@ -175,6 +189,12 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .WithMany(p => p.PaidExpenses)
                   .HasForeignKey(e => e.PaidById)
                   .OnDelete(DeleteBehavior.Restrict); // Don't delete a person if they paid for an expense
+
+            // 1:N relationship with Trip
+            entity.HasOne(e => e.Trip)
+                    .WithMany(t => t.Expenses)
+                    .HasForeignKey(e => e.TripId)
+                    .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Category Configuration ---
@@ -184,7 +204,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
             entity.Property(c => c.Color).HasMaxLength(7); // e.g., #RRGGBB
 
-            // Dodajemy relację 1:N z Activity
+            // 1:N relationship with Activity
             entity.HasMany(c => c.Activities)
                   .WithOne(a => a.Category)
                   .HasForeignKey(a => a.CategoryId)
@@ -229,7 +249,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(c => c.Post)
                   .WithMany(p => p.Comments)
                   .HasForeignKey(c => c.PostId)
-                  .OnDelete(DeleteBehavior.Cascade); // If a post is deleted, its comments are deleted.
+                  .OnDelete(DeleteBehavior.Restrict); // Don't delete a post if it has comments.
         });
     }
 }

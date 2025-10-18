@@ -21,4 +21,7 @@ public class Trip
 
     // A trip can have multiple transport legs (1:N)
     public ICollection<Transport> Transports { get; set; } = new List<Transport>();
+
+    // A trip can have many expenses (1:N)
+    public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
 }

@@ -1,4 +1,6 @@
-﻿namespace TravelHub.Domain.Entities;
+﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+
+namespace TravelHub.Domain.Entities;
 
 public class Comment
 {
@@ -16,4 +18,7 @@ public class Comment
     public int PostId { get; set; }
     // Navigation Property back to the Post
     public Post Post { get; set; }
+
+    // A comment can have many photos (1:N)
+    public ICollection<Photo> Photos { get; set; } = new List<Photo>();
 }
