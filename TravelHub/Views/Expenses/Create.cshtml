@@ -1,0 +1,93 @@
+﻿@model TravelHub.Web.ViewModels.Expenses.ExpenseCreateEditViewModel
+
+@{
+    ViewData["Title"] = "Create Expense";
+}
+
+<h1>Create Expense</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Value" class="control-label"></label>
+                <input asp-for="Value" class="form-control" type="number" step="0.01" />
+                <span asp-validation-for="Value" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CurrencyKey" class="control-label"></label>
+                <select asp-for="CurrencyKey" class="form-control">
+                    <option value="">-- Select Currency --</option>
+                    @foreach (var currency in Model.Currencies)
+                    {
+                        <option value="@currency.Key">@currency.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="CurrencyKey" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CategoryId" class="control-label"></label>
+                <select asp-for="CategoryId" class="form-control">
+                    <option value="">-- Select Category --</option>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PaidById" class="control-label"></label>
+                <select asp-for="PaidById" class="form-control">
+                    <option value="">-- Select Person --</option>
+                    @foreach (var person in Model.People)
+                    {
+                        <option value="@person.Id">@person.FullName (@person.Email)</option>
+                    }
+                </select>
+                <span asp-validation-for="PaidById" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="control-label">Participants</label>
+                <div class="border p-2" style="max-height: 200px; overflow-y: auto;">
+                    @foreach (var person in Model.AllPeople)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="SelectedParticipants"
+                                   value="@person.Id"
+                                   id="participant_@person.Id">
+                            <label class="form-check-label" for="participant_@person.Id">
+                                @person.FullName (@person.Email)
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

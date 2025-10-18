@@ -1,0 +1,70 @@
+﻿@model TravelHub.Web.ViewModels.Expenses.ExpenseDetailsViewModel
+
+@{
+    ViewData["Title"] = "Expense Details";
+}
+
+<h1>Expense Details</h1>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Value)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Value) @Html.DisplayFor(model => model.CurrencyKey)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.CurrencyName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.CurrencyName)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.CategoryName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.CategoryName)
+        </dd>
+
+        <dt class="col-sm-2">
+            Paid By
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.PaidByName)
+        </dd>
+
+        <dt class="col-sm-2">
+            Participants
+        </dt>
+        <dd class="col-sm-10">
+            @if (Model.ParticipantNames.Any())
+            {
+                <ul class="list-unstyled">
+                    @foreach (var participant in Model.ParticipantNames)
+                    {
+                        <li>• @participant</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <span class="text-muted">No participants</span>
+            }
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>

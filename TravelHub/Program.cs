@@ -60,7 +60,7 @@ builder.Services.AddScoped<ICurrencyRepository, CurrencyRepository>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
 
 // Services
-builder.Services.AddScoped(typeof(IGenericService<>), typeof(IGenericService<>));
+builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
 builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 
