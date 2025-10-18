@@ -13,8 +13,8 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<Trip> Trips { get; set; }
     public DbSet<Day> Days { get; set; }
     public DbSet<Activity> Activities { get; set; }
-    public DbSet<Spot> Spots { get; set; }
-    public DbSet<Accommodation> Accommodations { get; set; }
+    //public DbSet<Spot> Spots { get; set; }
+    //public DbSet<Accommodation> Accommodations { get; set; }
     public DbSet<Transport> Transports { get; set; }
     public DbSet<Photo> Photos { get; set; }
     public DbSet<Expense> Expenses { get; set; }
@@ -106,26 +106,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
         // --- Spot Configuration ---
         builder.Entity<Spot>(entity =>
         {
-            entity.HasKey(s => s.Id);
+            // entity.HasKey(s => s.Id);
             entity.Property(s => s.Cost).HasPrecision(18, 2);
-
-            // 1:N relationship with Activity
-            entity.HasOne(s => s.Activity)
-                  .WithMany(a => a.Spots)
-                  .HasForeignKey(s => s.ActivityId)
-                  .OnDelete(DeleteBehavior.Cascade); // If an activity is deleted, its spots are deleted.
         });
 
         // --- Accommodation Configuration ---
         builder.Entity<Accommodation>(entity =>
         {
-            // 1:1 relationship with Spot. The PK of Accommodation is also the FK to Spot.
-            entity.HasKey(a => a.Id);
-            entity.HasOne(a => a.Spot)
-                  .WithOne(s => s.Accommodation)
-                  .HasForeignKey<Accommodation>(a => a.Id)
-                  .OnDelete(DeleteBehavior.Cascade); // If a spot is deleted, its accommodation is deleted.
-
             entity.Property(a => a.CheckInTime).HasPrecision(4, 2);
             entity.Property(a => a.CheckOutTime).HasPrecision(4, 2);
         });

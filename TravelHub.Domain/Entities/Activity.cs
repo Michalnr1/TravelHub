@@ -12,7 +12,4 @@ public class Activity
     public int DayId { get; set; }
     // Navigation Property back to the day (1:N)
     public Day Day { get; set; }
-
-    // An activity can occur at multiple spots (1:N)
-    public ICollection<Spot> Spots { get; set; } = new List<Spot>();
 }
