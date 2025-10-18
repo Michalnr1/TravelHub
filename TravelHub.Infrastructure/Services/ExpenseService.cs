@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using TravelHub.Domain.Entities;
+﻿using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
 

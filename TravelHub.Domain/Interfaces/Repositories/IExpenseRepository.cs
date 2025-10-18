@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using TravelHub.Domain.Entities;
+﻿using TravelHub.Domain.Entities;
 
 namespace TravelHub.Domain.Interfaces.Repositories;
 

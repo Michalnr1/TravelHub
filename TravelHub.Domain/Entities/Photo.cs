@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
-
-namespace TravelHub.Domain.Entities;
+﻿namespace TravelHub.Domain.Entities;
 
 public class Photo
 {

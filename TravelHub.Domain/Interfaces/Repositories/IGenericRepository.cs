@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace TravelHub.Domain.Interfaces.Repositories;
+﻿namespace TravelHub.Domain.Interfaces.Repositories;
 
 // Generyczny interfejs bazowy dla wszystkich repozytoriów
 public interface IGenericRepository<T> where T : class

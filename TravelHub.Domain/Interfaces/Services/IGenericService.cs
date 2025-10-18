@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace TravelHub.Domain.Interfaces.Services;
+﻿namespace TravelHub.Domain.Interfaces.Services;
 
 // Generyczny interfejs bazowy dla wszystkich serwisów
 public interface IGenericService<T> where T : class

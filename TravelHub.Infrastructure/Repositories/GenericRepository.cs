@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using TravelHub.Domain.Interfaces.Repositories;
 
 namespace TravelHub.Infrastructure.Repositories;
