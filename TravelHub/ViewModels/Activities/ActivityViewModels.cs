@@ -7,26 +7,26 @@ namespace TravelHub.Web.ViewModels.Activities;
 public class ActivityViewModel
 {
     public int Id { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
+    public required string Name { get; set; }
+    public string Description { get; set; } = string.Empty;
     public decimal Duration { get; set; }
     public int Order { get; set; }
-    public string CategoryName { get; set; }
-    public string TripName { get; set; }
-    public string DayName { get; set; }
+    public string? CategoryName { get; set; }
+    public required string TripName { get; set; }
+    public string? DayName { get; set; }
 }
 
 public class ActivityDetailsViewModel
 {
     public int Id { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
+    public required string Name { get; set; }
+    public string Description { get; set; } = string.Empty;
     public decimal Duration { get; set; }
     public int Order { get; set; }
-    public string CategoryName { get; set; }
-    public string TripName { get; set; }
-    public string DayName { get; set; }
-    public string Type { get; set; } // "Activity" or "Spot"
+    public string? CategoryName { get; set; }
+    public required string TripName { get; set; }
+    public string? DayName { get; set; }
+    public string? Type { get; set; } // "Activity" or "Spot"
 }
 
 public class ActivityCreateEditViewModel
@@ -35,10 +35,10 @@ public class ActivityCreateEditViewModel
 
     [Required(ErrorMessage = "Name is required")]
     [StringLength(100, ErrorMessage = "Name cannot be longer than 100 characters")]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     [StringLength(500, ErrorMessage = "Description cannot be longer than 500 characters")]
-    public string Description { get; set; }
+    public string? Description { get; set; }
 
     [Required(ErrorMessage = "Duration is required")]
     [Range(0, 24, ErrorMessage = "Duration must be between 0 and 24 hours")]
@@ -48,9 +48,8 @@ public class ActivityCreateEditViewModel
     [Range(1, 100, ErrorMessage = "Order must be between 1 and 100")]
     public int Order { get; set; }
 
-    [Required(ErrorMessage = "Category is required")]
     [Display(Name = "Category")]
-    public int CategoryId { get; set; }
+    public int? CategoryId { get; set; }
 
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]
@@ -94,13 +93,13 @@ public class SpotDetailsViewModel : ActivityDetailsViewModel
 public class CategorySelectItem
 {
     public int Id { get; set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
 }
 
 public class TripSelectItem
 {
     public int Id { get; set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
 }
 
 public class DaySelectItem

@@ -103,8 +103,8 @@ public class DayViewModel
 
 public class BasicActivityViewModel
 {
-    public string Name { get; set; }
-    public string Description { get; set; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
     public decimal Duration { get; set; }
-    public string CategoryName { get; set; }
+    public string? CategoryName { get; set; }
 }

@@ -43,7 +43,7 @@ public class ActivitiesController : Controller
             Duration = a.Duration,
             Order = a.Order,
             CategoryName = a.Category?.Name,
-            TripName = a.Trip?.Name,
+            TripName = a.Trip?.Name!,
             DayName = a.Day?.Name
         }).ToList();
 
@@ -72,7 +72,7 @@ public class ActivitiesController : Controller
             Duration = activity.Duration,
             Order = activity.Order,
             CategoryName = activity.Category?.Name,
-            TripName = activity.Trip?.Name,
+            TripName = activity.Trip?.Name!,
             DayName = activity.Day?.Name,
             Type = activity is Spot ? "Spot" : "Activity"
         };
@@ -97,7 +97,7 @@ public class ActivitiesController : Controller
             var activity = new Activity
             {
                 Name = viewModel.Name,
-                Description = viewModel.Description,
+                Description = viewModel.Description!,
                 Duration = viewModel.Duration,
                 Order = viewModel.Order,
                 CategoryId = viewModel.CategoryId,
@@ -152,7 +152,7 @@ public class ActivitiesController : Controller
                 }
 
                 existingActivity.Name = viewModel.Name;
-                existingActivity.Description = viewModel.Description;
+                existingActivity.Description = viewModel.Description!;
                 existingActivity.Duration = viewModel.Duration;
                 existingActivity.Order = viewModel.Order;
                 existingActivity.CategoryId = viewModel.CategoryId;
@@ -201,7 +201,7 @@ public class ActivitiesController : Controller
             Duration = activity.Duration,
             Order = activity.Order,
             CategoryName = activity.Category?.Name,
-            TripName = activity.Trip?.Name,
+            TripName = activity.Trip?.Name!,
             DayName = activity.Day?.Name,
             Type = activity is Spot ? "Spot" : "Activity"
         };
@@ -224,7 +224,7 @@ public class ActivitiesController : Controller
         return activity != null;
     }
 
-    private async Task<ActivityCreateEditViewModel> CreateActivityCreateEditViewModel(Activity activity = null)
+    private async Task<ActivityCreateEditViewModel> CreateActivityCreateEditViewModel(Activity? activity = null)
     {
         var viewModel = new ActivityCreateEditViewModel();
 

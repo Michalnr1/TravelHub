@@ -37,9 +37,9 @@ public class TransportsController : Controller
             Name = t.Name,
             Type = t.Type,
             Duration = t.Duration,
-            TripName = t.Trip?.Name,
-            FromSpotName = t.FromSpot?.Name,
-            ToSpotName = t.ToSpot?.Name
+            TripName = t.Trip?.Name!,
+            FromSpotName = t.FromSpot?.Name!,
+            ToSpotName = t.ToSpot?.Name!
         }).ToList();
 
         return View(viewModel);
@@ -65,9 +65,9 @@ public class TransportsController : Controller
             Name = transport.Name,
             Type = transport.Type,
             Duration = transport.Duration,
-            TripName = transport.Trip?.Name,
-            FromSpotName = transport.FromSpot?.Name,
-            ToSpotName = transport.ToSpot?.Name,
+            TripName = transport.Trip?.Name!,
+            FromSpotName = transport.FromSpot?.Name!,
+            ToSpotName = transport.ToSpot?.Name!,
             FromSpotCoordinates = transport.FromSpot != null ?
                 $"{transport.FromSpot.Latitude:F4}, {transport.FromSpot.Longitude:F4}" : "N/A",
             ToSpotCoordinates = transport.ToSpot != null ?
@@ -210,9 +210,9 @@ public class TransportsController : Controller
             Name = transport.Name,
             Type = transport.Type,
             Duration = transport.Duration,
-            TripName = transport.Trip?.Name,
-            FromSpotName = transport.FromSpot?.Name,
-            ToSpotName = transport.ToSpot?.Name
+            TripName = transport.Trip?.Name!,
+            FromSpotName = transport.FromSpot?.Name!,
+            ToSpotName = transport.ToSpot?.Name!
         };
 
         return View(viewModel);
@@ -233,7 +233,7 @@ public class TransportsController : Controller
         return transport != null;
     }
 
-    private async Task<TransportCreateEditViewModel> CreateTransportCreateEditViewModel(Transport transport = null)
+    private async Task<TransportCreateEditViewModel> CreateTransportCreateEditViewModel(Transport? transport = null)
     {
         var viewModel = new TransportCreateEditViewModel();
 

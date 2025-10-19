@@ -10,7 +10,7 @@ public class Day
     // Foreign Key for Trip
     public int TripId { get; set; }
     // Navigation Property back to the trip (1:N)
-    public Trip Trip { get; set; }
+    public Trip? Trip { get; set; }
 
     // A day can have multiple activities (1:N)
     public ICollection<Activity> Activities { get; set; } = new List<Activity>();

@@ -14,8 +14,13 @@ public class GenericService<T> : IGenericService<T> where T : class
 
     public async Task<T> GetByIdAsync(object id)
     {
-        return await _repository.GetByIdAsync(id);
+        var result = await _repository.GetByIdAsync(id);
+        if (result == null)
+            throw new InvalidOperationException($"Entity of type {typeof(T).Name} with id {id} was not found.");
+
+        return result;
     }
+
 
     public async Task<IReadOnlyList<T>> GetAllAsync()
     {

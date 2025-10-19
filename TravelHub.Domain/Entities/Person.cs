@@ -4,9 +4,9 @@ namespace TravelHub.Domain.Entities;
 
 public class Person : IdentityUser
 {
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Nationality { get; set; }
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
+    public required string Nationality { get; set; }
     public DateTime Birthday { get; set; }
 
     // Navigation Properties
