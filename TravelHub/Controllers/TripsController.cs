@@ -33,16 +33,16 @@ public class TripsController : Controller
     // GET: Trips
     public async Task<IActionResult> Index()
     {
-        var userId = GetCurrentUserId();
-        var trips = await _tripService.GetUserTripsAsync(userId);
-        var viewModel = trips.Select(t => new TripViewModel
+        var trips = await _tripService.GetAllWithUserAsync();
+        var viewModel = trips.Select(t => new TripWithUserViewModel
         {
             Id = t.Id,
             Name = t.Name,
             Status = t.Status,
             StartDate = t.StartDate,
             EndDate = t.EndDate,
-            DaysCount = t.Days?.Count ?? 0
+            DaysCount = t.Days?.Count ?? 0,
+            Person = t.Person
         });
 
         return View(viewModel);
@@ -119,7 +119,7 @@ public class TripsController : Controller
                 // await _unitOfWork.SaveChangesAsync();
 
                 TempData["SuccessMessage"] = "Trip created successfully!";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(MyTrips));
             }
             catch (Exception ex)
             {
@@ -192,7 +192,7 @@ public class TripsController : Controller
                 // await _unitOfWork.SaveChangesAsync();
 
                 TempData["SuccessMessage"] = "Trip updated successfully!";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(MyTrips));
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -259,7 +259,7 @@ public class TripsController : Controller
         // await _unitOfWork.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Trip deleted successfully!";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(MyTrips));
     }
 
     // GET: Trips/AddDay/5
@@ -437,6 +437,24 @@ public class TripsController : Controller
 
         ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
 
+
+        return View(viewModel);
+    }
+
+    // GET: MyTrips
+    public async Task<IActionResult> MyTrips()
+    {
+        var userId = GetCurrentUserId();
+        var trips = await _tripService.GetUserTripsAsync(userId);
+        var viewModel = trips.Select(t => new TripViewModel
+        {
+            Id = t.Id,
+            Name = t.Name,
+            Status = t.Status,
+            StartDate = t.StartDate,
+            EndDate = t.EndDate,
+            DaysCount = t.Days?.Count ?? 0
+        });
 
         return View(viewModel);
     }

@@ -110,4 +110,9 @@ public class TripService : GenericService<Trip>, ITripService
         median /= 2;
         return median;
     }
+
+    public async Task<IEnumerable<Trip>> GetAllWithUserAsync()
+    {
+        return await _tripRepository.GetAllWithUserAsync();
+    }
 }

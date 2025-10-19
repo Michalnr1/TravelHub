@@ -13,6 +13,17 @@ public class TripViewModel
     public int DaysCount { get; set; }
 }
 
+public class TripWithUserViewModel
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public Status Status { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public int DaysCount { get; set; }
+    public required Person Person { get; set; }
+}
+
 public class TripDetailViewModel
 {
     public int Id { get; set; }

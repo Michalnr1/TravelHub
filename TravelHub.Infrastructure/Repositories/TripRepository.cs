@@ -40,4 +40,12 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
     {
         return await _context.Set<Trip>().AnyAsync(t => t.Id == id);
     }
+
+    public async Task<IReadOnlyList<Trip>> GetAllWithUserAsync()
+    {
+        return await _context.Set<Trip>()
+            .Include(t => t.Person)
+            .OrderByDescending(t => t.StartDate)
+            .ToListAsync();
+    }
 }
