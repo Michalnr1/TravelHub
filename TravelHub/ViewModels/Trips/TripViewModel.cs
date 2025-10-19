@@ -21,6 +21,7 @@ public class TripDetailViewModel
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public List<DayViewModel> Days { get; set; } = new();
+    public List<BasicActivityViewModel>? Activities { get; set; } = new();
     public int TransportsCount { get; set; }
 }
 
@@ -87,4 +88,12 @@ public class DayViewModel
     public string Name { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     public int ActivitiesCount { get; set; }
+}
+
+public class BasicActivityViewModel
+{
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public decimal Duration { get; set; }
+    public string CategoryName { get; set; }
 }

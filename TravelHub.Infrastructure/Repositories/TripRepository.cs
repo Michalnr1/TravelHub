@@ -22,6 +22,7 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
         return await _context.Trips
             .Include(t => t.Days)
                 .ThenInclude(d => d.Activities)
+            .Include(t => t.Activities)
             .Include(t => t.Transports)
             .FirstOrDefaultAsync(t => t.Id == id);
     }

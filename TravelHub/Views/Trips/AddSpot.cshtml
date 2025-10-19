@@ -1,0 +1,201 @@
+﻿@model TravelHub.Web.ViewModels.Activities.SpotCreateEditViewModel
+
+@{
+    ViewData["Title"] = "Add Spot";
+    var apiKey = ViewData["GoogleApiKey"];
+}
+
+<h1>Add Spot</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="AddSpot">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" id="name-input"/>
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Description" class="control-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Duration" class="control-label"></label>
+                        <input asp-for="Duration" class="form-control" type="number" step="0.1" />
+                        <span asp-validation-for="Duration" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" asp-for="Order" />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Latitude" class="control-label"></label>
+                        <input asp-for="Latitude" class="form-control" type="number" step="0.0001" id="lat-input" />
+                        <span asp-validation-for="Latitude" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Longitude" class="control-label"></label>
+                        <input asp-for="Longitude" class="form-control" type="number" step="0.0001" id="lon-input"/>
+                        <span asp-validation-for="Longitude" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Cost" class="control-label"></label>
+                <input asp-for="Cost" class="form-control" type="number" step="0.01" />
+                <span asp-validation-for="Cost" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CategoryId" class="control-label"></label>
+                <select asp-for="CategoryId" class="form-control">
+                    <option value="">-- Select Category --</option>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger"></span>
+            </div>
+
+            <input type="hidden" asp-for="TripId" />
+
+            <div class="form-group mt-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+
+    <div>
+        <h2>Mapa</h2>
+
+        <p>Api Key: @apiKey</p>
+
+        <div class="place-autocomplete-card" id="card">
+        </div>
+
+        <div id="map" style="height:500px;width:100%;margin-top:10px;"></div>
+
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        // $(document).ready(function() {
+        //     $('#TripId').change(function() {
+        //         var tripId = $(this).val();
+        //         $('#DayId option').show();
+        //         if (tripId) {
+        //             $('#DayId option[data-tripid!="' + tripId + '"]').hide();
+        //             $('#DayId option[value=""]').show();
+        //         }
+        //         $('#DayId').val('');
+        //     });
+        // });
+    </script>
+
+    <script async
+            src="https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places&callback=initMap">
+    </script>
+
+    <script>
+        let map, directionsService, directionsRenderer;
+
+        let center = { lat: 52.2297, lng: 21.0122 };  // Warszawa
+
+        async function initMap() {
+          // Request needed libraries.
+          const [{ Map }, { AdvancedMarkerElement }] = await Promise.all([
+            google.maps.importLibrary("marker"),
+            google.maps.importLibrary("places"),
+          ]);
+
+          // Initialize the map.
+        map = new google.maps.Map(document.getElementById("map"), {
+                center: center,
+                zoom: 12,
+            });
+
+        //START
+        const placeAutocomplete =
+        new google.maps.places.PlaceAutocompleteElement();
+
+        placeAutocomplete.id = "start";
+        placeAutocomplete.locationBias = {center : center, radius : 5000};
+        const card = document.getElementById("card");
+
+        card.appendChild(placeAutocomplete);
+        map.controls[google.maps.ControlPosition.TOP_LEFT].push(card);
+
+
+          // marker = new google.maps.marker.AdvancedMarkerElement({
+          //   map,
+          // });
+          infoWindow = new google.maps.InfoWindow({});
+
+          placeAutocomplete.addEventListener("gmp-select", async ( {placePrediction} ) => {
+            const place = placePrediction.toPlace();
+            await place.fetchFields({
+              fields: ["displayName", "formattedAddress", "location"],
+            });
+            if (place.viewport) {
+              map.fitBounds(place.viewport);
+            } else {
+              map.setCenter(place.location);
+              map.setZoom(13);
+            }
+
+            let content =
+              '<div id="infowindow-content">' +
+              '<span id="place-displayname" class="title">' +
+              place.displayName +
+              '</span><br />' +
+              '<span id="place-address">' +
+              place.formattedAddress +
+              '</span><br />' +
+              '<span id="place-address">' +
+              place.location.lat() + ' ' + place.location.lng() +
+              '</span>' +
+              '</div>';
+
+            updateInfoWindow(content, place.location);
+            //marker.position = place.location;
+
+            document.getElementById("name-input").value = place.displayName;
+            document.getElementById("lat-input").value = Math.round(place.location.lat() * 10000) / 10000;
+            document.getElementById("lon-input").value = Math.round(place.location.lng() * 10000) / 10000;
+            
+
+          });
+        }
+
+            function updateInfoWindow(content, center) {
+                infoWindow.setContent(content);
+                infoWindow.setPosition(center);
+                infoWindow.open({
+                    map,
+                    //anchor: marker,
+                    shouldFocus: false,
+            });
+        }
+
+    </script>
+}
