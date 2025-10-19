@@ -15,7 +15,7 @@ namespace TravelHub.Web.Controllers
             _logger = logger;
 
             _configuration = configuration;
-            _apiKey = _configuration["ApiKeys:GoogleApiKey"];
+            _apiKey = _configuration["ApiKeys:GoogleApiKey"]!;
 
             if (string.IsNullOrEmpty(_apiKey))
             {

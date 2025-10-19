@@ -3,22 +3,22 @@
 public class Transport
 {
     public int Id { get; set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
     public TransportationType Type { get; set; }
     public decimal Duration { get; set; }
 
     // Foreign Key for Trip
-    public int TripId { get; set; }
+    public required int TripId { get; set; }
     // Navigation Property back to the trip
-    public Trip Trip { get; set; }
+    public Trip? Trip { get; set; }
 
     // Foreign Key for the 'from' Spot
-    public int FromSpotId { get; set; }
+    public required int FromSpotId { get; set; }
     // Navigation Property for the departure spot
-    public Spot FromSpot { get; set; }
+    public Spot? FromSpot { get; set; }
 
     // Foreign Key for the 'to' Spot
-    public int ToSpotId { get; set; }
+    public required int ToSpotId { get; set; }
     // Navigation Property for the arrival spot
-    public Spot ToSpot { get; set; }
+    public Spot? ToSpot { get; set; }
 }

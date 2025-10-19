@@ -43,7 +43,7 @@ public class TripsController : Controller
             StartDate = t.StartDate,
             EndDate = t.EndDate,
             DaysCount = t.Days?.Count ?? 0,
-            Person = t.Person
+            Person = t.Person!
         });
 
         return View(viewModel);
@@ -388,7 +388,7 @@ public class TripsController : Controller
                 var spot = new Spot
                 {
                     Name = viewModel.Name,
-                    Description = viewModel.Description,
+                    Description = viewModel.Description!,
                     Duration = viewModel.Duration,
                     CategoryId = viewModel.CategoryId,
                     TripId = id,

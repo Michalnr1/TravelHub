@@ -42,7 +42,7 @@ public class ExpensesController : Controller
             Value = e.Value,
             PaidByName = e.PaidBy?.FirstName + " " + e.PaidBy?.LastName,
             CategoryName = e.Category?.Name,
-            CurrencyName = e.Currency?.Name
+            CurrencyName = e.Currency?.Name!
         }).ToList();
 
         return View(viewModel);
@@ -69,7 +69,7 @@ public class ExpensesController : Controller
             Value = expense.Value,
             PaidByName = expense.PaidBy?.FirstName + " " + expense.PaidBy?.LastName,
             CategoryName = expense.Category?.Name,
-            CurrencyName = expense.Currency?.Name,
+            CurrencyName = expense.Currency?.Name!,
             CurrencyKey = expense.CurrencyKey,
             ParticipantNames = expense.Participants?.Select(p => p.FirstName + " " + p.LastName).ToList() ?? new List<string>()
         };
@@ -215,7 +215,7 @@ public class ExpensesController : Controller
             Value = expense.Value,
             PaidByName = expense.PaidBy?.FirstName + " " + expense.PaidBy?.LastName,
             CategoryName = expense.Category?.Name,
-            CurrencyName = expense.Currency?.Name
+            CurrencyName = expense.Currency?.Name!
         };
 
         return View(viewModel);
@@ -236,7 +236,7 @@ public class ExpensesController : Controller
         return expense != null;
     }
 
-    private async Task<ExpenseCreateEditViewModel> CreateExpenseCreateEditViewModel(Expense expense = null)
+    private async Task<ExpenseCreateEditViewModel> CreateExpenseCreateEditViewModel(Expense? expense = null)
     {
         var viewModel = new ExpenseCreateEditViewModel();
 
@@ -279,14 +279,14 @@ public class ExpensesController : Controller
         {
             Id = p.Id,
             FullName = $"{p.FirstName} {p.LastName}",
-            Email = p.Email
+            Email = p.Email!
         }).ToList();
 
         viewModel.AllPeople = people.Select(p => new PersonSelectItem
         {
             Id = p.Id,
             FullName = $"{p.FirstName} {p.LastName}",
-            Email = p.Email
+            Email = p.Email!
         }).ToList();
     }
 }

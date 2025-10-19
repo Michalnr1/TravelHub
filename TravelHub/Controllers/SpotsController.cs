@@ -42,7 +42,7 @@ public class SpotsController : Controller
             Duration = s.Duration,
             Order = s.Order,
             CategoryName = s.Category?.Name,
-            TripName = s.Trip?.Name,
+            TripName = s.Trip?.Name!,
             DayName = s.Day?.Name,
             Longitude = s.Longitude,
             Latitude = s.Latitude,
@@ -77,7 +77,7 @@ public class SpotsController : Controller
             Duration = spot.Duration,
             Order = spot.Order,
             CategoryName = spot.Category?.Name,
-            TripName = spot.Trip?.Name,
+            TripName = spot.Trip?.Name!,
             DayName = spot.Day?.Name,
             Longitude = spot.Longitude,
             Latitude = spot.Latitude,
@@ -107,7 +107,7 @@ public class SpotsController : Controller
             var spot = new Spot
             {
                 Name = viewModel.Name,
-                Description = viewModel.Description,
+                Description = viewModel.Description!,
                 Duration = viewModel.Duration,
                 Order = viewModel.Order,
                 CategoryId = viewModel.CategoryId,
@@ -165,7 +165,7 @@ public class SpotsController : Controller
                 }
 
                 existingSpot.Name = viewModel.Name;
-                existingSpot.Description = viewModel.Description;
+                existingSpot.Description = viewModel.Description!;
                 existingSpot.Duration = viewModel.Duration;
                 existingSpot.Order = viewModel.Order;
                 existingSpot.CategoryId = viewModel.CategoryId;
@@ -217,7 +217,7 @@ public class SpotsController : Controller
             Duration = spot.Duration,
             Order = spot.Order,
             CategoryName = spot.Category?.Name,
-            TripName = spot.Trip?.Name,
+            TripName = spot.Trip?.Name!,
             DayName = spot.Day?.Name,
             Longitude = spot.Longitude,
             Latitude = spot.Latitude,
@@ -242,7 +242,7 @@ public class SpotsController : Controller
         return spot != null;
     }
 
-    private async Task<SpotCreateEditViewModel> CreateSpotCreateEditViewModel(Spot spot = null)
+    private async Task<SpotCreateEditViewModel> CreateSpotCreateEditViewModel(Spot? spot = null)
     {
         var viewModel = new SpotCreateEditViewModel();
 
