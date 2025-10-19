@@ -68,4 +68,46 @@ public class TripService : GenericService<Trip>, ITripService
     {
         return await _tripRepository.ExistsAsync(id);
     }
+
+    public async Task<(double medianLatitude, double medianLongitude)> GetMedianCoords(int id)
+    {
+        var trip = await GetTripWithDetailsAsync(id);
+
+        if (trip == null)
+        {
+            throw new ArgumentException($"Trip with ID {id} not found");
+        }
+
+        var allSpots = new List<Spot>();
+
+        // Spots directly in trip
+        allSpots.AddRange(trip.Activities.OfType<Spot>());
+
+        // Spots in each Day
+        foreach (var day in trip.Days)
+        {
+            allSpots.AddRange(day.Activities.OfType<Spot>());
+        }
+
+        //Domyślnie jakiś default użytkownika?
+
+        //if (!allSpots.Any())
+        //    throw new InvalidOperationException("No spots found in this trip.");
+
+        // Compute medians
+        var medianLatitude = GetMedian(allSpots.Select(s => s.Latitude));
+        var medianLongitude = GetMedian(allSpots.Select(s => s.Longitude));
+
+        return (medianLatitude, medianLongitude);
+    }
+
+    public double GetMedian(IEnumerable<double> numbers)
+    {
+        if (numbers == null || numbers.Count() == 0) return 0;
+        int count = numbers.Count();
+        var orderedNumbers = numbers.OrderBy(p => p);
+        double median = orderedNumbers.ElementAt(count / 2) + orderedNumbers.ElementAt((count - 1) / 2);
+        median /= 2;
+        return median;
+    }
 }

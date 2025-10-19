@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Add Spot";
     var apiKey = ViewData["GoogleApiKey"];
+    var startLat = ViewData["Latitude"]; 
+    var startLng = ViewData["Longitude"];
 }
 
 <h1>Add Spot</h1>
@@ -119,7 +121,8 @@
     <script>
         let map, directionsService, directionsRenderer;
 
-        let center = { lat: 52.2297, lng: 21.0122 };  // Warszawa
+
+        let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };  // Warszawa
 
         async function initMap() {
           // Request needed libraries.

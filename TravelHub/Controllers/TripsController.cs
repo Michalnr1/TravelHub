@@ -367,6 +367,11 @@ public class TripsController : Controller
 
         ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
 
+        (double lat, double lng) = await _tripService.GetMedianCoords(id);
+
+        ViewData["Latitude"] = lat;
+        ViewData["Longitude"] = lng;
+
         return View(viewModel);
     }
 
