@@ -74,8 +74,6 @@
                 <span asp-validation-for="CategoryId" class="text-danger"></span>
             </div>
 
-            <input type="hidden" asp-for="TripId" />
-
             <div class="form-group mt-3">
                 <input type="submit" value="Create" class="btn btn-primary" />
                 <a asp-action="Index" class="btn btn-secondary">Back to List</a>
@@ -100,19 +98,6 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-    <script>
-        // $(document).ready(function() {
-        //     $('#TripId').change(function() {
-        //         var tripId = $(this).val();
-        //         $('#DayId option').show();
-        //         if (tripId) {
-        //             $('#DayId option[data-tripid!="' + tripId + '"]').hide();
-        //             $('#DayId option[value=""]').show();
-        //         }
-        //         $('#DayId').val('');
-        //     });
-        // });
-    </script>
 
     <script async
             src="https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places&callback=initMap">
@@ -121,16 +106,14 @@
     <script>
         let map;
 
-        let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };  // Warszawa
+        let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
 
         async function initMap() {
             // Request needed libraries.
-            const [{ Map }, { AdvancedMarkerElement }] = await Promise.all([
+            const [{ Map }, { Place }] = await Promise.all([
                 google.maps.importLibrary("marker"),
                 google.maps.importLibrary("places"),
             ]);
-
-            const { Place } = await google.maps.importLibrary("places");
 
             // Initialize the map.
             map = new google.maps.Map(document.getElementById("map"), {
@@ -197,7 +180,6 @@
                         });
                         await place.fetchFields({ fields: ['displayName'] });
                         document.getElementById("name-input").value = place.displayName;
-                        alert(JSON.stringify(place));
                 } else {
                     let content =
                       '<span id="place-coords">' +
@@ -214,7 +196,7 @@
 
             });
         }
-
+            
             function updateInfoWindow(content, center) {
                 infoWindow.setContent(content);
                 infoWindow.setPosition(center);

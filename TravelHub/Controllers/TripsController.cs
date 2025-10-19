@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Activities;
@@ -15,15 +14,17 @@ public class TripsController : Controller
 {
     private readonly ITripService _tripService;
     private readonly ISpotService _spotService;
+    private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ILogger<TripsController> _logger;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
 
-    public TripsController(ITripService tripService, ISpotService spotService, IGenericService<Category> categoryService, ILogger<TripsController> logger, UserManager<Person> userManager, IConfiguration configuration)
+    public TripsController(ITripService tripService, ISpotService spotService, IActivityService activityService, IGenericService<Category> categoryService, ILogger<TripsController> logger, UserManager<Person> userManager, IConfiguration configuration)
     {
         _tripService = tripService;
         _spotService = spotService;
+        _activityService = activityService;
         _categoryService = categoryService;
         _configuration = configuration;
         _logger = logger;
@@ -375,15 +376,10 @@ public class TripsController : Controller
         return View(viewModel);
     }
 
-    // POST: Trips/AddDay/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddSpot(int id, SpotCreateEditViewModel viewModel)
     {
-        if (id != viewModel.TripId)
-        {
-            return NotFound();
-        }
 
         if (ModelState.IsValid)
         {
@@ -402,8 +398,6 @@ public class TripsController : Controller
                 };
 
                 await _spotService.AddAsync(spot);
-                // W rzeczywistej aplikacji tutaj byłoby zapisanie zmian w bazie
-                // await _unitOfWork.SaveChangesAsync();
 
                 TempData["SuccessMessage"] = "Spot added successfully!";
                 return RedirectToAction(nameof(Details), new { id });
@@ -437,6 +431,89 @@ public class TripsController : Controller
 
         ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
 
+
+        return View(viewModel);
+    }
+
+    public async Task<IActionResult> AddActivity(int id)
+    {
+        var trip = await _tripService.GetByIdAsync(id);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        var viewModel = new ActivityCreateEditViewModel
+        {
+            TripId = id,
+            Order = 1
+        };
+
+        // Categories
+        var categories = await _categoryService.GetAllAsync();
+        viewModel.Categories = categories.Select(c => new CategorySelectItem
+        {
+            Id = c.Id,
+            Name = c.Name
+        }).ToList();
+
+        return View(viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddActivity(int id, ActivityCreateEditViewModel viewModel)
+    {
+
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                var activity = new Activity
+                {
+                    Name = viewModel.Name,
+                    Description = viewModel.Description,
+                    Duration = viewModel.Duration,
+                    CategoryId = viewModel.CategoryId,
+                    TripId = id,
+                };
+
+                await _activityService.AddAsync(activity);
+
+                TempData["SuccessMessage"] = "Activity added successfully!";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+            catch (ArgumentException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding activity to trip");
+                ModelState.AddModelError("", "An error occurred while adding the activity.");
+            }
+        }
+
+        // Ponownie ustaw właściwości potrzebne dla widoku
+        var trip = await _tripService.GetByIdAsync(id);
+        if (trip != null)
+        {
+            viewModel.TripId = id;
+            viewModel.Order = 1;
+        }
+
+        // Categories
+        var categories = await _categoryService.GetAllAsync();
+        viewModel.Categories = categories.Select(c => new CategorySelectItem
+        {
+            Id = c.Id,
+            Name = c.Name
+        }).ToList();
 
         return View(viewModel);
     }
