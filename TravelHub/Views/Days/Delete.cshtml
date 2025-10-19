@@ -1,0 +1,21 @@
+﻿@model TravelHub.Domain.Entities.Day
+@{
+    ViewData["Title"] = "Delete Day";
+}
+
+<h2>Delete Day</h2>
+<hr />
+
+<h4>Are you sure you want to delete Day @Model.Number - "@Model.Name"?</h4>
+
+<dl class="row">
+    <dt class="col-sm-3">Date</dt>
+    <dd class="col-sm-9">@Model.Date.ToString("D")</dd>
+</dl>
+
+<form asp-action="DeleteConfirmed" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">Cancel</a>
+</form>

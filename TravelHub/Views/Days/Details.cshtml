@@ -1,0 +1,35 @@
+﻿@model TravelHub.Domain.Entities.Day
+@{
+    ViewData["Title"] = $"Day {Model.Number} Details";
+}
+
+<h2>Day @Model.Number - @Model.Name</h2>
+<hr />
+
+<dl class="row">
+    <dt class="col-sm-3">Date</dt>
+    <dd class="col-sm-9">@Model.Date.ToString("D")</dd>
+
+    <dt class="col-sm-3">Activities</dt>
+    <dd class="col-sm-9">
+        @if (Model.Activities.Any())
+        {
+            <ul>
+                @foreach (var activity in Model.Activities)
+                {
+                    <li>@activity.Name</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <span>No activities yet.</span>
+        }
+    </dd>
+</dl>
+
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
+    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">Back to Trip</a>
+</div>
