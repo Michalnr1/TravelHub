@@ -70,6 +70,7 @@ builder.Services.AddScoped<ITripRepository, TripRepository>();
 // Services
 builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
 builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<IDayService, DayService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<ISpotService, SpotService>();
 builder.Services.AddScoped<ITransportService, TransportService>();

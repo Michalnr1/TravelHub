@@ -6,6 +6,11 @@
 <h2>Day @Model.Number - @Model.Name</h2>
 <hr />
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
 <dl class="row">
     <dt class="col-sm-3">Date</dt>
     <dd class="col-sm-9">@Model.Date.ToString("D")</dd>
@@ -26,6 +31,12 @@
             <span>No activities yet.</span>
         }
     </dd>
+    <a asp-controller="Trips" asp-action="AddSpot" asp-route-id="@Model.TripId" asp-route-dayId="@Model.Id" class="btn btn-primary">
+        Add Spot to This Day
+    </a>
+    <a asp-controller="Trips" asp-action="AddActivity" asp-route-id="@Model.TripId" asp-route-dayId="@Model.Id" class="btn btn-primary">
+        Add Activity to This Day
+    </a>
 </dl>
 
 <div>

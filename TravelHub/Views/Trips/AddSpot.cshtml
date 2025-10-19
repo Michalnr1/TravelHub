@@ -11,6 +11,7 @@
 
 <hr />
 <div class="row">
+    <h1>Add Spot to @ViewData["ParentName"]</h1>
     <div class="col-md-6">
         <form asp-action="AddSpot">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -73,6 +74,8 @@
                 </select>
                 <span asp-validation-for="CategoryId" class="text-danger"></span>
             </div>
+
+            <input type="hidden" asp-for="DayId" />
 
             <div class="form-group mt-3">
                 <input type="submit" value="Create" class="btn btn-primary" />

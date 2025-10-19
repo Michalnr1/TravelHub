@@ -10,11 +10,11 @@ namespace TravelHub.Web.Controllers;
 [Authorize]
 public class DaysController : Controller
 {
-    private readonly IGenericService<Day> _dayService;
+    private readonly IDayService _dayService;
     private readonly ITripService _tripService;
     private readonly ILogger<DaysController> _logger;
 
-    public DaysController(IGenericService<Day> dayService, ITripService tripService, ILogger<DaysController> logger)
+    public DaysController(IDayService dayService, ITripService tripService, ILogger<DaysController> logger)
     {
         _dayService = dayService;
         _tripService = tripService;
@@ -24,7 +24,7 @@ public class DaysController : Controller
     // GET: Days/Details/5
     public async Task<IActionResult> Details(int id)
     {
-        var day = await _dayService.GetByIdAsync(id);
+        var day = await _dayService.GetDayWithDetailsAsync(id);
         if (day == null)
         {
             return NotFound();

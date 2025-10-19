@@ -339,7 +339,7 @@ public class TripsController : Controller
         return View(viewModel);
     }
 
-    public async Task<IActionResult> AddSpot(int id)
+    public async Task<IActionResult> AddSpot(int id, int? dayId = null)
     {
         var trip = await _tripService.GetByIdAsync(id);
         if (trip == null)
@@ -355,6 +355,7 @@ public class TripsController : Controller
         var viewModel = new SpotCreateEditViewModel
         {
             TripId = id,
+            DayId = dayId,
             Order = 1
         };
 
@@ -372,6 +373,10 @@ public class TripsController : Controller
 
         ViewData["Latitude"] = lat;
         ViewData["Longitude"] = lng;
+
+        ViewData["ParentName"] = dayId.HasValue
+        ? $"{trip.Days.FirstOrDefault(d => d.Id == dayId)?.Name}"
+        : trip.Name;
 
         return View(viewModel);
     }
@@ -394,13 +399,22 @@ public class TripsController : Controller
                     TripId = id,
                     Longitude = viewModel.Longitude,
                     Latitude = viewModel.Latitude,
-                    Cost = viewModel.Cost
+                    Cost = viewModel.Cost,
+                    DayId = viewModel.DayId
                 };
 
                 await _spotService.AddAsync(spot);
 
                 TempData["SuccessMessage"] = "Spot added successfully!";
-                return RedirectToAction(nameof(Details), new { id });
+
+                if (viewModel.DayId.HasValue)
+                {
+                    return RedirectToAction("Details", "Days", new { id = viewModel.DayId });
+                } else
+                {
+                    return RedirectToAction(nameof(Details), new { id });
+                }
+                    
             }
             catch (ArgumentException ex)
             {
@@ -435,7 +449,7 @@ public class TripsController : Controller
         return View(viewModel);
     }
 
-    public async Task<IActionResult> AddActivity(int id)
+    public async Task<IActionResult> AddActivity(int id, int? dayId = null)
     {
         var trip = await _tripService.GetByIdAsync(id);
         if (trip == null)
@@ -451,7 +465,8 @@ public class TripsController : Controller
         var viewModel = new ActivityCreateEditViewModel
         {
             TripId = id,
-            Order = 1
+            Order = 1,
+            DayId = dayId
         };
 
         // Categories
@@ -461,6 +476,10 @@ public class TripsController : Controller
             Id = c.Id,
             Name = c.Name
         }).ToList();
+
+        ViewData["ParentName"] = dayId.HasValue
+        ? $"{trip.Days.FirstOrDefault(d => d.Id == dayId)?.Name}"
+        : trip.Name;
 
         return View(viewModel);
     }
@@ -481,12 +500,20 @@ public class TripsController : Controller
                     Duration = viewModel.Duration,
                     CategoryId = viewModel.CategoryId,
                     TripId = id,
+                    DayId = viewModel.DayId
                 };
 
                 await _activityService.AddAsync(activity);
 
                 TempData["SuccessMessage"] = "Activity added successfully!";
-                return RedirectToAction(nameof(Details), new { id });
+                if (viewModel.DayId.HasValue)
+                {
+                    return RedirectToAction("Details", "Days", new { id = viewModel.DayId });
+                }
+                else
+                {
+                    return RedirectToAction(nameof(Details), new { id });
+                }
             }
             catch (ArgumentException ex)
             {

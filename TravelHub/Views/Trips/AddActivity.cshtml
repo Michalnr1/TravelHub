@@ -8,6 +8,7 @@
 
 <hr />
 <div class="row">
+    <h1>Add Spot to @ViewData["ParentName"]</h1>
     <div class="col-md-6">
         <form asp-action="AddActivity">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -35,6 +36,7 @@
             </div>
 
             <input type="hidden" asp-for="Order" />
+            <input type="hidden" asp-for="DayId" />
 
             <div class="form-group">
                 <label asp-for="CategoryId" class="control-label"></label>
