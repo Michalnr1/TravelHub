@@ -15,6 +15,7 @@ public class SpotsController : Controller
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
+    private readonly IPhotoService _photoService;
     private readonly ILogger<SpotsController> _logger;
 
     public SpotsController(
@@ -22,12 +23,14 @@ public class SpotsController : Controller
         IGenericService<Category> categoryService,
         ITripService tripService,
         IGenericService<Day> dayService,
+        IPhotoService photoService,
         ILogger<SpotsController> logger)
     {
         _spotService = spotService;
         _categoryService = categoryService;
         _tripService = tripService;
         _dayService = dayService;
+        _photoService = photoService;
         _logger = logger;
     }
 
@@ -90,6 +93,15 @@ public class SpotsController : Controller
             TransportsFromCount = spot.TransportsFrom?.Count ?? 0,
             TransportsToCount = spot.TransportsTo?.Count ?? 0
         };
+
+        // pobierz zdjęcia i zamapuj na PhotoViewModel
+        var photos = await _photoService.GetBySpotIdAsync(spot.Id);
+        viewModel.Photos = photos.Select(p => new PhotoViewModel
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Alt = p.Alt
+        }).ToList();
 
         return View(viewModel);
     }

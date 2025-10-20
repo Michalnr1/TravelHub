@@ -1,0 +1,31 @@
+﻿@model TravelHub.Web.ViewModels.Categories.CategoryViewModel
+
+@{
+    ViewData["Title"] = "Usuń kategorię";
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<h2>Usuń kategorię</h2>
+
+@if (Model != null)
+{
+    <div class="mb-3">
+        <p>Czy na pewno chcesz usunąć kategorię <strong>@Model.Name</strong>?</p>
+        <p><strong>Kolor:</strong> <span style="display:inline-block;width:28px;height:20px;background:@Model.Color;border:1px solid #ccc;"></span> @Model.Color</p>
+    </div>
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">Usuń</button>
+        <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
+    </form>
+}
+else
+{
+    <div class="alert alert-warning">Nie znaleziono kategorii.</div>
+    <a asp-action="Index" class="btn btn-link">Powrót</a>
+}

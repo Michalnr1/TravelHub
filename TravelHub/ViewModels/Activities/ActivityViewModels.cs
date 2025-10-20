@@ -83,11 +83,19 @@ public class SpotCreateEditViewModel : ActivityCreateEditViewModel
     public decimal Cost { get; set; }
 }
 
+public class PhotoViewModel
+{
+    public int Id { get; set; }
+    public string? Name { get; set; }
+    public string? Alt { get; set; }
+}
+
 public class SpotDetailsViewModel : ActivityDetailsViewModel
 {
     public double Longitude { get; set; }
     public double Latitude { get; set; }
     public decimal Cost { get; set; }
+    public IEnumerable<PhotoViewModel>? Photos { get; set; }
     public int PhotoCount { get; set; }
     public int TransportsFromCount { get; set; }
     public int TransportsToCount { get; set; }
