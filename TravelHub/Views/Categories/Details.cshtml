@@ -1,0 +1,16 @@
+﻿@model TravelHub.Web.ViewModels.Categories.CategoryViewModel
+
+@{
+    ViewData["Title"] = "Szczegóły kategorii";
+}
+
+<h2>@Model.Name</h2>
+
+<div class="mb-3">
+    <strong>Kolor:</strong>
+    <span style="display:inline-block;width:28px;height:20px;background:@Model.Color;border:1px solid #ccc;"></span>
+    <span class="ms-2">@Model.Color</span>
+</div>
+
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edytuj</a>
+<a asp-action="Index" class="btn btn-link">Powrót</a>

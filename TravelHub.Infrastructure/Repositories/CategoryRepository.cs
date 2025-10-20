@@ -25,4 +25,19 @@ public class CategoryRepository : GenericRepository<Category>, ICategoryReposito
         return await _context.Set<Category>()
             .AnyAsync(c => c.Name.ToLower() == name.ToLower());
     }
+
+    public async Task<bool> IsInUseAsync(int categoryId)
+    {
+        // Sprawdź, czy którakolwiek Activity (w tym Spot) odwołuje się do tej kategorii
+        var usedInActivities = await _context.Set<Activity>()
+            .AnyAsync(a => a.CategoryId == categoryId);
+
+        if (usedInActivities) return true;
+
+        // Sprawdź wydatki
+        var usedInExpenses = await _context.Set<Expense>()
+            .AnyAsync(e => e.CategoryId == categoryId);
+
+        return usedInExpenses;
+    }
 }
