@@ -10,6 +10,7 @@ public class ActivityViewModel
     public required string Name { get; set; }
     public string Description { get; set; } = string.Empty;
     public decimal Duration { get; set; }
+    public string DurationString { get; set; } = "00:00";
     public int Order { get; set; }
     public string? CategoryName { get; set; }
     public required string TripName { get; set; }
@@ -22,9 +23,11 @@ public class ActivityDetailsViewModel
     public required string Name { get; set; }
     public string Description { get; set; } = string.Empty;
     public decimal Duration { get; set; }
+    public string DurationString { get; set; } = "00:00";
     public int Order { get; set; }
     public string? CategoryName { get; set; }
     public required string TripName { get; set; }
+    public int TripId { get; set; }
     public string? DayName { get; set; }
     public string? Type { get; set; } // "Activity" or "Spot"
 }
@@ -41,11 +44,12 @@ public class ActivityCreateEditViewModel
     public string? Description { get; set; }
 
     [Required(ErrorMessage = "Duration is required")]
-    [Range(0, 24, ErrorMessage = "Duration must be between 0 and 24 hours")]
+    [Display(Name = "Duration (hours:minutes)")]
+    [RegularExpression(@"^([0-9]{1,2}):([0-5][0-9])$", ErrorMessage = "Please enter duration in format HH:MM")]
+    public string DurationString { get; set; } = "00:00";
+
     public decimal Duration { get; set; }
 
-    [Required(ErrorMessage = "Order is required")]
-    [Range(1, 100, ErrorMessage = "Order must be between 1 and 100")]
     public int Order { get; set; }
 
     [Display(Name = "Category")]

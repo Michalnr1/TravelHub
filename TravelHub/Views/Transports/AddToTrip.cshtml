@@ -1,0 +1,82 @@
+﻿@model TravelHub.Web.ViewModels.Transports.TransportCreateEditViewModel
+
+@{
+    ViewData["Title"] = $"Add Transport to {ViewData["TripName"]}";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? Url.Action("Details", "Trips", new { id = Model.TripId });
+}
+
+<h1>Add Transport to @ViewData["TripName"]</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="AddToTrip" asp-route-tripId="@Model.TripId">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="TripId" />
+
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Type" class="control-label"></label>
+                <select asp-for="Type" class="form-control">
+                    <option value="">-- Select Transportation Type --</option>
+                    @foreach (var type in Model.TransportationTypes)
+                    {
+                        <option value="@type.Value">@type.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="Type" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DurationString" class="control-label"></label>
+                <input asp-for="DurationString" class="form-control" type="time" step="300" />
+                <span asp-validation-for="DurationString" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="FromSpotId" class="control-label"></label>
+                        <select asp-for="FromSpotId" class="form-control">
+                            <option value="">-- Select From Spot --</option>
+                            @foreach (var spot in Model.Spots)
+                            {
+                                <option value="@spot.Id">@spot.Name (@spot.Coordinates)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="FromSpotId" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="ToSpotId" class="control-label"></label>
+                        <select asp-for="ToSpotId" class="form-control">
+                            <option value="">-- Select To Spot --</option>
+                            @foreach (var spot in Model.Spots)
+                            {
+                                <option value="@spot.Id">@spot.Name (@spot.Coordinates)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="ToSpotId" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <input type="submit" value="Add Transport" class="btn btn-primary" />
+                <a href="@returnUrl" class="btn btn-secondary">Back to Trip</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -11,4 +11,5 @@ public interface IActivityRepository : IGenericRepository<Activity>
 
     // Pobiera aktywności w wycieczce z dodatkowymi danymi
     Task<IReadOnlyList<Activity>> GetTripActivitiesWithDetailsAsync(int tripId);
+    Task<IReadOnlyList<Activity>> GetAllWithDetailsAsync();
 }

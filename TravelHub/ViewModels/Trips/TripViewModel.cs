@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using TravelHub.Domain.Entities;
+using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Transports;
 
 namespace TravelHub.Web.ViewModels.Trips;
 
@@ -31,9 +33,17 @@ public class TripDetailViewModel
     public Status Status { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+
+    // Collections
     public List<DayViewModel> Days { get; set; } = new();
-    public List<BasicActivityViewModel>? Activities { get; set; } = new();
-    public int TransportsCount { get; set; }
+    public List<ActivityViewModel> Activities { get; set; } = new();
+    public List<SpotDetailsViewModel> Spots { get; set; } = new();
+    public List<TransportViewModel> Transports { get; set; } = new();
+
+    // Counts for display
+    public int ActivitiesCount => Activities.Count;
+    public int SpotsCount => Spots.Count;
+    public int TransportsCount => Transports.Count;
 }
 
 public class CreateTripViewModel

@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Transports;
@@ -16,27 +17,31 @@ public class TransportsController : Controller
     private readonly ITransportService _transportService;
     private readonly ITripService _tripService;
     private readonly ISpotService _spotService;
+    private readonly ILogger<TransportsController> _logger;
 
     public TransportsController(
         ITransportService transportService,
         ITripService tripService,
-        ISpotService spotService)
+        ISpotService spotService,
+        ILogger<TransportsController> logger)
     {
         _transportService = transportService;
         _tripService = tripService;
         _spotService = spotService;
+        _logger = logger;
     }
 
     // GET: Transports
     public async Task<IActionResult> Index()
     {
-        var transports = await _transportService.GetAllAsync();
+        var transports = await _transportService.GetAllWithDetailsAsync();
         var viewModel = transports.Select(t => new TransportViewModel
         {
             Id = t.Id,
             Name = t.Name,
             Type = t.Type,
             Duration = t.Duration,
+            DurationString = ConvertDecimalToTimeString(t.Duration),
             TripName = t.Trip?.Name!,
             FromSpotName = t.FromSpot?.Name!,
             ToSpotName = t.ToSpot?.Name!
@@ -53,7 +58,7 @@ public class TransportsController : Controller
             return NotFound();
         }
 
-        var transport = await _transportService.GetByIdAsync(id.Value);
+        var transport = await _transportService.GetByIdWithDetailsAsync(id.Value);
         if (transport == null)
         {
             return NotFound();
@@ -65,7 +70,9 @@ public class TransportsController : Controller
             Name = transport.Name,
             Type = transport.Type,
             Duration = transport.Duration,
+            DurationString = ConvertDecimalToTimeString(transport.Duration),
             TripName = transport.Trip?.Name!,
+            TripId = transport.TripId,
             FromSpotName = transport.FromSpot?.Name!,
             ToSpotName = transport.ToSpot?.Name!,
             FromSpotCoordinates = transport.FromSpot != null ?
@@ -81,6 +88,7 @@ public class TransportsController : Controller
     public async Task<IActionResult> Create()
     {
         var viewModel = await CreateTransportCreateEditViewModel();
+        viewModel.DurationString = "01:00";
         return View(viewModel);
     }
 
@@ -125,13 +133,14 @@ public class TransportsController : Controller
             return NotFound();
         }
 
-        var transport = await _transportService.GetByIdAsync(id.Value);
+        var transport = await _transportService.GetByIdWithDetailsAsync(id.Value);
         if (transport == null)
         {
             return NotFound();
         }
 
         var viewModel = await CreateTransportCreateEditViewModel(transport);
+        viewModel.DurationString = ConvertDecimalToTimeString(transport.Duration);
         return View(viewModel);
     }
 
@@ -157,6 +166,8 @@ public class TransportsController : Controller
 
             try
             {
+                viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
+
                 var existingTransport = await _transportService.GetByIdAsync(id);
                 if (existingTransport == null)
                 {
@@ -210,7 +221,9 @@ public class TransportsController : Controller
             Name = transport.Name,
             Type = transport.Type,
             Duration = transport.Duration,
+            DurationString = ConvertDecimalToTimeString(transport.Duration),
             TripName = transport.Trip?.Name!,
+            TripId = transport.TripId,
             FromSpotName = transport.FromSpot?.Name!,
             ToSpotName = transport.ToSpot?.Name!
         };
@@ -225,6 +238,98 @@ public class TransportsController : Controller
     {
         await _transportService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
+    }
+
+    // GET: Transports/AddToTrip/5
+    public async Task<IActionResult> AddToTrip(int tripId)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        var viewModel = new TransportCreateEditViewModel
+        {
+            TripId = tripId
+        };
+
+        await PopulateSelectListsForTrip(viewModel, tripId);
+
+        ViewData["TripName"] = trip.Name;
+        ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
+
+        return View("AddToTrip", viewModel);
+    }
+
+    // POST: Transports/AddToTrip/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddToTrip(int tripId, TransportCreateEditViewModel viewModel)
+    {
+        if (tripId != viewModel.TripId)
+        {
+            return NotFound();
+        }
+
+        if (ModelState.IsValid)
+        {
+            // Check if FromSpot and ToSpot are different
+            if (viewModel.FromSpotId == viewModel.ToSpotId)
+            {
+                ModelState.AddModelError("", "From spot and To spot cannot be the same.");
+                await PopulateSelectListsForTrip(viewModel, tripId);
+                return View("AddToTrip", viewModel);
+            }
+
+            try
+            {
+                var transport = new Transport
+                {
+                    Name = viewModel.Name,
+                    Type = viewModel.Type,
+                    Duration = viewModel.Duration,
+                    TripId = viewModel.TripId,
+                    FromSpotId = viewModel.FromSpotId,
+                    ToSpotId = viewModel.ToSpotId
+                };
+
+                await _transportService.AddAsync(transport);
+
+                TempData["SuccessMessage"] = "Transport added successfully!";
+                return RedirectToAction("Details", "Trips", new { id = tripId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding transport to trip");
+                ModelState.AddModelError("", "An error occurred while adding the transport.");
+            }
+        }
+
+        await PopulateSelectListsForTrip(viewModel, tripId);
+        return View("AddToTrip", viewModel);
+    }
+
+    private async Task PopulateSelectListsForTrip(TransportCreateEditViewModel viewModel, int tripId)
+    {
+        // Spots - only for this trip
+        var spots = await _spotService.GetSpotsByTripAsync(tripId);
+        viewModel.Spots = spots.Select(s => new SpotSelectItem
+        {
+            Id = s.Id,
+            Name = s.Name,
+            TripId = s.TripId,
+            Coordinates = $"{s.Latitude:F4}, {s.Longitude:F4}"
+        }).ToList();
+
+        // Transportation types
+        viewModel.TransportationTypes = Enum.GetValues(typeof(TransportationType))
+            .Cast<TransportationType>()
+            .Select(t => new TransportationTypeSelectItem
+            {
+                Value = t,
+                Name = t.ToString()
+            }).ToList();
     }
 
     private async Task<bool> TransportExists(int id)
@@ -299,5 +404,35 @@ public class TransportsController : Controller
         }).ToList();
 
         return Json(spotList);
+    }
+
+    /// <summary>
+    /// Konwertuje czas w formacie string (HH:MM) na decimal (godziny)
+    /// </summary>
+    private decimal ConvertTimeStringToDecimal(string timeString)
+    {
+        if (string.IsNullOrEmpty(timeString))
+            return 0;
+
+        var parts = timeString.Split(':');
+        if (parts.Length != 2)
+            return 0;
+
+        if (int.TryParse(parts[0], out int hours) && int.TryParse(parts[1], out int minutes))
+        {
+            return hours + (minutes / 60.0m);
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Konwertuje decimal (godziny) na string w formacie HH:MM
+    /// </summary>
+    private string ConvertDecimalToTimeString(decimal duration)
+    {
+        int hours = (int)duration;
+        int minutes = (int)((duration - hours) * 60);
+        return $"{hours:D2}:{minutes:D2}";
     }
 }

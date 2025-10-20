@@ -1,16 +1,22 @@
 ﻿@model TravelHub.Web.ViewModels.Activities.SpotCreateEditViewModel
 
 @{
-    ViewData["Title"] = "Create Spot";
+    ViewData["Title"] = $"Add Spot to {ViewData["TripName"]}";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? Url.Action("Details", "Trips", new { id = Model.TripId });
 }
 
-<h1>Create Spot</h1>
+<h1>Add Spot to @ViewData["TripName"]</h1>
+@if (ViewData["DayName"] != null)
+{
+    <h5 class="text-muted">Day: @ViewData["DayName"]</h5>
+}
 
 <hr />
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="Create">
+        <form asp-action="AddToTrip" asp-route-tripId="@Model.TripId">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="TripId" />
 
             <div class="form-group">
                 <label asp-for="Name" class="control-label"></label>
@@ -66,32 +72,20 @@
             </div>
 
             <div class="form-group">
-                <label asp-for="TripId" class="control-label"></label>
-                <select asp-for="TripId" class="form-control" id="TripId">
-                    <option value="">-- Select Trip --</option>
-                    @foreach (var trip in Model.Trips)
-                    {
-                        <option value="@trip.Id">@trip.Name</option>
-                    }
-                </select>
-                <span asp-validation-for="TripId" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
                 <label asp-for="DayId" class="control-label"></label>
-                <select asp-for="DayId" class="form-control" id="DayId">
-                    <option value="">-- Select Day --</option>
+                <select asp-for="DayId" class="form-control">
+                    <option value="">-- No specific day --</option>
                     @foreach (var day in Model.Days)
                     {
-                        <option value="@day.Id" data-tripid="@day.TripId">@day.Name</option>
+                        <option value="@day.Id">@day.Name</option>
                     }
                 </select>
                 <span asp-validation-for="DayId" class="text-danger"></span>
             </div>
 
             <div class="form-group mt-3">
-                <input type="submit" value="Create" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                <input type="submit" value="Add Spot" class="btn btn-primary" />
+                <a href="@returnUrl" class="btn btn-secondary">Back to Trip</a>
             </div>
         </form>
     </div>
@@ -101,17 +95,4 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-    <script>
-        $(document).ready(function() {
-            $('#TripId').change(function() {
-                var tripId = $(this).val();
-                $('#DayId option').show();
-                if (tripId) {
-                    $('#DayId option[data-tripid!="' + tripId + '"]').hide();
-                    $('#DayId option[value=""]').show();
-                }
-                $('#DayId').val('');
-            });
-        });
-    </script>
 }

@@ -8,10 +8,11 @@
     <h1>@Model.Name</h1>
     <div>
         <a asp-action="AddDay" asp-route-id="@Model.Id" class="btn btn-success">Add Day</a>
-        <a asp-action="AddSpot" asp-route-id="@Model.Id" class="btn btn-success">Add Spot</a>
-        <a asp-action="AddActivity" asp-route-id="@Model.Id" class="btn btn-success">Add Activity</a>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit</a>
-        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+        <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Activity</a>
+        <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Spot</a>
+        <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Transport</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
+        <a asp-action="MyTrips" class="btn btn-outline-secondary">Back to List</a>
     </div>
 </div>
 
@@ -21,6 +22,7 @@
 }
 
 <div class="row">
+    <!-- Trip Information -->
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
@@ -31,13 +33,16 @@
                 <p><strong>Start Date:</strong> @Model.StartDate.ToString("MMM dd, yyyy")</p>
                 <p><strong>End Date:</strong> @Model.EndDate.ToString("MMM dd, yyyy")</p>
                 <p><strong>Duration:</strong> @((Model.EndDate - Model.StartDate).Days + 1) days</p>
-                <p><strong>Transport Legs:</strong> @Model.TransportsCount</p>
+                <p><strong>Activities:</strong> @Model.ActivitiesCount</p>
+                <p><strong>Spots:</strong> @Model.SpotsCount</p>
+                <p><strong>Transports:</strong> @Model.TransportsCount</p>
             </div>
         </div>
     </div>
 
+    <!-- Days -->
     <div class="col-md-6">
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Days</h5>
                 <span class="badge bg-primary">@Model.Days.Count</span>
@@ -58,6 +63,7 @@
                                     </div>
                                     <div>
                                         <a asp-controller="Days" asp-action="Details" asp-route-id="@day.Id" class="btn btn-sm btn-success">View</a>
+                                        <a asp-controller="Activities" asp-action="Create" asp-route-tripId="@Model.Id" asp-route-dayId="@day.Id" class="btn btn-sm btn-outline-primary">Add Activity</a>
                                     </div>
                                 </div>
                             </div>
@@ -72,30 +78,42 @@
             </div>
         </div>
     </div>
+</div>
 
-    <div class="col-md-6">
-        <div class="card">
+<div class="row">
+    <!-- Activities -->
+    <div class="col-md-4">
+        <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Spots</h5>
-                <span class="badge bg-primary">@Model.Activities!.Count</span>
+                <h5 class="card-title mb-0">Activities</h5>
+                <span class="badge bg-primary">@Model.ActivitiesCount</span>
             </div>
             <div class="card-body">
                 @if (Model.Activities.Any())
                 {
                     <div class="list-group">
-                        @foreach (var activity in Model.Activities)
+                        @foreach (var activity in Model.Activities.OrderBy(a => a.Order))
                         {
                             <div class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
                                         <h6 class="mb-1">@activity.Name</h6>
-                                        <span>@activity.Description</span>
-                                        <small class="text-muted">@activity.Duration h</small>
-                                        <br>
-                                        <small>@activity.CategoryName</small>
+                                        <p class="mb-1 small text-muted">@activity.Description</p>
+                                        <div class="small">
+                                            <span class="badge bg-light text-dark">@activity.DurationString</span>
+                                            @if (!string.IsNullOrEmpty(activity.CategoryName))
+                                            {
+                                                <span class="badge bg-secondary">@activity.CategoryName</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(activity.DayName))
+                                            {
+                                                <span class="badge bg-info">@activity.DayName</span>
+                                            }
+                                        </div>
                                     </div>
-                                    <div>
-                                        <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                    <div class="btn-group ms-2 flex-shrink-0">
+                                        <a asp-controller="Activities" asp-action="Details" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a asp-controller="Activities" asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                                     </div>
                                 </div>
                             </div>
@@ -105,7 +123,100 @@
                 else
                 {
                     <p class="text-muted">No activities added to this trip yet.</p>
-                    <a asp-action="AddSpot" asp-route-id="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
+                    <a asp-controller="Activities" asp-action="Create" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Activity</a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Spots -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Spots</h5>
+                <span class="badge bg-primary">@Model.SpotsCount</span>
+            </div>
+            <div class="card-body">
+                @if (Model.Spots.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var spot in Model.Spots.OrderBy(s => s.Order))
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">@spot.Name</h6>
+                                        <p class="mb-1 small text-muted">@spot.Description</p>
+                                        <div class="small">
+                                            <span class="badge bg-light text-dark">@spot.DurationString</span>
+                                            <span class="badge bg-warning">$@spot.Cost</span>
+                                            @if (!string.IsNullOrEmpty(spot.CategoryName))
+                                            {
+                                                <span class="badge bg-secondary">@spot.CategoryName</span>
+                                            }
+                                            <br>
+                                            <small class="text-muted">
+                                                📍 @spot.Latitude.ToString("F4"), @spot.Longitude.ToString("F4")
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group ms-2 flex-shrink-0">
+                                        <a asp-controller="Spots" asp-action="Details" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a asp-controller="Spots" asp-action="Edit" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No spots added to this trip yet.</p>
+                    <a asp-controller="Spots" asp-action="Create" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Transports -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Transports</h5>
+                <span class="badge bg-primary">@Model.TransportsCount</span>
+            </div>
+            <div class="card-body">
+                @if (Model.Transports.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var transport in Model.Transports)
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">@transport.Name</h6>
+                                        <div class="small">
+                                            <span class="badge bg-light text-dark">@transport.Duration.ToString("F1")h</span>
+                                            <span class="badge bg-secondary">@transport.Type</span>
+                                        </div>
+                                        <div class="small text-muted">
+                                            <div>From: @transport.FromSpotName</div>
+                                            <div>To: @transport.ToSpotName</div>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group ms-2 flex-shrink-0">
+                                        <a asp-controller="Transports" asp-action="Details" asp-route-id="@transport.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a asp-controller="Transports" asp-action="Edit" asp-route-id="@transport.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No transports added to this trip yet.</p>
+                    <a asp-controller="Transports" asp-action="Create" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Transport</a>
                 }
             </div>
         </div>

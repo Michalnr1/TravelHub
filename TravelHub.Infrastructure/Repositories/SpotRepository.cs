@@ -14,6 +14,9 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
     {
         return await _context.Set<Spot>()
             .Where(s => s.Id == id)
+            .Include(s => s.Category)
+            .Include(s => s.Day)
+            .Include(s => s.Trip)
             .Include(s => s.Photos)
             .Include(s => s.TransportsFrom)
             .Include(s => s.TransportsTo)
@@ -35,6 +38,43 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
         return await _context.Set<Spot>()
             .Where(s => s.TripId == tripId)
             .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Spot>> GetTripSpotsWithDetailsAsync(int tripId)
+    {
+        return await _context.Set<Spot>()
+            .Where(s => s.TripId == tripId)
+            .Include(s => s.Category)
+            .Include(s => s.Day)
+            .Include(s => s.Trip)
+            .Include(s => s.Photos)
+            .Include(s => s.TransportsFrom)
+            .Include(s => s.TransportsTo)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Spot>> GetAllWithDetailsAsync()
+    {
+        return await _context.Set<Spot>()
+            .Include(s => s.Category)
+            .Include(s => s.Day)
+            .Include(s => s.Trip)
+            .Include(s => s.Photos)
+            .Include(s => s.TransportsFrom)
+            .Include(s => s.TransportsTo)
+            .ToListAsync();
+    }
+
+    public new async Task<Spot?> GetByIdAsync(object id)
+    {
+        return await _context.Set<Spot>()
+            .Include(s => s.Category)
+            .Include(s => s.Day)
+            .Include(s => s.Trip)
+            .Include(s => s.Photos)
+            .Include(s => s.TransportsFrom)
+            .Include(s => s.TransportsTo)
+            .FirstOrDefaultAsync(a => a.Id == (int)id);
     }
 
     // Implementacja metody FindNearbySpotsAsync byłaby zbyt skomplikowana w standardowym LINQ

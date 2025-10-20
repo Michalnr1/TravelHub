@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
 
 namespace TravelHub.Web.Controllers;
@@ -17,29 +15,33 @@ public class SpotsController : Controller
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
+    private readonly ILogger<SpotsController> _logger;
 
     public SpotsController(
         ISpotService spotService,
         IGenericService<Category> categoryService,
         ITripService tripService,
-        IGenericService<Day> dayService)
+        IGenericService<Day> dayService,
+        ILogger<SpotsController> logger)
     {
         _spotService = spotService;
         _categoryService = categoryService;
         _tripService = tripService;
         _dayService = dayService;
+        _logger = logger;
     }
 
     // GET: Spots
     public async Task<IActionResult> Index()
     {
-        var spots = await _spotService.GetAllAsync();
+        var spots = await _spotService.GetAllWithDetailsAsync();
         var viewModel = spots.Select(s => new SpotDetailsViewModel
         {
             Id = s.Id,
             Name = s.Name,
-            Description = s.Description,
+            Description = s.Description!,
             Duration = s.Duration,
+            DurationString = ConvertDecimalToTimeString(s.Duration),
             Order = s.Order,
             CategoryName = s.Category?.Name,
             TripName = s.Trip?.Name!,
@@ -73,11 +75,13 @@ public class SpotsController : Controller
         {
             Id = spot.Id,
             Name = spot.Name,
-            Description = spot.Description,
+            Description = spot.Description!,
             Duration = spot.Duration,
+            DurationString = ConvertDecimalToTimeString(spot.Duration),
             Order = spot.Order,
             CategoryName = spot.Category?.Name,
             TripName = spot.Trip?.Name!,
+            TripId = spot.TripId,
             DayName = spot.Day?.Name,
             Longitude = spot.Longitude,
             Latitude = spot.Latitude,
@@ -94,6 +98,8 @@ public class SpotsController : Controller
     public async Task<IActionResult> Create()
     {
         var viewModel = await CreateSpotCreateEditViewModel();
+        viewModel.DurationString = "01:00";
+        viewModel.Order = 0;
         return View(viewModel);
     }
 
@@ -104,6 +110,9 @@ public class SpotsController : Controller
     {
         if (ModelState.IsValid)
         {
+            viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
+            viewModel.Order = await CalculateNextOrder(viewModel.DayId);
+
             var spot = new Spot
             {
                 Name = viewModel.Name,
@@ -141,6 +150,7 @@ public class SpotsController : Controller
         }
 
         var viewModel = await CreateSpotCreateEditViewModel(spot);
+        viewModel.DurationString = ConvertDecimalToTimeString(spot.Duration);
         return View(viewModel);
     }
 
@@ -158,10 +168,20 @@ public class SpotsController : Controller
         {
             try
             {
+                viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
+
                 var existingSpot = await _spotService.GetByIdAsync(id);
                 if (existingSpot == null)
                 {
                     return NotFound();
+                }
+
+                var oldDayId = existingSpot.DayId;
+
+                // Jeśli zmieniono dzień, przelicz Order
+                if (existingSpot.DayId != viewModel.DayId)
+                {
+                    viewModel.Order = await CalculateNextOrder(viewModel.DayId);
                 }
 
                 existingSpot.Name = viewModel.Name;
@@ -176,6 +196,12 @@ public class SpotsController : Controller
                 existingSpot.Cost = viewModel.Cost;
 
                 await _spotService.UpdateAsync(existingSpot);
+
+                // Jeśli zmieniono dzień, przelicz Order w starym i nowym dniu
+                if (oldDayId != viewModel.DayId)
+                {
+                    await RecalculateOrdersForBothDays(oldDayId, viewModel.DayId);
+                }
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -213,8 +239,9 @@ public class SpotsController : Controller
         {
             Id = spot.Id,
             Name = spot.Name,
-            Description = spot.Description,
+            Description = spot.Description!,
             Duration = spot.Duration,
+            DurationString = ConvertDecimalToTimeString(spot.Duration),
             Order = spot.Order,
             CategoryName = spot.Category?.Name,
             TripName = spot.Trip?.Name!,
@@ -232,8 +259,112 @@ public class SpotsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        await _spotService.DeleteAsync(id);
+        var spot = await _spotService.GetByIdAsync(id);
+        if (spot != null)
+        {
+            var dayId = spot.DayId;
+            await _spotService.DeleteAsync(id);
+
+            // Przelicz Order w dniu po usunięciu spotu
+            await RecalculateOrderForDay(dayId);
+        }
+
         return RedirectToAction(nameof(Index));
+    }
+
+    // GET: Spots/AddToTrip/5
+    public async Task<IActionResult> AddToTrip(int tripId, int? dayId = null)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        var viewModel = new SpotCreateEditViewModel
+        {
+            TripId = tripId,
+            Order = await CalculateNextOrder(dayId),
+            DayId = dayId
+        };
+
+        await PopulateSelectListsForTrip(viewModel, tripId);
+
+        ViewData["TripName"] = trip.Name;
+        ViewData["DayName"] = dayId.HasValue ?
+            trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
+        ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
+
+        return View("AddToTrip", viewModel);
+    }
+
+    // POST: Spots/AddToTrip/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddToTrip(int tripId, SpotCreateEditViewModel viewModel)
+    {
+        if (tripId != viewModel.TripId)
+        {
+            return NotFound();
+        }
+
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
+                viewModel.Order = await CalculateNextOrder(viewModel.DayId);
+
+                var spot = new Spot
+                {
+                    Name = viewModel.Name,
+                    Description = viewModel.Description!,
+                    Duration = viewModel.Duration,
+                    Order = viewModel.Order,
+                    CategoryId = viewModel.CategoryId,
+                    TripId = viewModel.TripId,
+                    DayId = viewModel.DayId,
+                    Longitude = viewModel.Longitude,
+                    Latitude = viewModel.Latitude,
+                    Cost = viewModel.Cost
+                };
+
+                await _spotService.AddAsync(spot);
+
+                TempData["SuccessMessage"] = "Spot added successfully!";
+                return RedirectToAction("Details", "Trips", new { id = tripId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding spot to trip");
+                ModelState.AddModelError("", "An error occurred while adding the spot.");
+            }
+        }
+
+        await PopulateSelectListsForTrip(viewModel, tripId);
+        return View("AddToTrip", viewModel);
+    }
+
+    private async Task PopulateSelectListsForTrip(SpotCreateEditViewModel viewModel, int tripId)
+    {
+        // Categories
+        var categories = await _categoryService.GetAllAsync();
+        viewModel.Categories = categories.Select(c => new CategorySelectItem
+        {
+            Id = c.Id,
+            Name = c.Name
+        }).ToList();
+
+        // Days - only for this trip
+        var days = await _dayService.GetAllAsync();
+        viewModel.Days = days.Where(d => d.TripId == tripId)
+            .Select(d => new DaySelectItem
+            {
+                Id = d.Id,
+                Number = d.Number,
+                Name = d.Name,
+                TripId = d.TripId
+            }).ToList();
     }
 
     private async Task<bool> SpotExists(int id)
@@ -296,5 +427,107 @@ public class SpotsController : Controller
             Name = d.Name,
             TripId = d.TripId
         }).ToList();
+    }
+
+    /// <summary>
+    /// Calculates the next Order value for a spot in a specific day
+    /// </summary>
+    /// <param name="dayId">The day ID (nullable)</param>
+    /// <returns>0 if no day is selected, otherwise the highest Order + 1 for the selected day</returns>
+    private async Task<int> CalculateNextOrder(int? dayId)
+    {
+        if (!dayId.HasValue || dayId == 0)
+        {
+            return 0;
+        }
+
+        // Pobierz wszystkie spoty dla danego dnia
+        var itemsInDay = await _spotService.GetAllAsync();
+        itemsInDay = itemsInDay.Where(a => a.DayId == dayId).ToList();
+
+        if (!itemsInDay.Any())
+        {
+            return 1; // Pierwszy spot w tym dniu
+        }
+
+        // Znajdź najwyższe Order i dodaj 1
+        var maxOrder = itemsInDay.Max(a => a.Order);
+        return maxOrder + 1;
+    }
+
+    /// <summary>
+    /// Recalculates Order for all spots in a day to remove gaps
+    /// </summary>
+    private async Task RecalculateOrderForDay(int? dayId)
+    {
+        if (!dayId.HasValue || dayId == 0)
+            return;
+
+        var spotsInDay = await _spotService.GetAllAsync();
+        spotsInDay = spotsInDay
+            .Where(s => s.DayId == dayId)
+            .OrderBy(s => s.Order)
+            .ToList();
+
+        if (!spotsInDay.Any())
+            return;
+
+        // Reset orders sequentially starting from 1
+        int newOrder = 1;
+        foreach (var spot in spotsInDay)
+        {
+            spot.Order = newOrder++;
+            await _spotService.UpdateAsync(spot);
+        }
+    }
+
+    /// <summary>
+    /// Recalculates Order for both old and new days when moving spot between days
+    /// </summary>
+    private async Task RecalculateOrdersForBothDays(int? oldDayId, int? newDayId)
+    {
+        var tasks = new List<Task>();
+
+        if (oldDayId.HasValue && oldDayId > 0)
+        {
+            tasks.Add(RecalculateOrderForDay(oldDayId));
+        }
+
+        if (newDayId.HasValue && newDayId > 0)
+        {
+            tasks.Add(RecalculateOrderForDay(newDayId));
+        }
+
+        await Task.WhenAll(tasks);
+    }
+
+    /// <summary>
+    /// Konwertuje czas w formacie string (HH:MM) na decimal (godziny)
+    /// </summary>
+    private decimal ConvertTimeStringToDecimal(string timeString)
+    {
+        if (string.IsNullOrEmpty(timeString))
+            return 0;
+
+        var parts = timeString.Split(':');
+        if (parts.Length != 2)
+            return 0;
+
+        if (int.TryParse(parts[0], out int hours) && int.TryParse(parts[1], out int minutes))
+        {
+            return hours + (minutes / 60.0m);
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Konwertuje decimal (godziny) na string w formacie HH:MM
+    /// </summary>
+    private string ConvertDecimalToTimeString(decimal duration)
+    {
+        int hours = (int)duration;
+        int minutes = (int)((duration - hours) * 60);
+        return $"{hours:D2}:{minutes:D2}";
     }
 }

@@ -20,6 +20,16 @@ public class TransportService : GenericService<Transport>, ITransportService
         return await _transportRepository.GetTransportsByTripIdAsync(tripId);
     }
 
+    public async Task<Transport?> GetByIdWithDetailsAsync(int id)
+    {
+        return await _transportRepository.GetByIdWithDetailsAsync(id);
+    }
+
+    public async Task<IReadOnlyList<Transport>> GetAllWithDetailsAsync()
+    {
+        return await _transportRepository.GetAllWithDetailsAsync();
+    }
+
     public async Task<decimal> CalculateTotalTravelDurationAsync(int tripId)
     {
         var transports = await _transportRepository.GetTransportsByTripIdAsync(tripId);

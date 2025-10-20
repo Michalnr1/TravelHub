@@ -14,4 +14,8 @@ public interface ISpotRepository : IGenericRepository<Spot>
 
     // Pobiera wszystkie spoty dla danej podróży
     Task<IReadOnlyList<Spot>> GetByTripIdAsync(int tripId);
+
+    Task<IReadOnlyList<Spot>> GetAllWithDetailsAsync();
+
+    Task<IReadOnlyList<Spot>> GetTripSpotsWithDetailsAsync(int tripId);
 }

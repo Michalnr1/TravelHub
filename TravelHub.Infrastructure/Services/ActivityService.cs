@@ -45,4 +45,14 @@ public class ActivityService : GenericService<Activity>, IActivityService
             }
         }
     }
+
+    public async Task<IEnumerable<Activity>> GetAllWithDetailsAsync()
+    {
+        return await _activityRepository.GetAllWithDetailsAsync();
+    }
+
+    public async Task<IEnumerable<Activity>> GetTripActivitiesWithDetailsAsync(int tripId)
+    {
+        return await _activityRepository.GetTripActivitiesWithDetailsAsync(tripId);
+    }
 }

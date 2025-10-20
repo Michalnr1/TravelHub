@@ -17,4 +17,8 @@ public interface ISpotService : IGenericService<Spot>
 
     // Pobiera wszystkie spoty dla danej podróży
     Task<IReadOnlyList<Spot>> GetSpotsByTripAsync(int tripId);
+
+    Task<IEnumerable<Spot>> GetAllWithDetailsAsync();
+
+    Task<IEnumerable<Spot>> GetTripSpotsWithDetailsAsync(int tripId);
 }

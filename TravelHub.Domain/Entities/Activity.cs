@@ -4,7 +4,7 @@ public class Activity
 {
     public int Id { get; set; }
     public required string Name { get; set; }
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public decimal Duration { get; set; }
     public int Order { get; set; } // The order of the activity within the day
 

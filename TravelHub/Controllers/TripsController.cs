@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Transports;
 using TravelHub.Web.ViewModels.Trips;
 
 namespace TravelHub.Web.Controllers;
@@ -13,6 +14,7 @@ namespace TravelHub.Web.Controllers;
 public class TripsController : Controller
 {
     private readonly ITripService _tripService;
+    private readonly ITransportService _transportService;
     private readonly ISpotService _spotService;
     private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
@@ -20,9 +22,10 @@ public class TripsController : Controller
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
 
-    public TripsController(ITripService tripService, ISpotService spotService, IActivityService activityService, IGenericService<Category> categoryService, ILogger<TripsController> logger, UserManager<Person> userManager, IConfiguration configuration)
+    public TripsController(ITripService tripService, ITransportService transportService, ISpotService spotService, IActivityService activityService, IGenericService<Category> categoryService, ILogger<TripsController> logger, UserManager<Person> userManager, IConfiguration configuration)
     {
         _tripService = tripService;
+        _transportService = transportService;
         _spotService = spotService;
         _activityService = activityService;
         _categoryService = categoryService;
@@ -63,6 +66,10 @@ public class TripsController : Controller
             return Forbid();
         }
 
+        var activities = await _activityService.GetTripActivitiesWithDetailsAsync(id);
+        var spots = await _spotService.GetTripSpotsWithDetailsAsync(id);
+        var transports = await _transportService.GetTripTransportsWithDetailsAsync(id);
+
         var viewModel = new TripDetailViewModel
         {
             Id = trip.Id,
@@ -78,14 +85,46 @@ public class TripsController : Controller
                 Date = d.Date,
                 ActivitiesCount = d.Activities?.Count ?? 0
             }).ToList() ?? new List<DayViewModel>(),
-            Activities = trip.Activities?.Select(d => new BasicActivityViewModel
+            Activities = activities.Select(a => new ActivityViewModel
             {
-                Name = d.Name,
-                Description = d.Description,
-                Duration = d.Duration,
-                CategoryName = d.Category?.Name
-            }).ToList() ?? new List<BasicActivityViewModel>(),
-            TransportsCount = trip.Transports?.Count ?? 0
+                Id = a.Id,
+                Name = a.Name,
+                Description = a.Description ?? string.Empty,
+                Duration = a.Duration,
+                DurationString = ConvertDecimalToTimeString(a.Duration),
+                Order = a.Order,
+                CategoryName = a.Category?.Name,
+                TripName = a.Trip?.Name ?? string.Empty,
+                DayName = a.Day?.Name
+            }).ToList(),
+            Spots = spots.Select(s => new SpotDetailsViewModel
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Description = s.Description ?? string.Empty,
+                Duration = s.Duration,
+                DurationString = ConvertDecimalToTimeString(s.Duration),
+                Order = s.Order,
+                CategoryName = s.Category?.Name,
+                TripName = s.Trip?.Name ?? string.Empty,
+                DayName = s.Day?.Name,
+                Longitude = s.Longitude,
+                Latitude = s.Latitude,
+                Cost = s.Cost,
+                PhotoCount = s.Photos?.Count ?? 0,
+                TransportsFromCount = s.TransportsFrom?.Count ?? 0,
+                TransportsToCount = s.TransportsTo?.Count ?? 0
+            }).ToList(),
+            Transports = transports.Select(t => new TransportViewModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Type = t.Type,
+                Duration = t.Duration,
+                TripName = t.Trip?.Name ?? string.Empty,
+                FromSpotName = t.FromSpot?.Name ?? string.Empty,
+                ToSpotName = t.ToSpot?.Name ?? string.Empty
+            }).ToList()
         };
 
             return View(viewModel);
@@ -571,5 +610,12 @@ public class TripsController : Controller
     private async Task<bool> TripExists(int id)
     {
         return await _tripService.ExistsAsync(id);
+    }
+
+    private string ConvertDecimalToTimeString(decimal duration)
+    {
+        int hours = (int)duration;
+        int minutes = (int)((duration - hours) * 60);
+        return $"{hours:D2}:{minutes:D2}";
     }
 }

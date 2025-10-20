@@ -14,10 +14,28 @@ public class TransportRepository : GenericRepository<Transport>, ITransportRepos
     {
         return await _context.Set<Transport>()
             .Where(t => t.TripId == tripId)
-            // Dołączamy powiązane encje
+            .Include(t => t.Trip)
             .Include(t => t.FromSpot)
             .Include(t => t.ToSpot)
-            .OrderBy(t => t.Id) // Sortowanie według kryterium
+            .ToListAsync();
+    }
+
+    public async Task<Transport?> GetByIdWithDetailsAsync(int id)
+    {
+        return await _context.Set<Transport>()
+            .Where(t => t.Id == id)
+            .Include(t => t.Trip)
+            .Include(t => t.FromSpot)
+            .Include(t => t.ToSpot)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<IReadOnlyList<Transport>> GetAllWithDetailsAsync()
+    {
+        return await _context.Set<Transport>()
+            .Include(t => t.Trip)
+            .Include(t => t.FromSpot)
+            .Include(t => t.ToSpot)
             .ToListAsync();
     }
 }

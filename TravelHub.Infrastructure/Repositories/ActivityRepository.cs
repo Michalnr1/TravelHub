@@ -24,6 +24,26 @@ public class ActivityRepository : GenericRepository<Activity>, IActivityReposito
         return await _context.Set<Activity>()
             .Where(a => a.TripId == tripId)
             .Include(a => a.Category)
+            .Include(a => a.Day)
+            .Include(a => a.Trip)
             .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Activity>> GetAllWithDetailsAsync()
+    {
+        return await _context.Set<Activity>()
+            .Include(a => a.Category)
+            .Include(a => a.Trip)
+            .Include(a => a.Day)
+            .ToListAsync();
+    }
+
+    public new async Task<Activity?> GetByIdAsync(object id)
+    {
+        return await _context.Set<Activity>()
+            .Include(a => a.Category)
+            .Include(a => a.Trip)
+            .Include(a => a.Day)
+            .FirstOrDefaultAsync(a => a.Id == (int)id);
     }
 }

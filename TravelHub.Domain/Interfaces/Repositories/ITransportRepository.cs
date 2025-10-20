@@ -10,4 +10,8 @@ public interface ITransportRepository : IGenericRepository<Transport>
     Task<IReadOnlyList<Transport>> GetTransportsByTripIdAsync(int tripId);
 
     // Można dodać: Task<IReadOnlyList<Transport>> GetTransportsByTypeAsync(TransportationType type);
+
+    Task<Transport?> GetByIdWithDetailsAsync(int id);
+
+    Task<IReadOnlyList<Transport>> GetAllWithDetailsAsync();
 }

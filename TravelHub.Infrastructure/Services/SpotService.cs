@@ -42,6 +42,16 @@ public class SpotService : GenericService<Spot>, ISpotService
         return await _spotRepository.GetByTripIdAsync(tripId);
     }
 
+    public async Task<IEnumerable<Spot>> GetAllWithDetailsAsync()
+    {
+        return await _spotRepository.GetAllWithDetailsAsync();
+    }
+
+    public async Task<IEnumerable<Spot>> GetTripSpotsWithDetailsAsync(int tripId)
+    {
+        return await _spotRepository.GetTripSpotsWithDetailsAsync(tripId);
+    }
+
     // Placeholder. It will need to get this info from Google API not from our DB.
     public async Task<IReadOnlyList<Spot>> FindNearbySpotsAsync(double latitude, double longitude, double radiusKm)
     {

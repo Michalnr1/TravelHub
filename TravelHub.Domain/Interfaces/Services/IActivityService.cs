@@ -14,4 +14,8 @@ public interface IActivityService : IGenericService<Activity>
 
     // Zmienia kolejność aktywności w obrębie dnia
     Task ReorderActivitiesAsync(int dayId, List<(int activityId, int newOrder)> orderUpdates);
+
+    Task<IEnumerable<Activity>> GetAllWithDetailsAsync();
+
+    Task<IEnumerable<Activity>> GetTripActivitiesWithDetailsAsync(int tripId);
 }

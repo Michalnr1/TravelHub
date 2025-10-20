@@ -11,4 +11,8 @@ public interface ITransportService : IGenericService<Transport>
 
     // Oblicza sumaryczny czas trwania podróży
     Task<decimal> CalculateTotalTravelDurationAsync(int tripId);
+
+    Task<Transport?> GetByIdWithDetailsAsync(int id);
+
+    Task<IReadOnlyList<Transport>> GetAllWithDetailsAsync();
 }

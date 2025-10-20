@@ -24,21 +24,10 @@
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="Duration" class="control-label"></label>
-                        <input asp-for="Duration" class="form-control" type="number" step="0.1" />
-                        <span asp-validation-for="Duration" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="Order" class="control-label"></label>
-                        <input asp-for="Order" class="form-control" />
-                        <span asp-validation-for="Order" class="text-danger"></span>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label asp-for="DurationString" class="control-label"></label>
+                <input asp-for="DurationString" class="form-control" type="time" step="300" /> <!-- step="300" = 5 minut -->
+                <span asp-validation-for="DurationString" class="text-danger"></span>
             </div>
 
             <div class="form-group">
