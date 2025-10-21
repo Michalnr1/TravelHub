@@ -15,7 +15,6 @@ public class SpotsController : Controller
     private readonly ISpotService _spotService;
     private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
-    private readonly IActivityService _activityService;
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
