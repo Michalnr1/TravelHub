@@ -321,7 +321,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (UserOwnsTrip(trip))
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }

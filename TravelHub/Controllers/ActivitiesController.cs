@@ -290,7 +290,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (UserOwnsTrip(trip))
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
