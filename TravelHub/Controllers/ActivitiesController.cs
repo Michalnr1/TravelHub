@@ -68,6 +68,11 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
+        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new ActivityDetailsViewModel
         {
             Id = activity.Id,
@@ -132,6 +137,11 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
+        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var activity = await _activityService.GetByIdAsync(id.Value);
         if (activity == null)
         {
@@ -151,6 +161,11 @@ public class ActivitiesController : Controller
         if (id != viewModel.Id)
         {
             return NotFound();
+        }
+
+        if (!await _activityService.UserOwnsActivityAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         if (ModelState.IsValid)
@@ -221,6 +236,11 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
+        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new ActivityDetailsViewModel
         {
             Id = activity.Id,
@@ -245,6 +265,10 @@ public class ActivitiesController : Controller
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         var activity = await _activityService.GetByIdAsync(id);
+        if (!await _activityService.UserOwnsActivityAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
         if (activity != null)
         {
             var dayId = activity.DayId;
@@ -266,7 +290,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(tripId, GetCurrentUserId()))
+        if (UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -523,5 +547,10 @@ public class ActivitiesController : Controller
     private string GetCurrentUserId()
     {
         return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
+    }
+
+    private bool UserOwnsTrip(Trip trip)
+    {
+        return trip.PersonId == GetCurrentUserId();
     }
 }

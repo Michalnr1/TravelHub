@@ -98,4 +98,10 @@ public class SpotService : GenericService<Spot>, ISpotService
     {
         return Math.PI * angle / 180.0;
     }
+
+    public async Task<bool> UserOwnsSpotAsync(int spotId, string userId)
+    {
+        var spot = await GetByIdAsync(spotId);
+        return spot?.Trip?.PersonId == userId;
+    }
 }
