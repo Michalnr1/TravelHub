@@ -63,14 +63,14 @@ public class CategoriesController : Controller
 
         if (await _categoryService.ExistsByNameAsync(model.Name))
         {
-            ModelState.AddModelError(nameof(model.Name), "Kategoria o tej nazwie już istnieje.");
+            ModelState.AddModelError(nameof(model.Name), "Category with that name already exists.");
             return View(model);
         }
 
         var category = new Category { Name = model.Name.Trim(), Color = model.Color };
         await _categoryService.AddAsync(category);
 
-        TempData["SuccessMessage"] = "Kategoria utworzona.";
+        TempData["SuccessMessage"] = "Category created.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -103,7 +103,7 @@ public class CategoriesController : Controller
             var all = await _categoryService.GetAllAsync();
             if (all.Any(e => e.Name.Equals(model.Name, StringComparison.OrdinalIgnoreCase) && e.Id != model.Id))
             {
-                ModelState.AddModelError(nameof(model.Name), "Kategoria o tej nazwie już istnieje.");
+                ModelState.AddModelError(nameof(model.Name), "Category with that name already exists.");
                 return View(model);
             }
 
@@ -113,7 +113,7 @@ public class CategoriesController : Controller
 
             await _categoryService.UpdateAsync(category);
 
-            TempData["SuccessMessage"] = "Kategoria zaktualizowana.";
+            TempData["SuccessMessage"] = "Category updated.";
             return RedirectToAction(nameof(Index));
         }
         catch (InvalidOperationException)
@@ -123,7 +123,7 @@ public class CategoriesController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating category");
-            ModelState.AddModelError("", "Wystąpił błąd podczas zapisu.");
+            ModelState.AddModelError("", "Error updating category.");
             return View(model);
         }
     }
@@ -153,12 +153,12 @@ public class CategoriesController : Controller
             if (await _categoryService.IsInUseAsync(id))
             {
                 // Nie usuwamy — pokazujemy komunikat i wracamy do strony potwierdzenia delete
-                TempData["ErrorMessage"] = "Kategoria nie może zostać usunięta — jest używana w aktywnościach lub wydatkach.";
+                TempData["ErrorMessage"] = "Category cannot be deleted — it is used in activities or expenses.";
                 return RedirectToAction(nameof(Delete), new { id });
             }
 
             await _categoryService.DeleteAsync(id);
-            TempData["SuccessMessage"] = "Kategoria usunięta.";
+            TempData["SuccessMessage"] = "Category deleted.";
             return RedirectToAction(nameof(Index));
         }
         catch (InvalidOperationException)
@@ -168,7 +168,7 @@ public class CategoriesController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting category");
-            TempData["ErrorMessage"] = "Wystąpił błąd podczas usuwania kategorii.";
+            TempData["ErrorMessage"] = "Error deleting category.";
             return RedirectToAction(nameof(Delete), new { id });
         }
     }
