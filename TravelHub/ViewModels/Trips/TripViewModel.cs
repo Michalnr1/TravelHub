@@ -90,9 +90,8 @@ public class AddDayViewModel
     [Range(1, 365)]
     public int Number { get; set; }
 
-    [Required]
     [Display(Name = "Name")]
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
 
     [Required]
     [Display(Name = "Date")]
@@ -106,7 +105,7 @@ public class DayViewModel
 {
     public int Id { get; set; }
     public int? Number { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public string? Name { get; set; }
     public DateTime Date { get; set; }
     public int ActivitiesCount { get; set; }
 }

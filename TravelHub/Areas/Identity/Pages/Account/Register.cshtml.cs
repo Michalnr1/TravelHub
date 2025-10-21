@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces;
+using TravelHub.Web.Validation;
 
 namespace TravelHub.Web.Areas.Identity.Pages.Account
 {
@@ -114,6 +115,7 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account
             [Required]
             [Display(Name = "Birthday")]
             [DataType(DataType.Date)]
+            [MinimumAge(18, 150)]
             public DateTime Birthday { get; set; }
         }
 
