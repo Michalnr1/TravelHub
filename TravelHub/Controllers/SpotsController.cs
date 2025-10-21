@@ -13,6 +13,7 @@ namespace TravelHub.Web.Controllers;
 public class SpotsController : Controller
 {
     private readonly ISpotService _spotService;
+    private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
@@ -23,6 +24,7 @@ public class SpotsController : Controller
 
     public SpotsController(
         ISpotService spotService,
+        IActivityService activityService,
         IGenericService<Category> categoryService,
         ITripService tripService,
         IGenericService<Day> dayService,
@@ -32,6 +34,7 @@ public class SpotsController : Controller
         UserManager<Person> userManager)
     {
         _spotService = spotService;
+        _activityService = activityService;
         _categoryService = categoryService;
         _tripService = tripService;
         _dayService = dayService;
@@ -147,7 +150,7 @@ public class SpotsController : Controller
             };
 
             await _spotService.AddAsync(spot);
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
         await PopulateSelectLists(viewModel);
@@ -233,7 +236,7 @@ public class SpotsController : Controller
                     throw;
                 }
             }
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
         await PopulateSelectLists(viewModel);
@@ -286,9 +289,13 @@ public class SpotsController : Controller
 
             // Przelicz Order w dniu po usunięciu spotu
             await RecalculateOrderForDay(dayId);
-        }
 
-        return RedirectToAction(nameof(Index));
+            return RedirectToAction("Details", "Trips", new { id = spot.TripId });
+        }
+        else
+        {
+            return NotFound();
+        }
     }
 
     // GET: Spots/AddToTrip/5
@@ -397,7 +404,7 @@ public class SpotsController : Controller
             {
                 Id = d.Id,
                 Number = d.Number,
-                Name = d.Name,
+                Name = d.Name!,
                 TripId = d.TripId
             }).ToList();
     }
@@ -459,7 +466,7 @@ public class SpotsController : Controller
         {
             Id = d.Id,
             Number = d.Number,
-            Name = d.Name,
+            Name = d.Name!,
             TripId = d.TripId
         }).ToList();
     }
@@ -477,7 +484,7 @@ public class SpotsController : Controller
         }
 
         // Pobierz wszystkie spoty dla danego dnia
-        var itemsInDay = await _spotService.GetAllAsync();
+        var itemsInDay = await _activityService.GetAllAsync();
         itemsInDay = itemsInDay.Where(a => a.DayId == dayId).ToList();
 
         if (!itemsInDay.Any())
@@ -498,7 +505,7 @@ public class SpotsController : Controller
         if (!dayId.HasValue || dayId == 0)
             return;
 
-        var spotsInDay = await _spotService.GetAllAsync();
+        var spotsInDay = await _activityService.GetAllAsync();
         spotsInDay = spotsInDay
             .Where(s => s.DayId == dayId)
             .OrderBy(s => s.Order)
@@ -512,7 +519,7 @@ public class SpotsController : Controller
         foreach (var spot in spotsInDay)
         {
             spot.Order = newOrder++;
-            await _spotService.UpdateAsync(spot);
+            await _activityService.UpdateAsync(spot);
         }
     }
 
@@ -521,19 +528,15 @@ public class SpotsController : Controller
     /// </summary>
     private async Task RecalculateOrdersForBothDays(int? oldDayId, int? newDayId)
     {
-        var tasks = new List<Task>();
-
         if (oldDayId.HasValue && oldDayId > 0)
         {
-            tasks.Add(RecalculateOrderForDay(oldDayId));
+            await RecalculateOrderForDay(oldDayId);
         }
 
         if (newDayId.HasValue && newDayId > 0)
         {
-            tasks.Add(RecalculateOrderForDay(newDayId));
+            await RecalculateOrderForDay(newDayId);
         }
-
-        await Task.WhenAll(tasks);
     }
 
     /// <summary>

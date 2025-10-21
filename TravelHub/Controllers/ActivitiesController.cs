@@ -182,6 +182,7 @@ public class ActivitiesController : Controller
                 existingActivity.DayId = viewModel.DayId;
 
                 await _activityService.UpdateAsync(existingActivity);
+                await Task.Delay(50);
 
                 // Jeśli zmieniono dzień, przelicz Order w starym i nowym dniu
                 if (oldDayId != viewModel.DayId)
@@ -200,7 +201,7 @@ public class ActivitiesController : Controller
                     throw;
                 }
             }
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
         await PopulateSelectLists(viewModel);
@@ -252,9 +253,13 @@ public class ActivitiesController : Controller
 
             // Przelicz Order w dniu po usunięciu aktywności
             await RecalculateOrderForDay(dayId);
-        }
 
-        return RedirectToAction(nameof(Index));
+            return RedirectToAction("Details", "Trips", new { id = activity.TripId });
+        }
+        else
+        {
+            return NotFound();
+        }
     }
 
     // GET: Activities/AddToTrip/5
@@ -354,7 +359,7 @@ public class ActivitiesController : Controller
             {
                 Id = d.Id,
                 Number = d.Number,
-                Name = d.Name,
+                Name = d.Name!,
                 TripId = d.TripId
             }).ToList();
     }
@@ -413,7 +418,7 @@ public class ActivitiesController : Controller
         {
             Id = d.Id,
             Number = d.Number,
-            Name = d.Name,
+            Name = d.Name!,
             TripId = d.TripId
         }).ToList();
     }
@@ -475,19 +480,15 @@ public class ActivitiesController : Controller
     /// </summary>
     private async Task RecalculateOrdersForBothDays(int? oldDayId, int? newDayId)
     {
-        var tasks = new List<Task>();
-
         if (oldDayId.HasValue && oldDayId > 0)
         {
-            tasks.Add(RecalculateOrderForDay(oldDayId));
+            await RecalculateOrderForDay(oldDayId);
         }
 
         if (newDayId.HasValue && newDayId > 0)
         {
-            tasks.Add(RecalculateOrderForDay(newDayId));
+            await RecalculateOrderForDay(newDayId);
         }
-
-        await Task.WhenAll(tasks);
     }
 
     /// <summary>

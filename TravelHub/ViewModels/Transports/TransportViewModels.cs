@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using TravelHub.Domain.Entities;
 
 namespace TravelHub.Web.ViewModels.Transports;
@@ -67,6 +68,9 @@ public class TransportCreateEditViewModel
     public List<TripSelectItem> Trips { get; set; } = new List<TripSelectItem>();
     public List<SpotSelectItem> Spots { get; set; } = new List<SpotSelectItem>();
     public List<TransportationTypeSelectItem> TransportationTypes { get; set; } = new List<TransportationTypeSelectItem>();
+
+    public IEnumerable<SelectListItem> SpotSelectList { get; set; } = new List<SelectListItem>();
+    public IEnumerable<SelectListItem> TripSelectList { get; set; } = new List<SelectListItem>();
 }
 
 // Select list items

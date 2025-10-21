@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
@@ -118,7 +119,7 @@ public class TransportsController : Controller
             };
 
             await _transportService.AddAsync(transport);
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
         await PopulateSelectLists(viewModel);
@@ -140,6 +141,23 @@ public class TransportsController : Controller
         }
 
         var viewModel = await CreateTransportCreateEditViewModel(transport);
+
+        var spots = await _spotService.GetAllAsync();
+        var trips = await _tripService.GetAllAsync();
+
+        viewModel.SpotSelectList = spots.Select(s => new SelectListItem
+        {
+            Value = s.Id.ToString(),
+            Text = $"{s.Name} ({s.Latitude}, {s.Longitude})"
+        });
+
+        viewModel.TripSelectList = trips.Select(t => new SelectListItem
+        {
+            Value = t.Id.ToString(),
+            Text = t.Name
+        });
+
+
         viewModel.DurationString = ConvertDecimalToTimeString(transport.Duration);
         return View(viewModel);
     }
@@ -194,7 +212,7 @@ public class TransportsController : Controller
                     throw;
                 }
             }
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
         await PopulateSelectLists(viewModel);
@@ -236,8 +254,9 @@ public class TransportsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
+        var transport = await _transportService.GetByIdAsync(id);
         await _transportService.DeleteAsync(id);
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction("Details", "Trips", new { id = transport.TripId });
     }
 
     // GET: Transports/AddToTrip/5
