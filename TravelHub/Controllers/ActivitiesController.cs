@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
@@ -14,6 +15,7 @@ public class ActivitiesController : Controller
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
+    private readonly UserManager<Person> _userManager;
     private readonly ILogger<ActivitiesController> _logger;
 
     public ActivitiesController(
@@ -21,13 +23,15 @@ public class ActivitiesController : Controller
         IGenericService<Category> categoryService,
         ITripService tripService,
         IGenericService<Day> dayService,
-        ILogger<ActivitiesController> logger)
+        ILogger<ActivitiesController> logger,
+         UserManager<Person> userManager)
     {
         _activityService = activityService;
         _categoryService = categoryService;
         _tripService = tripService;
         _dayService = dayService;
         _logger = logger;
+        _userManager = userManager;
     }
 
     // GET: Activities
@@ -262,6 +266,11 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
+        if (!await _tripService.UserOwnsTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new ActivityCreateEditViewModel
         {
             TripId = tripId,
@@ -287,6 +296,11 @@ public class ActivitiesController : Controller
         if (tripId != viewModel.TripId)
         {
             return NotFound();
+        }
+
+        if (!await _tripService.UserOwnsTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         if (ModelState.IsValid)
@@ -504,5 +518,10 @@ public class ActivitiesController : Controller
         int hours = (int)duration;
         int minutes = (int)((duration - hours) * 60);
         return $"{hours:D2}:{minutes:D2}";
+    }
+
+    private string GetCurrentUserId()
+    {
+        return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 }
