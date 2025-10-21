@@ -14,6 +14,7 @@ public class SpotsController : Controller
 {
     private readonly ISpotService _spotService;
     private readonly IGenericService<Category> _categoryService;
+    private readonly IActivityService _activityService;
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
@@ -23,6 +24,7 @@ public class SpotsController : Controller
 
     public SpotsController(
         ISpotService spotService,
+        IActivityService activityService,
         IGenericService<Category> categoryService,
         ITripService tripService,
         IGenericService<Day> dayService,
@@ -32,6 +34,7 @@ public class SpotsController : Controller
         UserManager<Person> userManager)
     {
         _spotService = spotService;
+        _activityService = activityService;
         _categoryService = categoryService;
         _tripService = tripService;
         _dayService = dayService;
@@ -477,7 +480,7 @@ public class SpotsController : Controller
         }
 
         // Pobierz wszystkie spoty dla danego dnia
-        var itemsInDay = await _spotService.GetAllAsync();
+        var itemsInDay = await _activityService.GetAllAsync();
         itemsInDay = itemsInDay.Where(a => a.DayId == dayId).ToList();
 
         if (!itemsInDay.Any())
@@ -498,7 +501,7 @@ public class SpotsController : Controller
         if (!dayId.HasValue || dayId == 0)
             return;
 
-        var spotsInDay = await _spotService.GetAllAsync();
+        var spotsInDay = await _activityService.GetAllAsync();
         spotsInDay = spotsInDay
             .Where(s => s.DayId == dayId)
             .OrderBy(s => s.Order)
@@ -512,7 +515,7 @@ public class SpotsController : Controller
         foreach (var spot in spotsInDay)
         {
             spot.Order = newOrder++;
-            await _spotService.UpdateAsync(spot);
+            await _activityService.UpdateAsync(spot);
         }
     }
 
