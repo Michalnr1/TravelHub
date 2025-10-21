@@ -55,4 +55,10 @@ public class ActivityService : GenericService<Activity>, IActivityService
     {
         return await _activityRepository.GetTripActivitiesWithDetailsAsync(tripId);
     }
+
+    public async Task<bool> UserOwnsActivityAsync(int activityId, string userId)
+    {
+        var activity = await GetByIdAsync(activityId);
+        return activity?.Trip?.PersonId == userId;
+    }
 }
