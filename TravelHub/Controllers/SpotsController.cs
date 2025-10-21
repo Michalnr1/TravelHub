@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
@@ -17,6 +18,8 @@ public class SpotsController : Controller
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
     private readonly ILogger<SpotsController> _logger;
+    private readonly UserManager<Person> _userManager;
+    private readonly IConfiguration _configuration;
 
     public SpotsController(
         ISpotService spotService,
@@ -24,7 +27,9 @@ public class SpotsController : Controller
         ITripService tripService,
         IGenericService<Day> dayService,
         IPhotoService photoService,
-        ILogger<SpotsController> logger)
+        ILogger<SpotsController> logger,
+        IConfiguration configuration,
+        UserManager<Person> userManager)
     {
         _spotService = spotService;
         _categoryService = categoryService;
@@ -32,6 +37,8 @@ public class SpotsController : Controller
         _dayService = dayService;
         _photoService = photoService;
         _logger = logger;
+        _configuration = configuration;
+        _userManager = userManager;
     }
 
     // GET: Spots
@@ -293,6 +300,11 @@ public class SpotsController : Controller
             return NotFound();
         }
 
+        if (!await _tripService.UserOwnsTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new SpotCreateEditViewModel
         {
             TripId = tripId,
@@ -306,6 +318,12 @@ public class SpotsController : Controller
         ViewData["DayName"] = dayId.HasValue ?
             trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
         ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
+        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
+
+        (double lat, double lng) = await _tripService.GetMedianCoords(tripId);
+
+        ViewData["Latitude"] = lat;
+        ViewData["Longitude"] = lng;
 
         return View("AddToTrip", viewModel);
     }
@@ -318,6 +336,11 @@ public class SpotsController : Controller
         if (tripId != viewModel.TripId)
         {
             return NotFound();
+        }
+
+        if (!await _tripService.UserOwnsTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         if (ModelState.IsValid)
@@ -541,5 +564,10 @@ public class SpotsController : Controller
         int hours = (int)duration;
         int minutes = (int)((duration - hours) * 60);
         return $"{hours:D2}:{minutes:D2}";
+    }
+
+    private string GetCurrentUserId()
+    {
+        return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 }
