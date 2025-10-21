@@ -1,7 +1,7 @@
 ﻿@model TravelHub.Web.ViewModels.Categories.CategoryViewModel
 
 @{
-    ViewData["Title"] = "Usuń kategorię";
+    ViewData["Title"] = "Delete Category";
 }
 
 @if (TempData["ErrorMessage"] != null)
@@ -9,23 +9,23 @@
     <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
 }
 
-<h2>Usuń kategorię</h2>
+<h1>Delete Category</h1>
 
 @if (Model != null)
 {
     <div class="mb-3">
-        <p>Czy na pewno chcesz usunąć kategorię <strong>@Model.Name</strong>?</p>
-        <p><strong>Kolor:</strong> <span style="display:inline-block;width:28px;height:20px;background:@Model.Color;border:1px solid #ccc;"></span> @Model.Color</p>
+        <p>Are you sure you want to delete category <strong>@Model.Name</strong>?</p>
+        <p><strong>Color:</strong> <span style="display:inline-block;width:28px;height:20px;background:@Model.Color;border:1px solid #ccc;"></span> @Model.Color</p>
     </div>
 
     <form asp-action="Delete" method="post">
         <input type="hidden" asp-for="Id" />
-        <button type="submit" class="btn btn-danger">Usuń</button>
-        <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
     </form>
 }
 else
 {
-    <div class="alert alert-warning">Nie znaleziono kategorii.</div>
-    <a asp-action="Index" class="btn btn-link">Powrót</a>
+    <div class="alert alert-warning">Category not found.</div>
+    <a asp-action="Index" class="btn btn-link">Back</a>
 }

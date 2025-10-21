@@ -61,7 +61,7 @@ public class TripsController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -180,7 +180,7 @@ public class TripsController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -217,7 +217,8 @@ public class TripsController : Controller
                     return NotFound();
                 }
 
-                if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
+
+                if (!UserOwnsTrip(trip))
                 {
                     return Forbid();
                 }
@@ -261,7 +262,7 @@ public class TripsController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -289,7 +290,7 @@ public class TripsController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -311,7 +312,7 @@ public class TripsController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -416,5 +417,10 @@ public class TripsController : Controller
         int hours = (int)duration;
         int minutes = (int)((duration - hours) * 60);
         return $"{hours:D2}:{minutes:D2}";
+    }
+
+    private bool UserOwnsTrip(Trip trip)
+    {
+        return trip.PersonId == GetCurrentUserId();
     }
 }

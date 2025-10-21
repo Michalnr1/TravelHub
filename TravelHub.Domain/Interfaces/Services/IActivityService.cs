@@ -18,4 +18,6 @@ public interface IActivityService : IGenericService<Activity>
     Task<IEnumerable<Activity>> GetAllWithDetailsAsync();
 
     Task<IEnumerable<Activity>> GetTripActivitiesWithDetailsAsync(int tripId);
+
+    Task<bool> UserOwnsActivityAsync(int activityId, string userId);
 }

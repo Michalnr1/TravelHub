@@ -15,6 +15,7 @@ public class SpotsController : Controller
     private readonly ISpotService _spotService;
     private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
+    private readonly IActivityService _activityService;
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
@@ -82,6 +83,11 @@ public class SpotsController : Controller
         if (spot == null)
         {
             return NotFound();
+        }
+
+        if (!await _spotService.UserOwnsSpotAsync(id.Value, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new SpotDetailsViewModel
@@ -171,6 +177,11 @@ public class SpotsController : Controller
             return NotFound();
         }
 
+        if (!await _spotService.UserOwnsSpotAsync(id.Value, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = await CreateSpotCreateEditViewModel(spot);
         viewModel.DurationString = ConvertDecimalToTimeString(spot.Duration);
         return View(viewModel);
@@ -184,6 +195,12 @@ public class SpotsController : Controller
         if (id != viewModel.Id)
         {
             return NotFound();
+        }
+
+
+        if (!await _spotService.UserOwnsSpotAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         if (ModelState.IsValid)
@@ -251,6 +268,11 @@ public class SpotsController : Controller
             return NotFound();
         }
 
+        if (!await _spotService.UserOwnsSpotAsync(id.Value, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var spot = await _spotService.GetByIdAsync(id.Value);
         if (spot == null)
         {
@@ -307,7 +329,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(tripId, GetCurrentUserId()))
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -572,5 +594,10 @@ public class SpotsController : Controller
     private string GetCurrentUserId()
     {
         return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
+    }
+
+    private bool UserOwnsTrip(Trip trip)
+    {
+        return trip.PersonId == GetCurrentUserId();
     }
 }

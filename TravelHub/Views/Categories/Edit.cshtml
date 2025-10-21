@@ -1,27 +1,27 @@
 ﻿@model TravelHub.Web.ViewModels.Categories.CategoryViewModel
 
 @{
-    ViewData["Title"] = "Edytuj kategorię";
+    ViewData["Title"] = "Edit Category";
 }
 
-<h2>Edytuj kategorię</h2>
+<h1>Edit Category</h1>
 
 <form asp-action="Edit" method="post" novalidate>
     <input asp-for="Id" type="hidden" />
     <div class="mb-3">
-        <label asp-for="Name" class="form-label"></label>
+        <label asp-for="Name" class="form-label">Name</label>
         <input asp-for="Name" class="form-control" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
 
     <div class="mb-3">
-        <label asp-for="Color" class="form-label"></label>
+        <label asp-for="Color" class="form-label">Color</label>
         <input asp-for="Color" type="color" class="form-control form-control-color" />
         <span asp-validation-for="Color" class="text-danger"></span>
     </div>
 
-    <button type="submit" class="btn btn-primary">Zapisz</button>
-    <a asp-action="Index" class="btn btn-secondary">Anuluj</a>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
 </form>
 
 @section Scripts {
