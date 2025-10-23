@@ -87,10 +87,11 @@ public class AddDayViewModel
     public string TripName { get; set; } = string.Empty;
 
     [Display(Name = "Day Number")]
-    [Range(1, 365)]
-    public int Number { get; set; }
+    [Range(1, 365, ErrorMessage = "Day number must be between 1 and 365.")]
+    public int? Number { get; set; }
 
     [Display(Name = "Name")]
+    [StringLength(100)]
     public string? Name { get; set; }
 
     [Required]
@@ -99,6 +100,8 @@ public class AddDayViewModel
 
     public DateTime MinDate { get; set; }
     public DateTime MaxDate { get; set; }
+
+    public bool IsGroup { get; set; }
 }
 
 public class DayViewModel
@@ -108,6 +111,10 @@ public class DayViewModel
     public string? Name { get; set; }
     public DateTime Date { get; set; }
     public int ActivitiesCount { get; set; }
+    public bool IsGroup => Number == null && !string.IsNullOrWhiteSpace(Name);
+    public string DisplayName => IsGroup
+        ? Name ?? "Unnamed Group"
+        : (Number.HasValue ? $"Day {Number}" : "Unnamed Day");
 }
 
 public class BasicActivityViewModel

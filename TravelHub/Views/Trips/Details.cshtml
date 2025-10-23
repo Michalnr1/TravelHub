@@ -7,7 +7,12 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>@Model.Name</h1>
     <div>
-        <a asp-action="AddDay" asp-route-id="@Model.Id" class="btn btn-success">Add Day</a>
+        @* <a asp-action="AddDay" asp-route-id="@Model.Id" class="btn btn-success">Add Day</a> *@
+        <form asp-action="AddDay" asp-route-id="@Model.Id" method="post" style="display:inline;">
+            <button type="submit" class="btn btn-success">Add Day</button>
+            @Html.AntiForgeryToken()
+        </form>
+        <a asp-action="AddGroup" asp-route-id="@Model.Id" class="btn btn-success">Add Group</a>
         <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Activity</a>
         <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Spot</a>
         <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Transport</a>
@@ -19,6 +24,10 @@
 @if (TempData["SuccessMessage"] != null)
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
 }
 
 <div class="row">
@@ -41,7 +50,7 @@
     </div>
 
     <!-- Days -->
-    <div class="col-md-6">
+    @* <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Days</h5>
@@ -75,6 +84,85 @@
                     <p class="text-muted">No days added to this trip yet.</p>
                     <a asp-action="AddDay" asp-route-id="@Model.Id" class="btn btn-sm btn-success">Add First Day</a>
                 }
+            </div>
+        </div>
+    </div> *@
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                    <h5 class="card-title mb-0">Days (@Model.Days.Count(d => !d.IsGroup))</h5>
+                </div>
+                <div class="card-body">
+                    @{
+                        var normalDays = Model.Days.Where(d => !d.IsGroup).OrderBy(d => d.Number).ThenBy(d => d.Date).ToList();
+                    }
+                    @if (normalDays.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var day in normalDays)
+                            {
+                                <div class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 text-primary">@day.DisplayName</h6>
+                                            <small class="text-muted">@day.Date.ToString("MMM dd, yyyy")</small>
+                                            <br>
+                                            <small>Activities: @day.ActivitiesCount</small>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                        <a asp-controller="Days" asp-action="Details" asp-route-id="@day.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                            <a asp-controller="Activities" asp-action="Create" asp-route-tripId="@Model.Id" asp-route-dayId="@day.Id" class="btn btn-sm btn-outline-success">Add Activity</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No standard days added to this trip yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                    <h5 class="card-title mb-0">Groups (@Model.Days.Count(d => d.IsGroup))</h5>
+                </div>
+                <div class="card-body">
+                    @{
+                        var groups = Model.Days.Where(d => d.IsGroup).OrderBy(d => d.Date).ThenBy(d => d.Name).ToList();
+                    }
+                    @if (groups.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var group in groups)
+                            {
+                                <div class="list-group-item list-group-item-action ">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 text-info">@group.DisplayName</h6>
+                                            <small class="text-muted">@group.Date.ToString("MMM dd, yyyy")</small>
+                                            <br>
+                                            <small>Activities: @group.ActivitiesCount</small>
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <a asp-controller="Days" asp-action="Details" asp-route-id="@group.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                            <a asp-controller="Activities" asp-action="Create" asp-route-tripId="@Model.Id" asp-route-dayId="@group.Id" class="btn btn-sm btn-outline-success">Add Activity</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No groups added to this trip yet.</p>
+                    }
+                </div>
             </div>
         </div>
     </div>

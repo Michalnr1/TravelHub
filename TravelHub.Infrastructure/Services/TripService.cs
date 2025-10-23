@@ -44,7 +44,7 @@ public class TripService : GenericService<Trip>, ITripService
         day.TripId = tripId;
 
         var existingDays = await _dayRepository.GetByTripIdAsync(tripId);
-        if (existingDays.Any(d => d.Number == day.Number))
+        if (existingDays.Any(d => d.Number.HasValue && d.Number == day.Number))
         {
             throw new ArgumentException($"Day with number {day.Number} already exists in this trip");
         }
@@ -114,5 +114,55 @@ public class TripService : GenericService<Trip>, ITripService
     public async Task<IEnumerable<Trip>> GetAllWithUserAsync()
     {
         return await _tripRepository.GetAllWithUserAsync();
+    }
+
+    public async Task<Day> CreateNextDayAsync(int tripId)
+    {
+        var trip = await GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            throw new ArgumentException($"Trip with ID {tripId} not found");
+        }
+
+        // 1. Get all existing days
+        var existingDays = (await _dayRepository.GetByTripIdAsync(tripId))
+                                .Where(d => d.Number.HasValue)
+                                .OrderBy(d => d.Number)
+                                .ToList();
+
+        // 2. Calculate next day number
+        int nextDayNumber = existingDays.Any() ? existingDays.Max(d => d.Number!.Value) + 1 : 1;
+
+        // 3. Calculate date
+        DateTime nextDayDate;
+
+        if (nextDayNumber == 1)
+        {
+            nextDayDate = trip.StartDate.Date;
+        }
+        else
+        {
+            var lastDayDate = existingDays.Max(d => d.Date.Date);
+            nextDayDate = lastDayDate.AddDays(1);
+        }
+
+        // 4. Date validation
+        if (nextDayDate > trip.EndDate.Date)
+        {
+            throw new InvalidOperationException("Cannot add a new day. All dates within the trip range are already assigned to a day.");
+        }
+
+        // 5. Create new Day object
+        var newDay = new Day
+        {
+            Number = nextDayNumber,
+            Name = $"Day {nextDayNumber}",
+            Date = nextDayDate,
+            TripId = tripId
+        };
+
+        // 6. Add to repository
+        await _dayRepository.AddAsync(newDay);
+        return newDay;
     }
 }

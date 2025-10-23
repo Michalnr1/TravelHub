@@ -14,4 +14,5 @@ public interface ITripService : IGenericService<Trip>
     Task<bool> ExistsAsync(int id);
     Task<(double medianLatitude, double medianLongitude)> GetMedianCoords(int id);
     Task<IEnumerable<Trip>> GetAllWithUserAsync();
+    Task<Day> CreateNextDayAsync(int tripId);
 }
