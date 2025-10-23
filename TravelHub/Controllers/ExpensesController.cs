@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Expenses;
-using Microsoft.AspNetCore.Authorization;
 
 namespace TravelHub.Web.Controllers;
 
@@ -17,18 +18,21 @@ public class ExpensesController : Controller
     private readonly IExpenseService _expenseService;
     private readonly IGenericService<Currency> _currencyService;
     private readonly IGenericService<Category> _categoryService;
+    private readonly ITripService _tripService;
     private readonly UserManager<Person> _userManager;
 
     public ExpensesController(
         IExpenseService expenseService,
         IGenericService<Currency> currencyService,
         IGenericService<Category> categoryService,
-        UserManager<Person> userManager)
+        UserManager<Person> userManager,
+        ITripService tripService)
     {
         _expenseService = expenseService;
         _currencyService = currencyService;
         _categoryService = categoryService;
         _userManager = userManager;
+        _tripService = tripService;
     }
 
     // GET: Expenses
@@ -228,6 +232,86 @@ public class ExpensesController : Controller
     {
         await _expenseService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
+    }
+
+    // GET: Expenses/AddToTrip
+    public async Task<IActionResult> AddToTrip(int tripId)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        var viewModel = await CreateExpenseCreateEditViewModel();
+        viewModel.TripId = tripId;
+
+        // Get people from the trip (assuming you have a way to get trip participants)
+        var tripPeople = await GetPeopleFromTrip(tripId);
+        viewModel.People = tripPeople;
+        viewModel.AllPeople = tripPeople;
+
+        return View(viewModel);
+    }
+
+    // POST: Expenses/AddToTrip
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddToTrip(ExpenseCreateEditViewModel viewModel)
+    {
+        if (ModelState.IsValid)
+        {
+            var expense = new Expense
+            {
+                Name = viewModel.Name,
+                Value = viewModel.Value,
+                PaidById = viewModel.PaidById,
+                CategoryId = viewModel.CategoryId,
+                CurrencyKey = viewModel.CurrencyKey,
+                TripId = viewModel.TripId
+            };
+
+            if (viewModel.SelectedParticipants != null && viewModel.SelectedParticipants.Any())
+            {
+                var participants = await _userManager.Users
+                    .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
+                    .ToListAsync();
+                expense.Participants = participants;
+            }
+
+            await _expenseService.AddAsync(expense);
+            TempData["SuccessMessage"] = "Expense added successfully!";
+            return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
+        }
+
+        // Reload people for the trip if validation fails
+        var tripPeople = await GetPeopleFromTrip(viewModel.Id);
+        viewModel.People = tripPeople;
+        viewModel.AllPeople = tripPeople;
+        await PopulateSelectLists(viewModel);
+
+        return View(viewModel);
+    }
+
+    private async Task<List<PersonSelectItem>> GetPeopleFromTrip(int tripId)
+    {
+        // This is a placeholder - you'll need to implement this based on your data model
+        // Assuming you have a way to get people associated with a trip
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip != null)
+        {
+            // If you have a direct relationship between Trip and People, use that
+            // Otherwise, you might need to get people from activities or other related entities
+            var people = await _userManager.Users.ToListAsync();
+            return people.Select(p => new PersonSelectItem
+            {
+                Id = p.Id,
+                FullName = $"{p.FirstName} {p.LastName}",
+                Email = p.Email!
+            }).ToList();
+        }
+
+        return new List<PersonSelectItem>();
     }
 
     private async Task<bool> ExpenseExists(int id)

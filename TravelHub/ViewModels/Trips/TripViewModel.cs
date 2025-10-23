@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using TravelHub.Domain.Entities;
+using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Expenses;
 using TravelHub.Web.ViewModels.Transports;
 
 namespace TravelHub.Web.ViewModels.Trips;
@@ -13,6 +15,7 @@ public class TripViewModel
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public int DaysCount { get; set; }
+    public int GroupsCount { get; set; }
 }
 
 public class TripWithUserViewModel
@@ -39,11 +42,22 @@ public class TripDetailViewModel
     public List<ActivityViewModel> Activities { get; set; } = new();
     public List<SpotDetailsViewModel> Spots { get; set; } = new();
     public List<TransportViewModel> Transports { get; set; } = new();
+    public List<AccommodationViewModel> Accommodations { get; set; } = new();
+    public List<ExpenseViewModel> Expenses { get; set; } = new();
 
     // Counts for display
     public int ActivitiesCount => Activities.Count;
     public int SpotsCount => Spots.Count;
     public int TransportsCount => Transports.Count;
+    public int AccommodationsCount => Accommodations.Count;
+    public int ExpensesCount => Expenses.Count;
+    public decimal TotalExpenses => Expenses.Sum(e => e.Value);
+
+    // Helper properties
+    public int Duration => (EndDate - StartDate).Days + 1;
+    public string DateRange => $"{StartDate:MMM dd, yyyy} - {EndDate:MMM dd, yyyy}";
+    public int NormalDaysCount => Days.Count(d => !d.IsGroup);
+    public int GroupsCount => Days.Count(d => d.IsGroup);
 }
 
 public class CreateTripViewModel

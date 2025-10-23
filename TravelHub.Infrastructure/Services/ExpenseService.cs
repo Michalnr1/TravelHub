@@ -20,4 +20,9 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
     {
         return await _expenseRepository.GetExpensesByUserIdAsync(userId);
     }
+
+    public async Task<IEnumerable<Expense>> GetByTripIdWithParticipantsAsync(int tripId)
+    {
+        return await _expenseRepository.GetByTripIdWithParticipantsAsync(tripId);
+    }
 }

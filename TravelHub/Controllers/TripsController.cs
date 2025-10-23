@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
+using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Expenses;
 using TravelHub.Web.ViewModels.Transports;
 using TravelHub.Web.ViewModels.Trips;
 
@@ -17,18 +20,31 @@ public class TripsController : Controller
     private readonly ITransportService _transportService;
     private readonly ISpotService _spotService;
     private readonly IActivityService _activityService;
-    private readonly IGenericService<Category> _categoryService;
+    private readonly ICategoryService _categoryService;
+    private readonly IAccommodationService _accommodationService;
+    private readonly IExpenseService _expenseService;
     private readonly ILogger<TripsController> _logger;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
 
-    public TripsController(ITripService tripService, ITransportService transportService, ISpotService spotService, IActivityService activityService, IGenericService<Category> categoryService, ILogger<TripsController> logger, UserManager<Person> userManager, IConfiguration configuration)
+    public TripsController(ITripService tripService,
+        ITransportService transportService,
+        ISpotService spotService,
+        IActivityService activityService,
+        ICategoryService categoryService,
+        IAccommodationService accommodationService,
+        IExpenseService expenseService,
+        ILogger<TripsController> logger,
+        UserManager<Person> userManager,
+        IConfiguration configuration)
     {
         _tripService = tripService;
         _transportService = transportService;
         _spotService = spotService;
         _activityService = activityService;
         _categoryService = categoryService;
+        _accommodationService = accommodationService;
+        _expenseService = expenseService;
         _configuration = configuration;
         _logger = logger;
         _userManager = userManager;
@@ -69,6 +85,8 @@ public class TripsController : Controller
         var activities = await _activityService.GetTripActivitiesWithDetailsAsync(id);
         var spots = await _spotService.GetTripSpotsWithDetailsAsync(id);
         var transports = await _transportService.GetTripTransportsWithDetailsAsync(id);
+        var accommodations = await _accommodationService.GetAccommodationByTripAsync(id);
+        var expenses = await _expenseService.GetByTripIdWithParticipantsAsync(id);
 
         var viewModel = new TripDetailViewModel
         {
@@ -124,6 +142,28 @@ public class TripsController : Controller
                 TripName = t.Trip?.Name ?? string.Empty,
                 FromSpotName = t.FromSpot?.Name ?? string.Empty,
                 ToSpotName = t.ToSpot?.Name ?? string.Empty
+            }).ToList(),
+            Accommodations = accommodations.Select(a => new AccommodationViewModel
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Description = a.Description ?? string.Empty,
+                Cost = a.Cost,
+                CategoryName = a.Category?.Name,
+                DayName = a.Day?.Name,
+                CheckIn = a.CheckIn,
+                CheckOut = a.CheckOut,
+                Latitude = a.Latitude,
+                Longitude = a.Longitude
+            }).ToList(),
+            Expenses = expenses.Select(e => new ExpenseViewModel
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Value = e.Value,
+                PaidByName = e.PaidBy != null ? $"{e.PaidBy.FirstName} {e.PaidBy.LastName}" : "Unknown",
+                CategoryName = e.Category?.Name,
+                CurrencyName = e.Currency?.Name ?? "Unknown"
             }).ToList()
         };
 
@@ -529,7 +569,8 @@ public class TripsController : Controller
             Status = t.Status,
             StartDate = t.StartDate,
             EndDate = t.EndDate,
-            DaysCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => d.Number.HasValue).Count()
+            DaysCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => d.Number.HasValue).Count(),
+            GroupsCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => !d.Number.HasValue).Count()
         });
 
         return View(viewModel);

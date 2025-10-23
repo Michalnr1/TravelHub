@@ -19,4 +19,15 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
             // .Include(e => e.Category)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Expense>> GetByTripIdWithParticipantsAsync(int tripId)
+    {
+        return await _context.Expenses
+            .Include(e => e.Category)
+            .Include(e => e.Currency)
+            .Include(e => e.PaidBy)
+            .Include(e => e.Participants)
+            .Where(e => e.TripId == tripId)
+            .ToListAsync();
+    }
 }

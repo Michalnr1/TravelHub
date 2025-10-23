@@ -77,6 +77,7 @@ builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 
 builder.Services.AddRazorPages();
 

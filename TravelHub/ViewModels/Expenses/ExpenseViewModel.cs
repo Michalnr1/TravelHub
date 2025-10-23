@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using TravelHub.Domain.Entities;
 
 namespace TravelHub.Web.ViewModels.Expenses;
 
@@ -24,6 +23,8 @@ public class ExpenseDetailsViewModel
     public required string CurrencyName { get; set; }
     public string? CurrencyKey { get; set; }
     public List<string> ParticipantNames { get; set; } = new List<string>();
+    public int TripId { get; set; }
+    public string? TripName { get; set; }
 }
 
 public class ExpenseCreateEditViewModel
@@ -48,6 +49,10 @@ public class ExpenseCreateEditViewModel
     [Required(ErrorMessage = "Currency is required")]
     [Display(Name = "Currency")]
     public string CurrencyKey { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Trip is required")]
+    [Display(Name = "Trip")]
+    public int TripId { get; set; }
 
     [Display(Name = "Participants")]
     public List<string> SelectedParticipants { get; set; } = new List<string>();
