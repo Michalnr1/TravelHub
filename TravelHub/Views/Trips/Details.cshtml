@@ -7,6 +7,11 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>@Model.Name</h1>
     <div>
+        <form asp-action="AddDay" asp-route-id="@Model.Id" method="post" style="display:inline;">
+            <button type="submit" class="btn btn-success">Add Day</button>
+            @Html.AntiForgeryToken()
+        </form>
+        <a asp-action="AddGroup" asp-route-id="@Model.Id" class="btn btn-success">Add Group</a>
         <a asp-controller="Accommodations" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Accommodation</a>
         <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Expense</a>
         <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Activity</a>
