@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using TravelHub.Domain.Entities;
 
 namespace TravelHub.Web.ViewModels.Activities;
 
@@ -81,6 +82,8 @@ public class SpotCreateEditViewModel : ActivityCreateEditViewModel
     [Required(ErrorMessage = "Cost is required")]
     [Range(0, double.MaxValue, ErrorMessage = "Cost must be greater than or equal to 0")]
     public decimal Cost { get; set; }
+
+    public Rating? Rating { get; set; }
 }
 
 public class PhotoViewModel
@@ -95,6 +98,7 @@ public class SpotDetailsViewModel : ActivityDetailsViewModel
     public double Longitude { get; set; }
     public double Latitude { get; set; }
     public decimal Cost { get; set; }
+    public Rating? Rating { get; set; }
     public IEnumerable<PhotoViewModel>? Photos { get; set; }
     public int PhotoCount { get; set; }
     public int TransportsFromCount { get; set; }

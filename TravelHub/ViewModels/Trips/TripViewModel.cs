@@ -14,6 +14,7 @@ public class TripViewModel
     public Status Status { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public bool IsPrivate { get; set; } = true;
     public int DaysCount { get; set; }
     public int GroupsCount { get; set; }
 }
@@ -25,6 +26,7 @@ public class TripWithUserViewModel
     public Status Status { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public bool IsPrivate { get; set; } = true;
     public int DaysCount { get; set; }
     public required Person Person { get; set; }
 }
@@ -36,6 +38,7 @@ public class TripDetailViewModel
     public Status Status { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public bool IsPrivate { get; set; } = true;
 
     // Collections
     public List<DayViewModel> Days { get; set; } = new();
@@ -73,6 +76,10 @@ public class CreateTripViewModel
     [Required]
     [Display(Name = "End Date")]
     public DateTime EndDate { get; set; } = DateTime.Today.AddDays(7);
+
+    [Required]
+    [Display(Name = "Privacy")]
+    public bool IsPrivate { get; set; } = true;
 }
 
 public class EditTripViewModel
@@ -93,6 +100,10 @@ public class EditTripViewModel
 
     [Required]
     public Status Status { get; set; }
+
+    [Required]
+    [Display(Name = "Privacy")]
+    public bool IsPrivate { get; set; } = true;
 }
 
 public class AddDayViewModel

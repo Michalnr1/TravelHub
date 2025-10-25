@@ -62,6 +62,7 @@ public class SpotsController : Controller
             Longitude = s.Longitude,
             Latitude = s.Latitude,
             Cost = s.Cost,
+            Rating = s.Rating,
             PhotoCount = s.Photos?.Count ?? 0,
             TransportsFromCount = s.TransportsFrom?.Count ?? 0,
             TransportsToCount = s.TransportsTo?.Count ?? 0
@@ -104,6 +105,7 @@ public class SpotsController : Controller
             Longitude = spot.Longitude,
             Latitude = spot.Latitude,
             Cost = spot.Cost,
+            Rating = spot.Rating,
             PhotoCount = spot.Photos?.Count ?? 0,
             TransportsFromCount = spot.TransportsFrom?.Count ?? 0,
             TransportsToCount = spot.TransportsTo?.Count ?? 0
@@ -151,7 +153,8 @@ public class SpotsController : Controller
                 DayId = viewModel.DayId,
                 Longitude = viewModel.Longitude,
                 Latitude = viewModel.Latitude,
-                Cost = viewModel.Cost
+                Cost = viewModel.Cost,
+                Rating = viewModel.Rating
             };
 
             await _spotService.AddAsync(spot);
@@ -232,6 +235,7 @@ public class SpotsController : Controller
                 existingSpot.Longitude = viewModel.Longitude;
                 existingSpot.Latitude = viewModel.Latitude;
                 existingSpot.Cost = viewModel.Cost;
+                existingSpot.Rating = viewModel.Rating;
 
                 await _spotService.UpdateAsync(existingSpot);
 
@@ -291,7 +295,8 @@ public class SpotsController : Controller
             DayName = spot.Day?.Name,
             Longitude = spot.Longitude,
             Latitude = spot.Latitude,
-            Cost = spot.Cost
+            Cost = spot.Cost,
+            Rating = spot.Rating
         };
 
         return View(viewModel);
@@ -389,7 +394,8 @@ public class SpotsController : Controller
                     DayId = viewModel.DayId,
                     Longitude = viewModel.Longitude,
                     Latitude = viewModel.Latitude,
-                    Cost = viewModel.Cost
+                    Cost = viewModel.Cost,
+                    Rating = viewModel.Rating
                 };
 
                 await _spotService.AddAsync(spot);
@@ -453,6 +459,7 @@ public class SpotsController : Controller
             viewModel.Longitude = spot.Longitude;
             viewModel.Latitude = spot.Latitude;
             viewModel.Cost = spot.Cost;
+            viewModel.Rating = spot.Rating;
         }
 
         await PopulateSelectLists(viewModel);

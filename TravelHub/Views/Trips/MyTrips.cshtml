@@ -25,7 +25,11 @@
                         <strong>Status:</strong> <span class="badge bg-info">@trip.Status</span><br>
                         <strong>Dates:</strong> @trip.StartDate.ToString("MMM dd, yyyy") - @trip.EndDate.ToString("MMM dd, yyyy")<br>
                         <strong>Days:</strong> @trip.DaysCount<br>
-                        <strong>Groups:</strong> @trip.GroupsCount
+                        <strong>Groups:</strong> @trip.GroupsCount<br>
+                        <strong>Privacy:</strong>
+                        <span class="badge @(trip.IsPrivate ? "bg-danger" : "bg-success")">
+                            @(trip.IsPrivate ? "Private" : "Public")
+                        </span>
                     </p>
                 </div>
                 <div class="card-footer">

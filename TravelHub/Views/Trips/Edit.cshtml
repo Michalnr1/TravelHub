@@ -38,6 +38,15 @@
             </div>
 
             <div class="form-group mb-3">
+                <label asp-for="IsPrivate" class="control-label"></label>
+                <select asp-for="IsPrivate" class="form-control">
+                    <option value="true">Private</option>
+                    <option value="false">Public</option>
+                </select>
+                <span asp-validation-for="IsPrivate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
                 <label asp-for="Status" class="control-label"></label>
                 <select asp-for="Status" asp-items="Html.GetEnumSelectList<Status>()" class="form-control"></select>
                 <span asp-validation-for="Status" class="text-danger"></span>
