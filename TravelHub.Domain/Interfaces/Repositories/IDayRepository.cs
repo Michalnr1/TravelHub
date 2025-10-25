@@ -9,4 +9,5 @@ public interface IDayRepository : IGenericRepository<Day>
     Task<Day?> GetByIdWithActivitiesAsync(int id);
     Task<IEnumerable<Day>> GetByTripIdAsync(int tripId);
     Task<bool> ExistsAsync(int id);
+    Task<Day?> GetByIdWithTripAsync(int id);
 }

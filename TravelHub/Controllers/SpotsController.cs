@@ -513,7 +513,7 @@ public class SpotsController : Controller
 
         // Pobierz wszystkie spoty dla danego dnia
         var itemsInDay = await _activityService.GetAllAsync();
-        itemsInDay = itemsInDay.Where(a => a.DayId == dayId).ToList();
+        itemsInDay = itemsInDay.Where(a => a.DayId == dayId && !(a is Accommodation)).ToList();
 
         if (!itemsInDay.Any())
         {
@@ -535,7 +535,7 @@ public class SpotsController : Controller
 
         var spotsInDay = await _activityService.GetAllAsync();
         spotsInDay = spotsInDay
-            .Where(s => s.DayId == dayId)
+            .Where(a => a.DayId == dayId && !(a is Accommodation))
             .OrderBy(s => s.Order)
             .ToList();
 
