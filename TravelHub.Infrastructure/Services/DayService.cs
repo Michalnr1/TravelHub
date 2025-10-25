@@ -45,4 +45,9 @@ public class DayService : GenericService<Day>, IDayService
 
         return date >= trip.StartDate && date <= trip.EndDate;
     }
+
+    public async Task<IEnumerable<Day>> GetDaysByTripIdAsync(int tripId)
+    {
+        return await _dayRepository.GetByTripIdAsync(tripId);
+    }
 }

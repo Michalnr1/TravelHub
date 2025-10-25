@@ -13,7 +13,7 @@
 
     // Wszystkie aktywności z podróży (do wyświetlenia po prawej stronie)
     var allTripActivities = Model.Trip?.Activities?
-        .Where(a => a.DayId == null)
+        .Where(a => a.DayId == null && a is not Accommodation)
         .OrderBy(a => a.Name)
         .ToList() ?? new List<Activity>();
 }
@@ -23,7 +23,6 @@
 <div>
     <hr />
     <dl class="row">
-
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Name)
         </dt>
@@ -59,7 +58,7 @@
     </div>
 }
 
-<!-- Sekcja Accommodations (pozostaje bez zmian) -->
+<!-- Sekcja Accommodations -->
 <div class="mt-4">
     <h4>
         <i class="fas fa-hotel text-warning"></i> Accommodations
@@ -122,19 +121,6 @@
                                 </div>
                             }
                         </div>
-                        <!-- Przycisk usuwania dla Accommodation -->
-                        <div class="card-footer bg-transparent">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <form asp-controller="Activities" asp-action="RemoveFromDay" method="post">
-                                    <input type="hidden" name="activityId" value="@accommodation.Id" />
-                                    <input type="hidden" name="dayId" value="@Model.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                            title="Remove from @(isGroup ? "group" : "day")">
-                                        <i class="fas fa-times"></i> Remove
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
                     </div>
                 </div>
             }
@@ -167,7 +153,7 @@
                     var isRegularActivity = !isSpot;
 
                     <div class="list-group-item d-flex justify-content-between align-items-start
-                                        @(isSpot ? "border-success" : "border-primary")"
+                                                @(isSpot ? "border-success" : "border-primary")"
                          style="border-left-width: 4px;">
 
                         <div class="flex-grow-1">
@@ -284,13 +270,12 @@
 
             <div class="col-md-4">
                 <a asp-controller="Accommodations" asp-action="AddToTrip"
-                   asp-route-tripId="@Model.TripId" asp-route-dayId="@Model.Id"
+                   asp-route-tripId="@Model.TripId"
                    class="btn btn-warning w-100">
                     <i class="fas fa-hotel"></i> Add Accommodation
                 </a>
             </div>
         </div>
-
     </div>
 
     <!-- Prawa kolumna: Dostępne aktywności z podróży -->
@@ -308,20 +293,15 @@
                 @foreach (var activity in allTripActivities)
                 {
                     var isSpot = activity is Spot;
-                    var isAccommodation = activity is Accommodation;
-                    var isRegularActivity = !isSpot && !isAccommodation;
+                    var isRegularActivity = !isSpot;
 
                     <div class="list-group-item d-flex justify-content-between align-items-start
-                                        @(isAccommodation ? "border-warning" : isSpot ? "border-success" : "border-primary")"
+                                                @(isSpot ? "border-success" : "border-primary")"
                          style="border-left-width: 4px; opacity: 0.8;">
 
                         <div class="flex-grow-1">
                             <h6 class="mb-1">
-                                @if (isAccommodation)
-                                {
-                                    <i class="fas fa-hotel text-warning"></i>
-                                }
-                                else if (isSpot)
+                                @if (isSpot)
                                 {
                                     <i class="fas fa-map-marker-alt text-success"></i>
                                 }
@@ -331,12 +311,8 @@
                                 }
                                 @activity.Name
 
-                                <span class="badge @(isAccommodation ? "bg-warning" : isSpot ? "bg-success" : "bg-primary") ms-2">
-                                    @if (isAccommodation)
-                                    {
-                                        @:Accommodation
-                                    }
-                                    else if (isSpot)
+                                <span class="badge @(isSpot ? "bg-success" : "bg-primary") ms-2">
+                                    @if (isSpot)
                                     {
                                         @:Spot
                                     }
@@ -356,27 +332,17 @@
                                 <small class="text-muted">
                                     <strong>Duration:</strong> @activity.Duration hours
                                 </small>
-
-                                @if (activity.DayId.HasValue)
-                                {
-                                    <small class="text-warning ms-2">
-                                        <i class="fas fa-calendar-day"></i> Assigned to another day
-                                    </small>
-                                }
                             </div>
                         </div>
 
-                        @if (!activity.DayId.HasValue)
-                        {
-                            <form asp-controller="Activities" asp-action="AddToDay" method="post" class="ms-2">
-                                <input type="hidden" name="activityId" value="@activity.Id" />
-                                <input type="hidden" name="dayId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-success"
-                                        title="Add to @(isGroup ? "group" : "day")">
-                                    <i class="fas fa-plus"></i> Add
-                                </button>
-                            </form>
-                        }
+                        <form asp-controller="Activities" asp-action="AddToDay" method="post" class="ms-2">
+                            <input type="hidden" name="activityId" value="@activity.Id" />
+                            <input type="hidden" name="dayId" value="@Model.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-success"
+                                    title="Add to @(isGroup ? "group" : "day")">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </form>
                     </div>
                 }
             </div>
@@ -407,7 +373,6 @@
         <i class="fas fa-arrow-left"></i> Back to Trip
     </a>
 </div>
-
 
 @section Scripts {
     @{

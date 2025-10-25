@@ -383,6 +383,13 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
+        // Blokada dla Accommodation
+        if (activity is Accommodation)
+        {
+            TempData["ErrorMessage"] = "Accommodations are automatically assigned based on check-in/check-out dates and cannot be manually assigned to days.";
+            return RedirectToAction("Details", "Days", new { id = dayId });
+        }
+
         // Zapisz stary DayId dla przeliczenia order
         var oldDayId = activity.DayId;
 
