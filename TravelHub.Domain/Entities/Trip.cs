@@ -25,4 +25,7 @@ public class Trip
 
     // A trip can have many expenses (1:N)
     public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+
+    // A trip can have many exchange rates (1:N)
+    public ICollection<ExchangeRate> ExchangeRates { get; set; } = new List<ExchangeRate>();
 }
