@@ -370,7 +370,7 @@ namespace TravelHub.Web.Controllers
 
             // Days - only for this trip (do wyświetlania informacji)
             var days = await _dayService.GetAllAsync();
-            viewModel.Days = days.Where(d => d.TripId == tripId)
+            viewModel.Days = days.Where(d => d.TripId == tripId && d.Number.HasValue)
                 .Select(d => new DaySelectItem
                 {
                     Id = d.Id,

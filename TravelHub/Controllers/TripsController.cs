@@ -105,7 +105,13 @@ public class TripsController : Controller
                 Date = d.Date,
                 ActivitiesCount = d.Activities?.Count ?? 0
             }).ToList() ?? new List<DayViewModel>(),
-            Activities = activities.Select(a => new ActivityViewModel
+            Activities = activities
+            .Where(a => a is not Spot)
+            .OrderBy(a => a.Day == null)
+            .ThenBy(a => a.Day?.Number != null ? a.Day.Number : int.MaxValue)
+            .ThenBy(a => a.Day?.Number == null ? a.Day?.Name : null)
+            .ThenBy(a => a.Order)
+            .Select(a => new ActivityViewModel
             {
                 Id = a.Id,
                 Name = a.Name,
@@ -117,7 +123,13 @@ public class TripsController : Controller
                 TripName = a.Trip?.Name ?? string.Empty,
                 DayName = a.Day?.Name
             }).ToList(),
-            Spots = spots.Select(s => new SpotDetailsViewModel
+            Spots = spots
+            .Where(s => s is not Accommodation)
+            .OrderBy(s => s.Day == null)
+            .ThenBy(s => s.Day?.Number != null ? s.Day.Number : int.MaxValue)
+            .ThenBy(s => s.Day?.Number == null ? s.Day?.Name : null)
+            .ThenBy(s => s.Order)
+            .Select(s => new SpotDetailsViewModel
             {
                 Id = s.Id,
                 Name = s.Name,
