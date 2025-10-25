@@ -43,6 +43,7 @@ public class TransportsController : Controller
             Type = t.Type,
             Duration = t.Duration,
             DurationString = ConvertDecimalToTimeString(t.Duration),
+            Cost = t.Cost,
             TripName = t.Trip?.Name!,
             FromSpotName = t.FromSpot?.Name!,
             ToSpotName = t.ToSpot?.Name!
@@ -72,6 +73,7 @@ public class TransportsController : Controller
             Type = transport.Type,
             Duration = transport.Duration,
             DurationString = ConvertDecimalToTimeString(transport.Duration),
+            Cost = transport.Cost,
             TripName = transport.Trip?.Name!,
             TripId = transport.TripId,
             FromSpotName = transport.FromSpot?.Name!,
@@ -113,6 +115,7 @@ public class TransportsController : Controller
                 Name = viewModel.Name,
                 Type = viewModel.Type,
                 Duration = viewModel.Duration,
+                Cost = viewModel.Cost,
                 TripId = viewModel.TripId,
                 FromSpotId = viewModel.FromSpotId,
                 ToSpotId = viewModel.ToSpotId
@@ -195,6 +198,7 @@ public class TransportsController : Controller
                 existingTransport.Name = viewModel.Name;
                 existingTransport.Type = viewModel.Type;
                 existingTransport.Duration = viewModel.Duration;
+                existingTransport.Cost = viewModel.Cost;
                 existingTransport.TripId = viewModel.TripId;
                 existingTransport.FromSpotId = viewModel.FromSpotId;
                 existingTransport.ToSpotId = viewModel.ToSpotId;
@@ -240,6 +244,7 @@ public class TransportsController : Controller
             Type = transport.Type,
             Duration = transport.Duration,
             DurationString = ConvertDecimalToTimeString(transport.Duration),
+            Cost = transport.Cost,
             TripName = transport.Trip?.Name!,
             TripId = transport.TripId,
             FromSpotName = transport.FromSpot?.Name!,
@@ -308,6 +313,7 @@ public class TransportsController : Controller
                     Name = viewModel.Name,
                     Type = viewModel.Type,
                     Duration = viewModel.Duration,
+                    Cost = viewModel.Cost,
                     TripId = viewModel.TripId,
                     FromSpotId = viewModel.FromSpotId,
                     ToSpotId = viewModel.ToSpotId
@@ -367,6 +373,7 @@ public class TransportsController : Controller
             viewModel.Name = transport.Name;
             viewModel.Type = transport.Type;
             viewModel.Duration = transport.Duration;
+            viewModel.Cost = transport.Cost;
             viewModel.TripId = transport.TripId;
             viewModel.FromSpotId = transport.FromSpotId;
             viewModel.ToSpotId = transport.ToSpotId;

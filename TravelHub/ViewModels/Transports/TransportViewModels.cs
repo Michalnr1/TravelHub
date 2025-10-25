@@ -13,6 +13,7 @@ public class TransportViewModel
     public TransportationType Type { get; set; }
     public decimal Duration { get; set; }
     public string DurationString { get; set; } = "00:00";
+    public decimal Cost { get; set; }
     public required string TripName { get; set; }
     public required string FromSpotName { get; set; }
     public required string ToSpotName { get; set; }
@@ -24,6 +25,7 @@ public class TransportDetailsViewModel
     public required string Name { get; set; }
     public TransportationType Type { get; set; }
     public decimal Duration { get; set; }
+    public decimal Cost { get; set; }
     public string DurationString { get; set; } = "00:00";
     public required string TripName { get; set; }
     public int TripId { get; set; }
@@ -51,6 +53,10 @@ public class TransportCreateEditViewModel
     public string DurationString { get; set; } = "00:00";
 
     public decimal Duration { get; set; }
+
+    [Required(ErrorMessage = "Cost is required")]
+    [Range(0, double.MaxValue, ErrorMessage = "Cost must be greater than or equal to 0")]
+    public decimal Cost { get; set; }
 
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]

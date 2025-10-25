@@ -62,7 +62,8 @@ public class TripsController : Controller
             StartDate = t.StartDate,
             EndDate = t.EndDate,
             DaysCount = t.Days?.Count ?? 0,
-            Person = t.Person!
+            Person = t.Person!,
+            IsPrivate = t.IsPrivate
         });
 
         return View(viewModel);
@@ -95,6 +96,7 @@ public class TripsController : Controller
             Status = trip.Status,
             StartDate = trip.StartDate,
             EndDate = trip.EndDate,
+            IsPrivate = trip.IsPrivate,
             Days = trip.Days?.Select(d => new DayViewModel
             {
                 Id = d.Id,
@@ -139,6 +141,7 @@ public class TripsController : Controller
                 Name = t.Name,
                 Type = t.Type,
                 Duration = t.Duration,
+                Cost = t.Cost,
                 TripName = t.Trip?.Name ?? string.Empty,
                 FromSpotName = t.FromSpot?.Name ?? string.Empty,
                 ToSpotName = t.ToSpot?.Name ?? string.Empty
@@ -191,7 +194,8 @@ public class TripsController : Controller
                     StartDate = viewModel.StartDate,
                     EndDate = viewModel.EndDate,
                     Status = Status.Planning,
-                    PersonId = GetCurrentUserId()
+                    PersonId = GetCurrentUserId(),
+                    IsPrivate = viewModel.IsPrivate
                 };
 
                 await _tripService.AddAsync(trip);
@@ -229,7 +233,8 @@ public class TripsController : Controller
             Name = trip.Name,
             StartDate = trip.StartDate,
             EndDate = trip.EndDate,
-            Status = trip.Status
+            Status = trip.Status,
+            IsPrivate = trip.IsPrivate
         };
 
         return View(viewModel);
@@ -265,6 +270,7 @@ public class TripsController : Controller
                 trip.StartDate = viewModel.StartDate;
                 trip.EndDate = viewModel.EndDate;
                 trip.Status = viewModel.Status;
+                trip.IsPrivate = viewModel.IsPrivate;
 
                 await _tripService.UpdateAsync(trip);
 
@@ -309,7 +315,8 @@ public class TripsController : Controller
             Name = trip.Name,
             Status = trip.Status,
             StartDate = trip.StartDate,
-            EndDate = trip.EndDate
+            EndDate = trip.EndDate,
+            IsPrivate = trip.IsPrivate
         };
 
         return View(viewModel);
@@ -569,6 +576,7 @@ public class TripsController : Controller
             Status = t.Status,
             StartDate = t.StartDate,
             EndDate = t.EndDate,
+            IsPrivate = t.IsPrivate,
             DaysCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => d.Number.HasValue).Count(),
             GroupsCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => !d.Number.HasValue).Count()
         });
