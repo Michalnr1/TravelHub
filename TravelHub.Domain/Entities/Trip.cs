@@ -7,6 +7,7 @@ public class Trip
     public Status Status { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+    public bool IsPrivate { get; set; }
 
     // Foreign Key for Person
     public required string PersonId { get; set; }

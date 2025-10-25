@@ -6,6 +6,7 @@ public class Transport
     public required string Name { get; set; }
     public TransportationType Type { get; set; }
     public decimal Duration { get; set; }
+    public decimal Cost { get; set; }
 
     // Foreign Key for Trip
     public required int TripId { get; set; }

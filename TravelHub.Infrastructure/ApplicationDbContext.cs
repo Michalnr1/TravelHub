@@ -67,6 +67,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(t => t.Name).IsRequired().HasMaxLength(200);
             entity.Property(t => t.StartDate).HasColumnType("date");
             entity.Property(t => t.EndDate).HasColumnType("date");
+            entity.Property(t => t.IsPrivate).IsRequired();
 
             // 1:N relationship with Person (Trip organizer)
             entity.HasOne(t => t.Person)
@@ -121,6 +122,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
         {
             // entity.HasKey(s => s.Id);
             entity.Property(s => s.Cost).HasPrecision(18, 2);
+            entity.Property(s => s.Rating);
         });
 
         // --- Accommodation Configuration ---
@@ -136,6 +138,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasKey(t => t.Id);
             entity.Property(t => t.Name).HasMaxLength(150);
             entity.Property(t => t.Duration).HasPrecision(18, 2);
+            entity.Property(s => s.Cost).HasPrecision(18, 2);
 
             // Configure the two 1:N relationships from Transport to Spot
             entity.HasOne(t => t.FromSpot)

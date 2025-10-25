@@ -7,6 +7,7 @@ public class Spot : Activity
     public double Longitude { get; set; }
     public double Latitude { get; set; }
     public decimal Cost { get; set; }
+    public Rating? Rating { get; set; }
 
     // Navigation Properties
 
