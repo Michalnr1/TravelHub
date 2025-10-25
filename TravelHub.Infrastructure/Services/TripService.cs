@@ -124,27 +124,29 @@ public class TripService : GenericService<Trip>, ITripService
             throw new ArgumentException($"Trip with ID {tripId} not found");
         }
 
-        // 1. Get all existing days
-        var existingDays = (await _dayRepository.GetByTripIdAsync(tripId))
-                                .Where(d => d.Number.HasValue)
-                                .OrderBy(d => d.Number)
-                                .ToList();
+        // 1. Get all existing days number
+        var existingDayNumbers = (await _dayRepository.GetByTripIdAsync(tripId))
+                                    .Where(d => d.Number.HasValue)
+                                    .Select(d => d.Number!.Value)
+                                    .OrderBy(n => n)
+                                    .ToList();
 
-        // 2. Calculate next day number
-        int nextDayNumber = existingDays.Any() ? existingDays.Max(d => d.Number!.Value) + 1 : 1;
+        // 2. Find next day number
+        int nextDayNumber = 1;
+
+        for (int i = 0; i < existingDayNumbers.Count; i++)
+        {
+            if (existingDayNumbers[i] != i + 1)
+            {
+                nextDayNumber = i + 1;
+                break;
+            }
+
+            nextDayNumber = existingDayNumbers.Count + 1;
+        }
 
         // 3. Calculate date
-        DateTime nextDayDate;
-
-        if (nextDayNumber == 1)
-        {
-            nextDayDate = trip.StartDate.Date;
-        }
-        else
-        {
-            var lastDayDate = existingDays.Max(d => d.Date.Date);
-            nextDayDate = lastDayDate.AddDays(1);
-        }
+        DateTime nextDayDate = trip.StartDate.Date.AddDays(nextDayNumber - 1);
 
         // 4. Date validation
         if (nextDayDate > trip.EndDate.Date)
