@@ -178,7 +178,7 @@ public class TripsController : Controller
                 Value = e.Value,
                 PaidByName = e.PaidBy != null ? $"{e.PaidBy.FirstName} {e.PaidBy.LastName}" : "Unknown",
                 CategoryName = e.Category?.Name,
-                CurrencyName = e.Currency?.Name ?? "Unknown"
+                CurrencyName = e.ExchangeRate?.Name ?? "Unknown"
             }).ToList()
         };
 

@@ -22,9 +22,9 @@ public class Expense
     public Trip? Trip { get; set; }
 
     // Foreign Key for Currency
-    public required CurrencyCode CurrencyKey { get; set; }
+    public int ExchangeRateId { get; set; }
     // Navigation Property to the currency
-    public Currency? Currency { get; set; }
+    public ExchangeRate? ExchangeRate { get; set; }
 
     // Navigation property for people the expense was for (M:N)
     public ICollection<Person> Participants { get; set; } = new List<Person>();

@@ -2,7 +2,7 @@
 
 namespace TravelHub.Domain.Interfaces.Repositories;
 
-public interface ICurrencyRepository : IGenericRepository<Currency>
+public interface ICurrencyRepository : IGenericRepository<ExchangeRate>
 {
     // Dodaj metody specyficzne dla Currency
 }

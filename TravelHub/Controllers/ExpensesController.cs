@@ -16,14 +16,14 @@ namespace TravelHub.Web.Controllers;
 public class ExpensesController : Controller
 {
     private readonly IExpenseService _expenseService;
-    private readonly IGenericService<Currency> _currencyService;
+    private readonly IGenericService<ExchangeRate> _currencyService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
     private readonly UserManager<Person> _userManager;
 
     public ExpensesController(
         IExpenseService expenseService,
-        IGenericService<Currency> currencyService,
+        IGenericService<ExchangeRate> currencyService,
         IGenericService<Category> categoryService,
         UserManager<Person> userManager,
         ITripService tripService)
@@ -46,7 +46,7 @@ public class ExpensesController : Controller
             Value = e.Value,
             PaidByName = e.PaidBy?.FirstName + " " + e.PaidBy?.LastName,
             CategoryName = e.Category?.Name,
-            CurrencyName = e.Currency?.Name!
+            CurrencyName = e.ExchangeRate?.Name!
         }).ToList();
 
         return View(viewModel);
@@ -73,8 +73,8 @@ public class ExpensesController : Controller
             Value = expense.Value,
             PaidByName = expense.PaidBy?.FirstName + " " + expense.PaidBy?.LastName,
             CategoryName = expense.Category?.Name,
-            CurrencyName = expense.Currency?.Name!,
-            CurrencyKey = expense.CurrencyKey,
+            CurrencyName = expense.ExchangeRate?.Name!,
+            CurrencyKey = expense.ExchangeRate?.CurrencyCodeKey,
             ParticipantNames = expense.Participants?.Select(p => p.FirstName + " " + p.LastName).ToList() ?? new List<string>()
         };
 
@@ -101,7 +101,7 @@ public class ExpensesController : Controller
                 Value = viewModel.Value,
                 PaidById = viewModel.PaidById,
                 CategoryId = viewModel.CategoryId,
-                CurrencyKey = viewModel.CurrencyKey
+                // CurrencyCodeKey = viewModel.CurrencyKey
             };
 
             if (viewModel.SelectedParticipants != null && viewModel.SelectedParticipants.Any())
@@ -163,7 +163,7 @@ public class ExpensesController : Controller
                 existingExpense.Value = viewModel.Value;
                 existingExpense.PaidById = viewModel.PaidById;
                 existingExpense.CategoryId = viewModel.CategoryId;
-                existingExpense.CurrencyKey = viewModel.CurrencyKey;
+                // existingExpense.CurrencyKey = viewModel.CurrencyKey;
 
                 // Update participants
                 if (viewModel.SelectedParticipants != null)
@@ -219,7 +219,7 @@ public class ExpensesController : Controller
             Value = expense.Value,
             PaidByName = expense.PaidBy?.FirstName + " " + expense.PaidBy?.LastName,
             CategoryName = expense.Category?.Name,
-            CurrencyName = expense.Currency?.Name!
+            CurrencyName = expense.ExchangeRate?.Name!
         };
 
         return View(viewModel);
@@ -267,7 +267,7 @@ public class ExpensesController : Controller
                 Value = viewModel.Value,
                 PaidById = viewModel.PaidById,
                 CategoryId = viewModel.CategoryId,
-                CurrencyKey = viewModel.CurrencyKey,
+                // CurrencyKey = viewModel.CurrencyKey,
                 TripId = viewModel.TripId
             };
 
@@ -331,7 +331,7 @@ public class ExpensesController : Controller
             viewModel.Value = expense.Value;
             viewModel.PaidById = expense.PaidById;
             viewModel.CategoryId = expense.CategoryId;
-            viewModel.CurrencyKey = expense.CurrencyKey;
+            // viewModel.CurrencyKey = expense.CurrencyKey;
             viewModel.SelectedParticipants = expense.Participants?.Select(p => p.Id).ToList() ?? new List<string>();
         }
 
@@ -345,7 +345,7 @@ public class ExpensesController : Controller
         var currencies = await _currencyService.GetAllAsync();
         viewModel.Currencies = currencies.Select(c => new CurrencySelectItem
         {
-            Key = c.Key,
+            Key = c.CurrencyCodeKey,
             Name = c.Name
         }).ToList();
 

@@ -20,7 +20,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<Photo> Photos { get; set; }
     public DbSet<Expense> Expenses { get; set; }
     public DbSet<Category> Categories { get; set; }
-    public DbSet<Currency> Currencies { get; set; }
+    public DbSet<ExchangeRate> Currencies { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<Comment> Comments { get; set; }
 
@@ -200,14 +200,11 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                     .HasForeignKey(e => e.TripId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-            var currencyCodeConverter = new EnumToStringConverter<CurrencyCode>();
-            entity.Property(c => c.CurrencyKey).HasConversion(currencyCodeConverter).HasMaxLength(3);
-
-            // 1:N relationship with Currency
-            entity.HasOne(e => e.Currency)
-                  .WithMany(c => c.Expenses)
-                  .HasForeignKey(e => e.CurrencyKey)
-                  .OnDelete(DeleteBehavior.Restrict);
+            // 1:N relationship with ExchangeRate
+            entity.HasOne(e => e.ExchangeRate)
+                    .WithMany(c => c.Expenses)
+                    .HasForeignKey(e => e.ExchangeRateId)
+                    .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Category Configuration ---
@@ -224,14 +221,24 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // --- Currency Configuration ---
-        builder.Entity<Currency>(entity =>
+        // --- ExchangeRate Configuration ---
+        builder.Entity<ExchangeRate>(entity =>
         {
-            var currencyCodeConverter = new EnumToStringConverter<CurrencyCode>();
-            entity.Property(c => c.Key).HasConversion(currencyCodeConverter).HasMaxLength(3);
+            entity.HasKey(er => er.Id);
 
-            entity.HasKey(c => c.Key);
-            entity.Property(c => c.ExchangeRate).HasPrecision(18, 6);
+            var currencyCodeConverter = new EnumToStringConverter<CurrencyCode>();
+            entity.Property(er => er.CurrencyCodeKey).HasConversion(currencyCodeConverter).HasMaxLength(3);
+
+            entity.Property(er => er.ExchangeRateValue).HasPrecision(18, 6);
+
+            // 1:N relationship with Trip
+            entity.HasOne(er => er.Trip)
+                .WithMany(t => t.ExchangeRates)
+                .HasForeignKey(er => er.TripId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(c => new { c.TripId, c.CurrencyCodeKey, c.ExchangeRateValue })
+                 .IsUnique();
         });
 
         // --- Post Configuration ---

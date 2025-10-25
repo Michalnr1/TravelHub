@@ -4,7 +4,7 @@ using TravelHub.Domain.Interfaces.Repositories;
 
 namespace TravelHub.Infrastructure.Repositories;
 
-public class CurrencyRepository : GenericRepository<Currency>, ICurrencyRepository
+public class CurrencyRepository : GenericRepository<ExchangeRate>, ICurrencyRepository
 {
     public CurrencyRepository(ApplicationDbContext context) : base(context)
     {
