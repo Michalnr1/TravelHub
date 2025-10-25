@@ -1,4 +1,5 @@
-﻿using TravelHub.Domain.Entities;
+﻿using Microsoft.Extensions.Logging;
+using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
 
@@ -6,15 +7,21 @@ namespace TravelHub.Infrastructure.Services;
 
 public class TripService : GenericService<Trip>, ITripService
 {
-    // Repozytoria są potrzebne dla metod specyficznych
     private readonly ITripRepository _tripRepository;
     private readonly IDayRepository _dayRepository;
+    private readonly IAccommodationService _accommodationService;
+    private readonly ILogger<TripService> _logger;
 
-    public TripService(ITripRepository tripRepository, IDayRepository dayRepository)
+    public TripService(ITripRepository tripRepository,
+        IDayRepository dayRepository,
+        IAccommodationService accommodationService,
+        ILogger<TripService> logger)
         : base(tripRepository)
     {
         _tripRepository = tripRepository;
         _dayRepository = dayRepository;
+        _accommodationService = accommodationService;
+        _logger = logger;
     }
 
     public async Task<Trip?> GetTripWithDetailsAsync(int id)
@@ -165,6 +172,42 @@ public class TripService : GenericService<Trip>, ITripService
 
         // 6. Add to repository
         await _dayRepository.AddAsync(newDay);
+
+        // 7. AUTOMATYCZNIE PRZYPISZ ACCOMMODATION DO NOWEGO DNIA
+        await AutoAssignAccommodationsToDay(newDay);
+
         return newDay;
+    }
+
+    // Metoda pomocnicza do automatycznego przypisywania accommodation do dnia
+    private async Task AutoAssignAccommodationsToDay(Day day)
+    {
+        // Pobierz wszystkie accommodation z tej podróży bez przypisanego dnia
+        var accommodationsWithoutDay = await _accommodationService.GetAccommodationByTripAsync(day.TripId);
+        accommodationsWithoutDay = accommodationsWithoutDay
+            .Where(a => a.DayId == null)
+            .ToList();
+
+        var assignedCount = 0;
+        foreach (var accommodation in accommodationsWithoutDay)
+        {
+            // Sprawdź czy data dnia mieści się w zakresie check-in do check-out accommodation
+            // (uwzględniamy dzień check-in, ale nie dzień check-out)
+            if (day.Date >= accommodation.CheckIn.Date && day.Date < accommodation.CheckOut.Date)
+            {
+                accommodation.DayId = day.Id;
+                await _accommodationService.UpdateAsync(accommodation);
+                assignedCount++;
+
+                _logger.LogInformation("Automatically assigned accommodation {AccommodationId} to day {DayId}",
+                    accommodation.Id, day.Id);
+            }
+        }
+
+        if (assignedCount > 0)
+        {
+            _logger.LogInformation("Automatically assigned {Count} accommodations to newly created day {DayId}",
+                assignedCount, day.Id);
+        }
     }
 }

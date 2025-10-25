@@ -322,8 +322,8 @@ namespace TravelHub.Web.Controllers
             {
                 try
                 {
-                    // Automatyczne przypisanie dnia na podstawie daty check-in
-                    var dayId = await FindDayForDate(tripId, viewModel.CheckIn);
+                    // SPRÓBUJ ZNALEŹĆ DZIEŃ DLA ACCOMMODATION (tylko jeśli istnieje)
+                    var dayId = await TryFindDayForAccommodation(tripId, viewModel.CheckIn, viewModel.CheckOut);
 
                     var accommodation = new Accommodation
                     {
@@ -333,7 +333,7 @@ namespace TravelHub.Web.Controllers
                         Order = 0, // Order nie jest edytowalny
                         CategoryId = viewModel.CategoryId,
                         TripId = viewModel.TripId,
-                        DayId = dayId, // Automatyczne przypisanie
+                        DayId = dayId, // Przypisz tylko jeśli dzień istnieje, inaczej null
                         Longitude = viewModel.Longitude,
                         Latitude = viewModel.Latitude,
                         Cost = viewModel.Cost,
@@ -345,7 +345,9 @@ namespace TravelHub.Web.Controllers
 
                     await _accommodationService.AddAsync(accommodation);
 
-                    TempData["SuccessMessage"] = "Accommodation added successfully!";
+                    TempData["SuccessMessage"] = "Accommodation added successfully!" +
+                        (dayId == null ? " It will be automatically assigned to a day when one is created for its date range." : "");
+
                     return RedirectToAction("Details", "Trips", new { id = tripId });
                 }
                 catch (Exception ex)
@@ -363,6 +365,18 @@ namespace TravelHub.Web.Controllers
             ViewData["MaxDate"] = trip.EndDate.ToString("yyyy-MM-dd");
 
             return View("AddToTrip", viewModel);
+        }
+
+        // Metoda pomocnicza do znalezienia dnia dla accommodation (tylko istniejące dni)
+        private async Task<int?> TryFindDayForAccommodation(int tripId, DateTime checkIn, DateTime checkOut)
+        {
+            var days = await _dayService.GetDaysByTripIdAsync(tripId);
+
+            // Znajdź dzień, którego data pasuje do zakresu check-in - check-out
+            var matchingDay = days.FirstOrDefault(d =>
+                d.Date.Date >= checkIn.Date && d.Date.Date < checkOut.Date);
+
+            return matchingDay?.Id;
         }
 
         private async Task PopulateSelectListsForTrip(AccommodationCreateEditViewModel viewModel, int tripId)
