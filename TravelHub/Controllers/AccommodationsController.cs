@@ -244,7 +244,7 @@ namespace TravelHub.Web.Controllers
         }
 
         // GET: Accommodations/AddToTrip/5
-        public async Task<IActionResult> AddToTrip(int tripId)
+        public async Task<IActionResult> AddToTrip(int tripId, int? dayId = null)
         {
             var trip = await _tripService.GetByIdAsync(tripId);
             if (trip == null)
@@ -266,7 +266,14 @@ namespace TravelHub.Web.Controllers
             await PopulateSelectListsForTrip(viewModel, tripId);
 
             ViewData["TripName"] = trip.Name;
-            ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
+            if (dayId != null)
+            {
+                ViewData["ReturnUrl"] = Url.Action("Details", "Days", new { id = dayId });
+            }
+            else
+            {
+                ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
+            }
             ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
             ViewData["MinDate"] = trip.StartDate.ToString("yyyy-MM-dd");
             ViewData["MaxDate"] = trip.EndDate.ToString("yyyy-MM-dd");

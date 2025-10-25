@@ -313,7 +313,14 @@ public class ActivitiesController : Controller
         ViewData["TripName"] = trip.Name;
         ViewData["DayName"] = dayId.HasValue ?
             trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
-        ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
+        if (dayId != null)
+        {
+            ViewData["ReturnUrl"] = Url.Action("Details", "Days", new { id = dayId });
+        }
+        else
+        {
+            ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
+        }
 
         return View("AddToTrip", viewModel);
     }

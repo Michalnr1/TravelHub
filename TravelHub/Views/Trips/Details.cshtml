@@ -113,6 +113,10 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center bg-light">
                 <h5 class="card-title mb-0">Days (@Model.NormalDaysCount)</h5>
+                <form asp-action="AddDay" asp-route-id="@Model.Id" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-success">Add Day</button>
+                    @Html.AntiForgeryToken()
+                </form>
             </div>
             <div class="card-body">
                 @{
@@ -155,6 +159,7 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center bg-light">
                 <h5 class="card-title mb-0">Groups (@Model.GroupsCount)</h5>
+                <a asp-action="AddGroup" asp-route-id="@Model.Id" class="btn btn-sm btn-success">Add Group</a>
             </div>
             <div class="card-body">
                 @{
@@ -200,8 +205,8 @@
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Accommodations</h5>
-                <span class="badge bg-primary">@Model.AccommodationsCount</span>
+                <h5 class="card-title mb-0">Accommodations (@Model.AccommodationsCount)</h5>
+                <a asp-controller="Accommodations" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Accommodation</a>
             </div>
             <div class="card-body">
                 @if (Model.Accommodations.Any())
@@ -256,8 +261,8 @@
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Expenses</h5>
-                <span class="badge bg-primary">@Model.ExpensesCount</span>
+                <h5 class="card-title mb-0">Expenses (@Model.ExpensesCount)</h5>
+                <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Expense</a>
             </div>
             <div class="card-body">
                 @if (Model.Expenses.Any())
@@ -305,8 +310,8 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Activities</h5>
-                <span class="badge bg-primary">@Model.ActivitiesCount</span>
+                <h5 class="card-title mb-0">Activities (@Model.ActivitiesCount)</h5>
+                <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Activity</a>
             </div>
             <div class="card-body">
                 @if (Model.Activities.Any())
@@ -356,8 +361,8 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Spots</h5>
-                <span class="badge bg-primary">@Model.SpotsCount</span>
+                <h5 class="card-title mb-0">Spots (@Model.SpotsCount)</h5>
+                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
             </div>
             <div class="card-body">
                 @if (Model.Spots.Any())
@@ -408,8 +413,8 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Transports</h5>
-                <span class="badge bg-primary">@Model.TransportsCount</span>
+                <h5 class="card-title mb-0">Transports (@Model.TransportsCount)</h5>
+                <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Transport</a>
             </div>
             <div class="card-body">
                 @if (Model.Transports.Any())
