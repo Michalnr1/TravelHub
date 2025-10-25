@@ -21,7 +21,7 @@ public class ExpenseDetailsViewModel
     public required string PaidByName { get; set; }
     public string? CategoryName { get; set; }
     public required string CurrencyName { get; set; }
-    public string? CurrencyKey { get; set; }
+    public CurrencyCode? CurrencyKey { get; set; }
     public List<string> ParticipantNames { get; set; } = new List<string>();
     public int TripId { get; set; }
     public string? TripName { get; set; }
@@ -48,7 +48,7 @@ public class ExpenseCreateEditViewModel
 
     [Required(ErrorMessage = "Currency is required")]
     [Display(Name = "Currency")]
-    public string CurrencyKey { get; set; } = string.Empty;
+    public CurrencyCode CurrencyKey { get; set; } = CurrencyCode.PLN;
 
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]
@@ -66,7 +66,7 @@ public class ExpenseCreateEditViewModel
 
 public class CurrencySelectItem
 {
-    public required string Key { get; set; }
+    public required CurrencyCode Key { get; set; }
     public required string Name { get; set; }
 }
 

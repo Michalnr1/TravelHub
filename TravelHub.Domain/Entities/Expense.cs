@@ -22,7 +22,7 @@ public class Expense
     public Trip? Trip { get; set; }
 
     // Foreign Key for Currency
-    public required string CurrencyKey { get; set; }
+    public required CurrencyCode CurrencyKey { get; set; }
     // Navigation Property to the currency
     public Currency? Currency { get; set; }
 

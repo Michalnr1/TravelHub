@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelHub.Domain.Entities;
 
 // Ensure you have a 'using' statement for the namespace where your entities are located.
@@ -198,6 +199,15 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                     .WithMany(t => t.Expenses)
                     .HasForeignKey(e => e.TripId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+            var currencyCodeConverter = new EnumToStringConverter<CurrencyCode>();
+            entity.Property(c => c.CurrencyKey).HasConversion(currencyCodeConverter).HasMaxLength(3);
+
+            // 1:N relationship with Currency
+            entity.HasOne(e => e.Currency)
+                  .WithMany(c => c.Expenses)
+                  .HasForeignKey(e => e.CurrencyKey)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Category Configuration ---
@@ -217,9 +227,10 @@ public class ApplicationDbContext : IdentityDbContext<Person>
         // --- Currency Configuration ---
         builder.Entity<Currency>(entity =>
         {
-            entity.HasKey(c => c.Key); // Natural key (e.g., "USD", "EUR")
-            entity.Property(c => c.Key).HasMaxLength(3);
-            entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
+            var currencyCodeConverter = new EnumToStringConverter<CurrencyCode>();
+            entity.Property(c => c.Key).HasConversion(currencyCodeConverter).HasMaxLength(3);
+
+            entity.HasKey(c => c.Key);
             entity.Property(c => c.ExchangeRate).HasPrecision(18, 6);
         });
 
