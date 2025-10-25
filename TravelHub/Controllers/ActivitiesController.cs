@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
+using TravelHub.Domain.Extensions;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Activities;
 
@@ -366,6 +367,72 @@ public class ActivitiesController : Controller
         return View("AddToTrip", viewModel);
     }
 
+    [HttpPost]
+    public async Task<IActionResult> AddToDay(int activityId, int dayId)
+    {
+        var activity = await _activityService.GetByIdAsync(activityId);
+        if (activity == null)
+        {
+            return NotFound();
+        }
+
+        // Zapisz stary DayId dla przeliczenia order
+        var oldDayId = activity.DayId;
+
+        // Ustaw nowy DayId
+        activity.DayId = dayId;
+
+        // Oblicz nowy Order dla aktywności w nowym dniu
+        activity.Order = await CalculateNextOrder(dayId);
+
+        await _activityService.UpdateAsync(activity);
+
+        // Przeczyszcz order w starym i nowym dniu
+        await RecalculateOrdersForBothDays(oldDayId, dayId);
+
+        string activityType = activity switch
+        {
+            Accommodation => "accommodation",
+            Spot => "spot",
+            _ => "activity"
+        };
+
+        TempData["SuccessMessage"] = $"{activityType.FirstCharToUpper()} added to day successfully!";
+        return RedirectToAction("Details", "Days", new { id = dayId });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RemoveFromDay(int activityId, int dayId)
+    {
+        var activity = await _activityService.GetByIdAsync(activityId);
+        if (activity == null)
+        {
+            return NotFound();
+        }
+
+        // Zapisz stary DayId dla przeliczenia order
+        var oldDayId = activity.DayId;
+
+        // Ustaw DayId na null i zresetuj Order
+        activity.DayId = null;
+        activity.Order = 0;
+
+        await _activityService.UpdateAsync(activity);
+
+        // Przeczyszcz order tylko w starym dniu (bo nowy to null)
+        await RecalculateOrderForDay(oldDayId);
+
+        string activityType = activity switch
+        {
+            Accommodation => "accommodation",
+            Spot => "spot",
+            _ => "activity"
+        };
+
+        TempData["SuccessMessage"] = $"{activityType.FirstCharToUpper()} removed from day successfully!";
+        return RedirectToAction("Details", "Days", new { id = dayId });
+    }
+
     private async Task PopulateSelectListsForTrip(ActivityCreateEditViewModel viewModel, int tripId)
     {
         // Categories
@@ -461,7 +528,7 @@ public class ActivitiesController : Controller
 
         // Pobierz wszystkie aktywności dla danego dnia
         var itemsInDay = await _activityService.GetAllAsync();
-        itemsInDay = itemsInDay.Where(a => a.DayId == dayId).ToList();
+        itemsInDay = itemsInDay.Where(a => a.DayId == dayId && !(a is Accommodation)).ToList();
 
         if (!itemsInDay.Any())
         {
@@ -483,7 +550,7 @@ public class ActivitiesController : Controller
 
         var activitiesInDay = await _activityService.GetAllAsync();
         activitiesInDay = activitiesInDay
-            .Where(a => a.DayId == dayId)
+            .Where(a => a.DayId == dayId && !(a is Accommodation))
             .OrderBy(a => a.Order)
             .ToList();
 

@@ -120,6 +120,32 @@ public class AddDayViewModel
     public string? Name { get; set; }
 
     [Required]
+    [DataType(DataType.Date)]
+    [Display(Name = "Date")]
+    public DateTime Date { get; set; } = DateTime.Today;
+
+    public DateTime MinDate { get; set; }
+    public DateTime MaxDate { get; set; }
+
+    public bool IsGroup { get; set; }
+}
+
+public class EditDayViewModel
+{
+    public int Id { get; set; }
+    public int TripId { get; set; }
+    public string TripName { get; set; } = string.Empty;
+
+    [Display(Name = "Day Number")]
+    [Range(1, 365, ErrorMessage = "Day number must be between 1 and 365.")]
+    public int? Number { get; set; }
+
+    [Display(Name = "Name")]
+    [StringLength(100)]
+    public string? Name { get; set; }
+
+    [Required]
+    [DataType(DataType.Date)]
     [Display(Name = "Date")]
     public DateTime Date { get; set; } = DateTime.Today;
 
