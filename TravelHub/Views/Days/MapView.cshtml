@@ -190,9 +190,34 @@
                   infoWindow.close();
               });
 
+              marker.addEventListener('mouseenter', (event) => {
+                  listElem.classList.add("selected-item");
+              });
+
+              marker.addEventListener('mouseleave', (event) => {
+                  listElem.classList.remove("selected-item");
+              });
 
             });
         }
     </script>
+
+    <style>
+        .list-group-item {
+            transition: all 0.3s ease;
+        }
+
+        .list-group-item:hover {
+            opacity: 1 !important;
+            transform: translateX(2px);
+            background-color: lightgray;
+        }
+
+        .selected-item {
+            opacity: 1 !important;
+            transform: translateX(2px);
+            background-color: lightgray;
+        }
+    </style>
 
 }
