@@ -1,115 +1,52 @@
-﻿@model TravelHub.Web.ViewModels.Trips.TripDetailViewModel
-
+﻿@using TravelHub.Domain.Entities
+@model TravelHub.Web.ViewModels.Trips.DayDetailViewModel
 @{
-    ViewData["Title"] = "Trip Details";
+    bool isGroup = Model.Number == null;
+    ViewData["Title"] = isGroup ? "Group Details" : $"Day {Model.Number} Details";
     var apiKey = ViewData["GoogleApiKey"];
     var startLat = ViewData["Latitude"];
     var startLng = ViewData["Longitude"];
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>@Model.Name</h1>
-    <div>
-        <form asp-action="AddDay" asp-route-id="@Model.Id" method="post" style="display:inline;">
-            <button type="submit" class="btn btn-success">Add Day</button>
-            @Html.AntiForgeryToken()
-        </form>
-        <a asp-action="AddGroup" asp-route-id="@Model.Id" class="btn btn-success">Add Group</a>
-        <a asp-controller="Accommodations" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Accommodation</a>
-        <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Expense</a>
-        <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Activity</a>
-        <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Spot</a>
-        <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Transport</a>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
-        <a asp-action="MyTrips" class="btn btn-outline-secondary">Back to List</a>
-    </div>
+<h1>@ViewData["Title"]</h1>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+            @if (isGroup)
+            {
+                <span class="badge bg-info ms-2">Group</span>
+            }
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Date)
+        </dt>
+        <dd class="col-sm-10">
+            @Model.Date.ToString("D")
+        </dd>
+
+        <dt class="col-sm-2">
+            Trip
+        </dt>
+        <dd class="col-sm-10">
+            @Model.Trip?.Name
+        </dd>
+    </dl>
 </div>
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    <div class="alert alert-success alert-dismissible fade show mt-4" role="alert">
+        <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
-
-<!-- Trip Overview -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <strong>Status:</strong> <span class="badge bg-info">@Model.Status</span>
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Dates:</strong> @Model.DateRange
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Duration:</strong> @Model.Duration days
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Total Expenses:</strong> @Model.TotalExpenses.ToString("C")
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-primary">@Model.Days.Count</h3>
-                <p class="mb-0">Days</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-success">@Model.ActivitiesCount</h3>
-                <p class="mb-0">Activities</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-warning">@Model.SpotsCount</h3>
-                <p class="mb-0">Spots</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-info">@Model.TransportsCount</h3>
-                <p class="mb-0">Transports</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-secondary">@Model.AccommodationsCount</h3>
-                <p class="mb-0">Accommodations</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-danger">@Model.ExpensesCount</h3>
-                <p class="mb-0">Expenses</p>
-            </div>
-        </div>
-    </div>
-</div>
-
 
 <div class="row">
     <div class="col-md-8">
@@ -123,8 +60,8 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Spots (@Model.SpotsCount)</h5>
-                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
+                <h5 class="card-title mb-0">Spots (@(Model.Spots.Count()))</h5>
+                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
             </div>
             <div class="card-body">
                 @if (Model.Spots.Any())
@@ -141,9 +78,9 @@
                                         <h6 class="mb-1">@spot.Name</h6>
                                         <p class="mb-1 small text-muted">@spot.Description</p>
                                         <div class="small">
-                                            <span class="badge bg-light text-dark">@spot.DurationString</span>
+                                            <span class="badge bg-light text-dark">@spot.Duration h</span>
                                             <span class="badge bg-warning">$@spot.Cost</span>
-                                            @if (!string.IsNullOrEmpty(spot.CategoryName))
+                                            @if (spot.CategoryName != null)
                                             {
                                                 <span class="badge bg-secondary">@spot.CategoryName</span>
                                             }
@@ -189,7 +126,6 @@
         let map;
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let points = @Json.Serialize(Model.Spots);
-        //alert(JSON.stringify(points));
 
         async function initMap() {
             // Request needed libraries.
@@ -210,12 +146,25 @@
 
             points.forEach((point, i) => {
               let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
-
+              
+              if (point.order == 0) {
+                  var iconImage = new google.maps.marker.PinElement({});
+              } else {
+                  let glyphLabel = document.createElement("div");
+                  // set style and classes as needed
+                  glyphLabel.style = 'color: white; font-size: 17px;';
+                  glyphLabel.innerText = point.order;
+                  var iconImage = new google.maps.marker.PinElement({
+                    glyph: glyphLabel,
+                  });
+              }
               const marker = new AdvancedMarkerElement({
-                position: coords,
-                map: map,
-                title: point.name,
+                    position: coords,
+                    map: map,
+                    title: point.name,
+                    content: iconImage.element,
               });
+
               // Add a click listener for each marker, and set up the info window.
               marker.addListener("click", () => {
                   if (infoWindow.isOpen && infoWindow.anchor == marker) {
@@ -241,7 +190,7 @@
                   infoWindow.close();
               });
 
-              
+
             });
         }
     </script>

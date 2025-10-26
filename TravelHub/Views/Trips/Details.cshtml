@@ -18,6 +18,7 @@
         <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Spot</a>
         <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Transport</a>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
+        <a asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary">View on Map</a>
         <a asp-action="MyTrips" class="btn btn-outline-secondary">Back to List</a>
     </div>
 </div>

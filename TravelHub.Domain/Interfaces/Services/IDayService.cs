@@ -10,4 +10,5 @@ public interface IDayService : IGenericService<Day>
     Task<bool> IsDayAGroupAsync(int dayId);
     Task<bool> ValidateDateRangeAsync(int tripId, DateTime date);
     Task<IEnumerable<Day>> GetDaysByTripIdAsync(int tripId);
+    Task<(double medianLatitude, double medianLongitude)> GetMedianCoords(int id);
 }

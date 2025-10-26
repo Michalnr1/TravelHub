@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Trips;
 
 namespace TravelHub.Web.Controllers;
@@ -14,17 +15,20 @@ public class DaysController : Controller
     private readonly IDayService _dayService;
     private readonly ITripService _tripService;
     private readonly UserManager<Person> _userManager;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<DaysController> _logger;
 
     public DaysController(IDayService dayService,
         ITripService tripService,
         ILogger<DaysController> logger,
-        UserManager<Person> userManager)
+        UserManager<Person> userManager,
+        IConfiguration configuration)
     {
         _dayService = dayService;
         _tripService = tripService;
         _logger = logger;
         _userManager = userManager;
+        _configuration = configuration;
     }
 
     // GET: Days/Details/5
@@ -37,6 +41,83 @@ public class DaysController : Controller
         }
 
         return View(day);
+    }
+
+    public async Task<IActionResult> MapView(int id)
+    {
+        var day = await _dayService.GetDayWithDetailsAsync(id);
+        var trip = await _tripService.GetTripWithDetailsAsync(day.TripId);
+        if (day == null)
+        {
+            return NotFound();
+        }
+
+        var viewModel = new DayDetailViewModel
+        {
+            Id = day.Id,
+            Number = day.Number,
+            Name = day.Name,
+            Date = day.Date,
+            Trip = new TripViewModel
+            {
+                Id = day.TripId,
+                Name = trip.Name,
+                Status = trip.Status,
+                StartDate = trip.StartDate,
+                EndDate = trip.EndDate,
+                IsPrivate = trip.IsPrivate,
+                DaysCount = trip.Days?.Count ?? 0,
+                GroupsCount = (trip.Days ?? Enumerable.Empty<Day>()).Where(d => !d.Number.HasValue).Count()
+            },
+            Activities = day.Activities
+                            .Where(a => a is not Spot)
+                            .OrderBy(a => a.Order)
+                            .Select(a => new ActivityViewModel
+                            {
+                                Id = a.Id,
+                                Name = a.Name,
+                                Description = a.Description ?? string.Empty,
+                                Duration = a.Duration,
+                                DurationString = ConvertDecimalToTimeString(a.Duration),
+                                Order = a.Order,
+                                CategoryName = a.Category?.Name,
+                                TripName = a.Trip?.Name ?? string.Empty,
+                                DayName = a.Day?.Name
+                            }).ToList(),
+            Spots = day.Activities
+                            .Where(a => a is Spot)
+                            .OrderBy(a => a.Order)
+                            .Cast<Spot>()
+                            .Select(s => new SpotDetailsViewModel
+                            {
+                                Id = s.Id,
+                                Name = s.Name,
+                                Description = s.Description ?? string.Empty,
+                                Duration = s.Duration,
+                                DurationString = ConvertDecimalToTimeString(s.Duration),
+                                Order = s.Order,
+                                CategoryName = s.Category?.Name,
+                                TripName = s.Trip?.Name ?? string.Empty,
+                                DayName = s.Day?.Name,
+                                Longitude = s.Longitude,
+                                Latitude = s.Latitude,
+                                Cost = s.Cost,
+                                PhotoCount = s.Photos?.Count ?? 0,
+                                TransportsFromCount = s.TransportsFrom?.Count ?? 0,
+                                TransportsToCount = s.TransportsTo?.Count ?? 0
+                            }).ToList(),
+
+
+        };
+
+        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
+
+        (double lat, double lng) = await _dayService.GetMedianCoords(id);
+
+        ViewData["Latitude"] = lat;
+        ViewData["Longitude"] = lng;
+
+        return View(viewModel);
     }
 
     // GET: Days/Edit/5
@@ -261,5 +342,12 @@ public class DaysController : Controller
     private string GetCurrentUserId()
     {
         return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
+    }
+
+    private string ConvertDecimalToTimeString(decimal duration)
+    {
+        int hours = (int)duration;
+        int minutes = (int)((duration - hours) * 60);
+        return $"{hours:D2}:{minutes:D2}";
     }
 }

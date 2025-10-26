@@ -168,6 +168,21 @@ public class DayViewModel
         : (Number.HasValue ? $"Day {Number}" : "Unnamed Day");
 }
 
+public class DayDetailViewModel
+{
+    public int Id { get; set; }
+    public int? Number { get; set; }
+    public string? Name { get; set; }
+    public DateTime Date { get; set; }
+    public TripViewModel Trip { get; set; }
+    public List<ActivityViewModel> Activities { get; set; } = new();
+    public List<SpotDetailsViewModel> Spots { get; set; } = new();
+    public bool IsGroup => Number == null && !string.IsNullOrWhiteSpace(Name);
+    public string DisplayName => IsGroup
+        ? Name ?? "Unnamed Group"
+        : (Number.HasValue ? $"Day {Number}" : "Unnamed Day");
+}
+
 public class BasicActivityViewModel
 {
     public required string Name { get; set; }

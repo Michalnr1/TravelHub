@@ -50,4 +50,37 @@ public class DayService : GenericService<Day>, IDayService
     {
         return await _dayRepository.GetByTripIdAsync(tripId);
     }
+
+    public async Task<(double medianLatitude, double medianLongitude)> GetMedianCoords(int id)
+    {
+        var day = await GetDayWithDetailsAsync(id);
+
+        if (day == null)
+        {
+            throw new ArgumentException($"Day with ID {id} not found");
+        }
+
+        var allSpots = day.Activities.OfType<Spot>();
+
+        //Domyślnie jakiś default użytkownika?
+
+        //if (!allSpots.Any())
+        //    throw new InvalidOperationException("No spots found in this trip.");
+
+        // Compute medians
+        var medianLatitude = GetMedian(allSpots.Select(s => s.Latitude));
+        var medianLongitude = GetMedian(allSpots.Select(s => s.Longitude));
+
+        return (medianLatitude, medianLongitude);
+    }
+
+    public double GetMedian(IEnumerable<double> numbers)
+    {
+        if (numbers == null || numbers.Count() == 0) return 0;
+        int count = numbers.Count();
+        var orderedNumbers = numbers.OrderBy(p => p);
+        double median = orderedNumbers.ElementAt(count / 2) + orderedNumbers.ElementAt((count - 1) / 2);
+        median /= 2;
+        return median;
+    }
 }
