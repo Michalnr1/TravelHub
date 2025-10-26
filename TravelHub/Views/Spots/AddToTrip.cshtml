@@ -199,6 +199,10 @@
 
             });
 
+            map.addListener("center_changed", async (event) => {
+                placeAutocomplete.locationBias = {center : map.center, radius : 5000};
+            });
+
             map.addListener("click", async (mapsMouseEvent) => {
                 if (mapsMouseEvent.placeId){
                         let place = new Place({

@@ -54,6 +54,7 @@
             <h2>Map</h2>
             <p>Api Key: @apiKey</p>
             <div id="map" style="height:500px;width:100%;margin-top:10px;"></div>
+            <button onclick="showRoute()">Find route</button>
         </div>
     </div>
     <!-- Spots -->
@@ -124,8 +125,8 @@
 
     <script>
         let map;
-        let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let points = @Json.Serialize(Model.Spots);
+        let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
 
         async function initMap() {
             // Request needed libraries.
@@ -153,7 +154,7 @@
                   let glyphLabel = document.createElement("div");
                   // set style and classes as needed
                   glyphLabel.style = 'color: white; font-size: 17px;';
-                  glyphLabel.innerText = point.order;
+                  glyphLabel.innerText = i + 1;
                   var iconImage = new google.maps.marker.PinElement({
                     glyph: glyphLabel,
                   });
@@ -199,6 +200,24 @@
               });
 
             });
+        }
+
+        async function showRoute(){
+            const {Route} = await google.maps.importLibrary("routes");
+            const {Polyline} = await google.maps.importLibrary("maps");
+            const request = {
+                origin: {lat:  parseFloat(points[0].latitude), lng:  parseFloat(points[0].longitude)},
+                intermediates: points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
+                destination: {lat:  parseFloat(points[points.length - 1].latitude), lng:  parseFloat(points[points.length - 1].longitude)},
+                fields: ['durationMillis', 'distanceMeters', 'path'],
+                travelMode: 'WALKING',
+            };
+            const route = await Route.computeRoutes(request);
+            const polyline = new Polyline({
+                map: map,
+                path: route.routes[0].path
+            });
+
         }
     </script>
 
