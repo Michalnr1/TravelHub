@@ -1,0 +1,177 @@
+﻿@model TravelHub.Web.ViewModels.Trips.TripDetailViewModel
+
+@{
+    ViewData["Title"] = "Trip Details";
+    var apiKey = ViewData["GoogleApiKey"];
+    var startLat = ViewData["Latitude"];
+    var startLng = ViewData["Longitude"];
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@Model.Name</h1>
+    <div>
+        <form asp-action="AddDay" asp-route-id="@Model.Id" method="post" style="display:inline;">
+            <button type="submit" class="btn btn-success">Add Day</button>
+            @Html.AntiForgeryToken()
+        </form>
+        <a asp-action="AddGroup" asp-route-id="@Model.Id" class="btn btn-success">Add Group</a>
+        <a asp-controller="Accommodations" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Accommodation</a>
+        <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Expense</a>
+        <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Activity</a>
+        <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Spot</a>
+        <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Transport</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
+        <a asp-action="MyTrips" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<!-- Trip Overview -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Status:</strong> <span class="badge bg-info">@Model.Status</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Dates:</strong> @Model.DateRange
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Duration:</strong> @Model.Duration days
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Total Expenses:</strong> @Model.TotalExpenses.ToString("C")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-2 col-6">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-primary">@Model.Days.Count</h3>
+                <p class="mb-0">Days</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-success">@Model.ActivitiesCount</h3>
+                <p class="mb-0">Activities</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-warning">@Model.SpotsCount</h3>
+                <p class="mb-0">Spots</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-info">@Model.TransportsCount</h3>
+                <p class="mb-0">Transports</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-secondary">@Model.AccommodationsCount</h3>
+                <p class="mb-0">Accommodations</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-danger">@Model.ExpensesCount</h3>
+                <p class="mb-0">Expenses</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-md-6">
+    <div>
+        <h2>Map</h2>
+        <p>Api Key: @apiKey</p>
+        <div id="map" style="height:500px;width:100%;margin-top:10px;"></div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script async
+            src="https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places&callback=initMap">
+    </script>
+
+    <script>
+        let map;
+        let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
+        let points = @Json.Serialize(Model.Spots);
+        //alert(JSON.stringify(points));
+
+        async function initMap() {
+            // Request needed libraries.
+            const { Place } = await google.maps.importLibrary("places");
+            const {AdvancedMarkerElement} = await google.maps.importLibrary("marker");
+
+            // Initialize the map.
+            map = new google.maps.Map(document.getElementById("map"), {
+                    center: center,
+                    zoom: 12,
+                    //TODO: Create map id
+                    mapId: 'DEMO_MAP_ID'
+            });
+            marker = new AdvancedMarkerElement({
+               map,
+            });
+            infoWindow = new google.maps.InfoWindow({});
+
+            points.forEach((point) => {
+              let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
+              const marker = new AdvancedMarkerElement({
+                position: coords,
+                map: map,
+                title: point.name,
+              });
+              // Add a click listener for each marker, and set up the info window.
+              marker.addListener("click", () => {
+                  if (infoWindow.isOpen && infoWindow.anchor == marker) {
+                      infoWindow.close();
+                  } else if(infoWindow.anchor != marker) {
+                      infoWindow.close();
+                      infoWindow.setContent(marker.title);
+                      infoWindow.open(map, marker);
+                  } else {
+                      infoWindow.setContent(marker.title);
+                      infoWindow.open(map, marker);
+                  }
+              });
+            });
+        }
+    </script>
+
+}

@@ -185,6 +185,128 @@ public class TripsController : Controller
             return View(viewModel);
     }
 
+    public async Task<IActionResult> MapView(int id)
+    {
+        var trip = await _tripService.GetTripWithDetailsAsync(id);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!UserOwnsTrip(trip))
+        {
+            return Forbid();
+        }
+
+        var activities = await _activityService.GetTripActivitiesWithDetailsAsync(id);
+        var spots = await _spotService.GetTripSpotsWithDetailsAsync(id);
+        var transports = await _transportService.GetTripTransportsWithDetailsAsync(id);
+        var accommodations = await _accommodationService.GetAccommodationByTripAsync(id);
+        var expenses = await _expenseService.GetByTripIdWithParticipantsAsync(id);
+
+        var viewModel = new TripDetailViewModel
+        {
+            Id = trip.Id,
+            Name = trip.Name,
+            Status = trip.Status,
+            StartDate = trip.StartDate,
+            EndDate = trip.EndDate,
+            IsPrivate = trip.IsPrivate,
+            Days = trip.Days?.Select(d => new DayViewModel
+            {
+                Id = d.Id,
+                Number = d.Number,
+                Name = d.Name,
+                Date = d.Date,
+                ActivitiesCount = d.Activities?.Count ?? 0
+            }).ToList() ?? new List<DayViewModel>(),
+            Activities = activities
+            .Where(a => a is not Spot)
+            .OrderBy(a => a.Day == null)
+            .ThenBy(a => a.Day?.Number != null ? a.Day.Number : int.MaxValue)
+            .ThenBy(a => a.Day?.Number == null ? a.Day?.Name : null)
+            .ThenBy(a => a.Order)
+            .Select(a => new ActivityViewModel
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Description = a.Description ?? string.Empty,
+                Duration = a.Duration,
+                DurationString = ConvertDecimalToTimeString(a.Duration),
+                Order = a.Order,
+                CategoryName = a.Category?.Name,
+                TripName = a.Trip?.Name ?? string.Empty,
+                DayName = a.Day?.Name
+            }).ToList(),
+            Spots = spots
+            .Where(s => s is not Accommodation)
+            .OrderBy(s => s.Day == null)
+            .ThenBy(s => s.Day?.Number != null ? s.Day.Number : int.MaxValue)
+            .ThenBy(s => s.Day?.Number == null ? s.Day?.Name : null)
+            .ThenBy(s => s.Order)
+            .Select(s => new SpotDetailsViewModel
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Description = s.Description ?? string.Empty,
+                Duration = s.Duration,
+                DurationString = ConvertDecimalToTimeString(s.Duration),
+                Order = s.Order,
+                CategoryName = s.Category?.Name,
+                TripName = s.Trip?.Name ?? string.Empty,
+                DayName = s.Day?.Name,
+                Longitude = s.Longitude,
+                Latitude = s.Latitude,
+                Cost = s.Cost,
+                PhotoCount = s.Photos?.Count ?? 0,
+                TransportsFromCount = s.TransportsFrom?.Count ?? 0,
+                TransportsToCount = s.TransportsTo?.Count ?? 0
+            }).ToList(),
+            Transports = transports.Select(t => new TransportViewModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Type = t.Type,
+                Duration = t.Duration,
+                Cost = t.Cost,
+                TripName = t.Trip?.Name ?? string.Empty,
+                FromSpotName = t.FromSpot?.Name ?? string.Empty,
+                ToSpotName = t.ToSpot?.Name ?? string.Empty
+            }).ToList(),
+            Accommodations = accommodations.Select(a => new AccommodationViewModel
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Description = a.Description ?? string.Empty,
+                Cost = a.Cost,
+                CategoryName = a.Category?.Name,
+                DayName = a.Day?.Name,
+                CheckIn = a.CheckIn,
+                CheckOut = a.CheckOut,
+                Latitude = a.Latitude,
+                Longitude = a.Longitude
+            }).ToList(),
+            Expenses = expenses.Select(e => new ExpenseViewModel
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Value = e.Value,
+                PaidByName = e.PaidBy != null ? $"{e.PaidBy.FirstName} {e.PaidBy.LastName}" : "Unknown",
+                CategoryName = e.Category?.Name,
+                CurrencyName = e.ExchangeRate?.Name ?? "Unknown"
+            }).ToList()
+        };
+
+        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
+
+        (double lat, double lng) = await _tripService.GetMedianCoords(id);
+
+        ViewData["Latitude"] = lat;
+        ViewData["Longitude"] = lng;
+
+        return View(viewModel);
+    }
+
     // GET: Trips/Create
     public IActionResult Create()
     {
