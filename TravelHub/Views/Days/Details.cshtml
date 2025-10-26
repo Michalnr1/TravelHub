@@ -142,19 +142,23 @@
                 <i class="fas fa-list-check text-primary"></i> Activities & Spots
                 <span class="badge bg-primary">@otherActivities.Count</span>
             </h4>
+            <small class="text-muted">Drag to reorder</small>
         </div>
 
         @if (otherActivities.Any())
         {
-            <div class="list-group">
+            <div class="list-group" id="activitiesContainer">
                 @foreach (var activity in otherActivities)
                 {
                     var isSpot = activity is Spot;
                     var isRegularActivity = !isSpot;
 
                     <div class="list-group-item d-flex justify-content-between align-items-start
-                                                @(isSpot ? "border-success" : "border-primary")"
-                         style="border-left-width: 4px;">
+                                    @(isSpot ? "border-success" : "border-primary") activity-item"
+                         style="border-left-width: 4px;"
+                         data-activity-id="@activity.Id"
+                         data-order="@activity.Order"
+                         draggable="true">
 
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between align-items-start">
@@ -183,7 +187,7 @@
                                     </h6>
                                 </div>
                                 <div class="text-end">
-                                    <small class="text-muted">Order: @activity.Order</small>
+                                    <small class="text-muted">Order: <span class="order-display">@activity.Order</span></small>
                                     <form asp-controller="Activities" asp-action="RemoveFromDay" method="post" class="d-inline">
                                         <input type="hidden" name="activityId" value="@activity.Id" />
                                         <input type="hidden" name="dayId" value="@Model.Id" />
@@ -239,8 +243,18 @@
                                 }
                             </div>
                         </div>
+
+                        <!-- Handle do przeciągania -->
+                        <div class="drag-handle ms-2 text-muted" style="cursor: grab;">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
                     </div>
                 }
+            </div>
+
+            <!-- Loading indicator -->
+            <div id="loadingIndicator" class="alert alert-info mt-2" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Updating order...
             </div>
         }
         else
@@ -270,7 +284,7 @@
 
             <div class="col-md-4">
                 <a asp-controller="Accommodations" asp-action="AddToTrip"
-                   asp-route-tripId="@Model.TripId"
+                   asp-route-tripId="@Model.TripId" asp-route-dayId="@Model.Id"
                    class="btn btn-warning w-100">
                     <i class="fas fa-hotel"></i> Add Accommodation
                 </a>
@@ -383,14 +397,248 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('activitiesContainer');
+            if (!container) return;
+
+            let draggedItem = null;
+            let isUpdating = false;
+
+            // Add event listeners for drag and drop
+            const items = container.querySelectorAll('.activity-item');
+            items.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('dragenter', handleDragEnter);
+                item.addEventListener('dragleave', handleDragLeave);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+
+                // Prevent text selection while dragging
+                item.addEventListener('mousedown', function(e) {
+                    if (e.target.closest('.drag-handle') || e.target.classList.contains('drag-handle')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            function handleDragStart(e) {
+                if (isUpdating) {
+                    e.preventDefault();
+                    return;
+                }
+
+                draggedItem = this;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.innerHTML);
+
+                // Add visual feedback
+                this.style.opacity = '0.4';
+                this.classList.add('dragging');
+            }
+
+            function handleDragOver(e) {
+                if (e.preventDefault) {
+                    e.preventDefault();
+                }
+                e.dataTransfer.dropEffect = 'move';
+                return false;
+            }
+
+            function handleDragEnter(e) {
+                this.classList.add('drag-over');
+            }
+
+            function handleDragLeave(e) {
+                this.classList.remove('drag-over');
+            }
+
+            function handleDrop(e) {
+                if (e.stopPropagation) {
+                    e.stopPropagation();
+                }
+
+                if (draggedItem !== this && draggedItem) {
+                    // Swap elements in DOM
+                    const allItems = Array.from(container.querySelectorAll('.activity-item'));
+                    const draggedIndex = allItems.indexOf(draggedItem);
+                    const targetIndex = allItems.indexOf(this);
+
+                    if (draggedIndex < targetIndex) {
+                        this.parentNode.insertBefore(draggedItem, this.nextSibling);
+                    } else {
+                        this.parentNode.insertBefore(draggedItem, this);
+                    }
+
+                    // Update order numbers and send to server
+                    updateActivityOrder();
+                }
+
+                this.classList.remove('drag-over');
+                return false;
+            }
+
+            function handleDragEnd(e) {
+                items.forEach(item => {
+                    item.classList.remove('drag-over');
+                    item.classList.remove('dragging');
+                    item.style.opacity = '';
+                });
+                draggedItem = null;
+            }
+
+            function updateActivityOrder() {
+                if (isUpdating) return;
+
+                const items = container.querySelectorAll('.activity-item');
+                const orderData = [];
+
+                items.forEach((item, index) => {
+                    const activityId = item.getAttribute('data-activity-id');
+                    const newOrder = index + 1;
+
+                    // Update displayed order
+                    const orderDisplay = item.querySelector('.order-display');
+                    if (orderDisplay) {
+                        orderDisplay.textContent = newOrder;
+                    }
+
+                    orderData.push({
+                        activityId: parseInt(activityId),
+                        order: newOrder
+                    });
+                });
+
+                // Show loading indicator
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'block';
+                }
+
+                isUpdating = true;
+
+                // Send update to server
+                fetch('@Url.Action("UpdateActivityOrder", "Days")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        dayId: @Model.Id,
+                        activities: orderData
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        console.log('Order updated successfully');
+                    } else {
+                        console.error('Failed to update order:', data.message);
+                        // Optional: show error message to user
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating order:', error);
+                    // Optional: show error message to user and revert order
+                })
+                .finally(() => {
+                    // Hide loading indicator
+                    if (loadingIndicator) {
+                        loadingIndicator.style.display = 'none';
+                    }
+                    isUpdating = false;
+                });
+            }
+
+            // Add touch support for mobile devices
+            if ('ontouchstart' in window) {
+                let touchStartY = 0;
+                let touchCurrentY = 0;
+                let touchDraggedItem = null;
+
+                items.forEach(item => {
+                    item.addEventListener('touchstart', function(e) {
+                        touchStartY = e.touches[0].clientY;
+                        touchDraggedItem = this;
+                        this.classList.add('touch-dragging');
+                    });
+
+                    item.addEventListener('touchmove', function(e) {
+                        if (!touchDraggedItem) return;
+
+                        e.preventDefault();
+                        touchCurrentY = e.touches[0].clientY;
+
+                        const deltaY = touchCurrentY - touchStartY;
+                        if (Math.abs(deltaY) > 10) {
+                            touchDraggedItem.style.transform = `translateY(${deltaY}px)`;
+                        }
+                    });
+
+                    item.addEventListener('touchend', function(e) {
+                        if (!touchDraggedItem) return;
+
+                        const allItems = Array.from(container.querySelectorAll('.activity-item'));
+                        const draggedIndex = allItems.indexOf(touchDraggedItem);
+
+                        // Calculate new position based on movement
+                        const deltaY = touchCurrentY - touchStartY;
+                        const itemHeight = touchDraggedItem.offsetHeight;
+                        const positionsMoved = Math.round(deltaY / itemHeight);
+
+                        let newIndex = draggedIndex + positionsMoved;
+                        newIndex = Math.max(0, Math.min(newIndex, allItems.length - 1));
+
+                        if (newIndex !== draggedIndex) {
+                            if (newIndex > draggedIndex) {
+                                allItems[newIndex].parentNode.insertBefore(touchDraggedItem, allItems[newIndex].nextSibling);
+                            } else {
+                                allItems[newIndex].parentNode.insertBefore(touchDraggedItem, allItems[newIndex]);
+                            }
+
+                            updateActivityOrder();
+                        }
+
+                        touchDraggedItem.style.transform = '';
+                        touchDraggedItem.classList.remove('touch-dragging');
+                        touchDraggedItem = null;
+                    });
+                });
+            }
+        });
+    </script>
+
     <style>
         .list-group-item {
             transition: all 0.3s ease;
+            user-select: none;
         }
 
             .list-group-item:hover {
                 opacity: 1 !important;
                 transform: translateX(2px);
+            }
+
+            .list-group-item.dragging {
+                opacity: 0.8;
+                transform: rotate(2deg);
+            }
+
+            .list-group-item.drag-over {
+                border-top: 2px dashed #007bff !important;
+                background-color: rgba(0, 123, 255, 0.1);
+            }
+
+            .list-group-item.touch-dragging {
+                z-index: 1000;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             }
 
         .border-warning {
@@ -407,6 +655,22 @@
 
         .badge {
             font-size: 0.7em;
+        }
+
+        .drag-handle {
+            transition: color 0.2s ease;
+        }
+
+            .drag-handle:hover {
+                color: #007bff !important;
+            }
+
+        /* Improve drag handle visibility on touch devices */
+        @@media (max-width: 768px) {
+            .drag-handle {
+                font-size: 1.2em;
+                padding: 8px;
+            }
         }
     </style>
 }

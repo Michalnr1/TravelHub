@@ -62,7 +62,7 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Spots (@(Model.Spots.Count()))</h5>
-                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
+                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
             </div>
             <div class="card-body">
                 @if (Model.Spots.Any())
@@ -125,7 +125,9 @@
 
     <script>
         let map;
-        let points = @Json.Serialize(Model.Spots);
+        // let points = @Json.Serialize(Model.Spots);
+        let pointsJson = '@Json.Serialize(Model.Spots)';
+        let points = JSON.parse(pointsJson);
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
 
         async function initMap() {
