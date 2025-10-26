@@ -48,7 +48,12 @@ public class ExpenseCreateEditViewModel
 
     [Required(ErrorMessage = "Currency is required")]
     [Display(Name = "Currency")]
-    public CurrencyCode CurrencyKey { get; set; } = CurrencyCode.PLN;
+    public CurrencyCode SelectedCurrencyCode { get; set; } = CurrencyCode.PLN;
+
+    [Required(ErrorMessage = "Exchange Rate is required")]
+    [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]
+    [Display(Name = "Exchange Rate (to Base)")]
+    public decimal ExchangeRateValue { get; set; } = 1.0M;
 
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]
@@ -58,16 +63,25 @@ public class ExpenseCreateEditViewModel
     public List<string> SelectedParticipants { get; set; } = new List<string>();
 
     // Select lists
-    public List<CurrencySelectItem> Currencies { get; set; } = new List<CurrencySelectItem>();
+    public List<CurrencySelectGroupItem> CurrenciesGroups { get; set; } = new List<CurrencySelectGroupItem>();
     public List<CategorySelectItem> Categories { get; set; } = new List<CategorySelectItem>();
     public List<PersonSelectItem> People { get; set; } = new List<PersonSelectItem>();
     public List<PersonSelectItem> AllPeople { get; set; } = new List<PersonSelectItem>();
 }
 
-public class CurrencySelectItem
+public class CurrencySelectGroupItem
 {
     public required CurrencyCode Key { get; set; }
     public required string Name { get; set; }
+    public decimal ExchangeRate { get; set; }
+    public bool IsUsed { get; set; }
+
+    public string DropdownText
+    {
+        get => IsUsed
+            ? $"{Key}, {ExchangeRate:F4}"
+            : $"{Key} ({Name})";
+    }
 }
 
 public class CategorySelectItem

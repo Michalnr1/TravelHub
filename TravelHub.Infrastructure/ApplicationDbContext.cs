@@ -20,7 +20,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<Photo> Photos { get; set; }
     public DbSet<Expense> Expenses { get; set; }
     public DbSet<Category> Categories { get; set; }
-    public DbSet<ExchangeRate> Currencies { get; set; }
+    public DbSet<ExchangeRate> ExchangeRates { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<Comment> Comments { get; set; }
 

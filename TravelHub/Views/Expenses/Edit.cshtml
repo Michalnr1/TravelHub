@@ -26,15 +26,15 @@
             </div>
 
             <div class="form-group">
-                <label asp-for="CurrencyKey" class="control-label"></label>
-                <select asp-for="CurrencyKey" class="form-control">
+                <label asp-for="SelectedCurrencyCode" class="control-label"></label>
+                <select asp-for="SelectedCurrencyCode" class="form-control">
                     <option value="">-- Select Currency --</option>
-                    @foreach (var currency in Model.Currencies)
+                    @foreach (var currency in Model.CurrenciesGroups)
                     {
-                        <option value="@currency.Key" selected="@(currency.Key == Model.CurrencyKey)">@currency.Name</option>
+                        <option value="@currency.Key" selected="@(currency.Key == Model.SelectedCurrencyCode)">@currency.Name</option>
                     }
                 </select>
-                <span asp-validation-for="CurrencyKey" class="text-danger"></span>
+                <span asp-validation-for="SelectedCurrencyCode" class="text-danger"></span>
             </div>
 
             <div class="form-group">

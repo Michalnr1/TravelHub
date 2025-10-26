@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -16,20 +17,20 @@ namespace TravelHub.Web.Controllers;
 public class ExpensesController : Controller
 {
     private readonly IExpenseService _expenseService;
-    private readonly IGenericService<ExchangeRate> _currencyService;
+    private readonly IExchangeRateService _exchangeRateService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
     private readonly UserManager<Person> _userManager;
 
     public ExpensesController(
         IExpenseService expenseService,
-        IGenericService<ExchangeRate> currencyService,
+        IExchangeRateService exchangeRateService,
         IGenericService<Category> categoryService,
         UserManager<Person> userManager,
         ITripService tripService)
     {
         _expenseService = expenseService;
-        _currencyService = currencyService;
+        _exchangeRateService = exchangeRateService;
         _categoryService = categoryService;
         _userManager = userManager;
         _tripService = tripService;
@@ -85,6 +86,7 @@ public class ExpensesController : Controller
     public async Task<IActionResult> Create()
     {
         var viewModel = await CreateExpenseCreateEditViewModel();
+        await PopulateSelectLists(viewModel);
         return View(viewModel);
     }
 
@@ -152,6 +154,9 @@ public class ExpensesController : Controller
         {
             try
             {
+                var exchangeRateEntry = await _exchangeRateService
+                    .GetOrCreateExchangeRateAsync(viewModel.TripId, viewModel.SelectedCurrencyCode, viewModel.ExchangeRateValue);
+
                 var existingExpense = await _expenseService.GetByIdAsync(id);
                 if (existingExpense == null)
                 {
@@ -163,7 +168,7 @@ public class ExpensesController : Controller
                 existingExpense.Value = viewModel.Value;
                 existingExpense.PaidById = viewModel.PaidById;
                 existingExpense.CategoryId = viewModel.CategoryId;
-                // existingExpense.CurrencyKey = viewModel.CurrencyKey;
+                existingExpense.ExchangeRateId = exchangeRateEntry.Id;
 
                 // Update participants
                 if (viewModel.SelectedParticipants != null)
@@ -250,6 +255,7 @@ public class ExpensesController : Controller
         var tripPeople = await GetPeopleFromTrip(tripId);
         viewModel.People = tripPeople;
         viewModel.AllPeople = tripPeople;
+        await PopulateSelectLists(viewModel);
 
         return View(viewModel);
     }
@@ -261,13 +267,16 @@ public class ExpensesController : Controller
     {
         if (ModelState.IsValid)
         {
+            var exchangeRateEntry = await _exchangeRateService
+                .GetOrCreateExchangeRateAsync(viewModel.TripId, viewModel.SelectedCurrencyCode, viewModel.ExchangeRateValue);
+
             var expense = new Expense
             {
                 Name = viewModel.Name,
                 Value = viewModel.Value,
                 PaidById = viewModel.PaidById,
                 CategoryId = viewModel.CategoryId,
-                // CurrencyKey = viewModel.CurrencyKey,
+                ExchangeRateId = exchangeRateEntry.Id,
                 TripId = viewModel.TripId
             };
 
@@ -320,7 +329,7 @@ public class ExpensesController : Controller
         return expense != null;
     }
 
-    private async Task<ExpenseCreateEditViewModel> CreateExpenseCreateEditViewModel(Expense? expense = null)
+    private Task<ExpenseCreateEditViewModel> CreateExpenseCreateEditViewModel(Expense? expense = null)
     {
         var viewModel = new ExpenseCreateEditViewModel();
 
@@ -331,23 +340,70 @@ public class ExpensesController : Controller
             viewModel.Value = expense.Value;
             viewModel.PaidById = expense.PaidById;
             viewModel.CategoryId = expense.CategoryId;
-            // viewModel.CurrencyKey = expense.CurrencyKey;
+            viewModel.TripId = expense.TripId;
+            if (expense.ExchangeRate != null)
+            {
+                viewModel.SelectedCurrencyCode = expense.ExchangeRate.CurrencyCodeKey;
+                viewModel.ExchangeRateValue = expense.ExchangeRate.ExchangeRateValue;
+            }
             viewModel.SelectedParticipants = expense.Participants?.Select(p => p.Id).ToList() ?? new List<string>();
         }
 
-        await PopulateSelectLists(viewModel);
-        return viewModel;
+        return Task.FromResult(viewModel);
     }
 
     private async Task PopulateSelectLists(ExpenseCreateEditViewModel viewModel)
     {
         // Currencies
-        var currencies = await _currencyService.GetAllAsync();
-        viewModel.Currencies = currencies.Select(c => new CurrencySelectItem
+        var usedRates = viewModel.TripId > 0 ? await _exchangeRateService.GetTripExchangeRatesAsync(viewModel.TripId) : new List<ExchangeRate>();
+
+        var allCurrencyCodes = Enum.GetValues(typeof(CurrencyCode))
+            .Cast<CurrencyCode>()
+            .ToDictionary(code => code, code => code.GetDisplayName());
+
+        var usedCurrencies = usedRates
+            .Select(er => new CurrencySelectGroupItem
+            {
+                Key = er.CurrencyCodeKey,
+                Name = er.Name,
+                ExchangeRate = er.ExchangeRateValue,
+                IsUsed = true
+            })
+            .OrderBy(c => c.Key.ToString())
+            .ThenByDescending(c => c.ExchangeRate)
+            .ToList();
+
+        // var usedCodes = usedRates.Select(er => er.CurrencyCodeKey).Distinct().ToHashSet();
+        var allCurrencies = allCurrencyCodes
+            .Select(pair => new CurrencySelectGroupItem
+            {
+                Key = pair.Key,
+                Name = pair.Value,
+                ExchangeRate = 1.0M,
+                IsUsed = false
+            })
+            .OrderBy(c => c.Key.ToString())
+            .ToList();
+
+        viewModel.CurrenciesGroups = usedCurrencies
+            .Concat(allCurrencies)
+            .ToList();
+
+        if (viewModel.Id == 0)
         {
-            Key = c.CurrencyCodeKey,
-            Name = c.Name
-        }).ToList();
+            if (viewModel.ExchangeRateValue == 1.0M)
+            {
+                var defaultCurrency = usedCurrencies.FirstOrDefault()
+                                      ?? allCurrencies.FirstOrDefault(c => c.Key == CurrencyCode.PLN)
+                                      ?? allCurrencies.FirstOrDefault();
+
+                if (defaultCurrency != null)
+                {
+                    viewModel.SelectedCurrencyCode = defaultCurrency.Key;
+                    viewModel.ExchangeRateValue = defaultCurrency.ExchangeRate;
+                }
+            }
+        }
 
         // Categories
         var categories = await _categoryService.GetAllAsync();
