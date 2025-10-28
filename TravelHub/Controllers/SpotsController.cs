@@ -6,6 +6,8 @@ using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
+using System.Text;
+using System.Globalization;
 
 namespace TravelHub.Web.Controllers;
 
@@ -419,6 +421,41 @@ public class SpotsController : Controller
 
         await PopulateSelectListsForTrip(viewModel, tripId);
         return View("AddToTrip", viewModel);
+    }
+
+    // GET: Spots/Export/5
+    public async Task<IActionResult> Export(int? id)
+    {
+        if (id == null) return NotFound();
+
+        var spot = await _spotService.GetByIdAsync(id.Value);
+        if (spot == null) return NotFound();
+
+        string name = spot.Name ?? string.Empty;
+        string description = spot.Description ?? string.Empty;
+        string duration = FormatDuration(spot.Duration);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Spot name:");
+        sb.AppendLine(name);
+        sb.AppendLine();
+        sb.AppendLine("Description:");
+        sb.AppendLine(description);
+        sb.AppendLine();
+        sb.AppendLine("Duration:");
+        sb.AppendLine(duration);
+
+        var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+        var fileName = $"spot_{spot.Name}.txt";
+        return File(bytes, "text/plain; charset=utf-8", fileName);
+    }
+
+    private static string FormatDuration(decimal hoursDecimal)
+    {
+        var totalMinutes = (int)Math.Round((double)hoursDecimal * 60);
+        var hrs = totalMinutes / 60;
+        var mins = totalMinutes % 60;
+        return $"{hrs}:{mins:D2}";
     }
 
     private async Task PopulateSelectListsForTrip(SpotCreateEditViewModel viewModel, int tripId)

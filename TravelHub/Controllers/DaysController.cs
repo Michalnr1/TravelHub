@@ -14,6 +14,7 @@ public class DaysController : Controller
 {
     private readonly IDayService _dayService;
     private readonly ITripService _tripService;
+    private readonly IActivityService _activityService;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
     private readonly ILogger<DaysController> _logger;
@@ -22,13 +23,15 @@ public class DaysController : Controller
         ITripService tripService,
         ILogger<DaysController> logger,
         UserManager<Person> userManager,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IActivityService activityService)
     {
         _dayService = dayService;
         _tripService = tripService;
         _logger = logger;
         _userManager = userManager;
         _configuration = configuration;
+        _activityService = activityService;
     }
 
     // GET: Days/Details/5
@@ -46,7 +49,7 @@ public class DaysController : Controller
     public async Task<IActionResult> MapView(int id)
     {
         var day = await _dayService.GetDayWithDetailsAsync(id);
-        var trip = await _tripService.GetTripWithDetailsAsync(day.TripId);
+        var trip = await _tripService.GetTripWithDetailsAsync(day!.TripId);
         if (day == null)
         {
             return NotFound();
@@ -61,7 +64,7 @@ public class DaysController : Controller
             Trip = new TripViewModel
             {
                 Id = day.TripId,
-                Name = trip.Name,
+                Name = trip!.Name,
                 Status = trip.Status,
                 StartDate = trip.StartDate,
                 EndDate = trip.EndDate,
@@ -337,6 +340,48 @@ public class DaysController : Controller
 
         ViewData["FormTitle"] = "Edit Group";
         return View(viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateActivityOrder([FromBody] UpdateActivityOrderRequest request)
+    {
+        try
+        {
+            if (request?.Activities == null || !request.Activities.Any())
+            {
+                return Json(new { success = false, message = "No activities provided" });
+            }
+
+            foreach (var activityOrder in request.Activities)
+            {
+                var activity = await _activityService.GetByIdAsync(activityOrder.ActivityId);
+                if (activity != null && activity.DayId == request.DayId)
+                {
+                    activity.Order = activityOrder.Order;
+                    await _activityService.UpdateAsync(activity);
+                }
+            }
+
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating activity order for day {DayId}", request?.DayId);
+            return Json(new { success = false, message = "Error updating order" });
+        }
+    }
+
+    public class UpdateActivityOrderRequest
+    {
+        public int DayId { get; set; }
+        public List<ActivityOrder> Activities { get; set; } = new();
+    }
+
+    public class ActivityOrder
+    {
+        public int ActivityId { get; set; }
+        public int Order { get; set; }
     }
 
     private string GetCurrentUserId()
