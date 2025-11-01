@@ -57,6 +57,7 @@
             <button id="route-walk-btn">Find walking route</button>
             <button id="route-drive-btn">Find car route</button>
             <button id="route-transit-btn">Find route with public transportation</button>
+            Acceptable walking time (minutes) <input type="number" value="30" id="transit-threshold"/>
         </div>
     </div>
     <!-- Spots -->
@@ -132,6 +133,7 @@
         let points = JSON.parse(pointsJson);
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let polylines = [];
+        let routeInfoWindow;
 
         async function initMap() {
             // Request needed libraries.
@@ -149,6 +151,7 @@
                map,
             });
             infoWindow = new google.maps.InfoWindow({});
+            routeInfoWindow = new google.maps.InfoWindow({});
 
             points.forEach((point, i) => {
               let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
@@ -221,7 +224,7 @@
 
         async function showRoute(travelMode){
             const {Polyline} = await google.maps.importLibrary("maps");
-
+            let durationMillis = 0;
             if (travelMode == 'WALKING' || travelMode == 'DRIVING'){
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
@@ -232,21 +235,20 @@
                     path: route.routes[0].path,
                 });
                 polylines.push(polyline);
+                durationMillis = route.routes[0].durationMillis;
             } else if (travelMode == 'TRANSIT') {
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
-                    travelMode='WALKING',
-                    fields=['durationMillis', 'distanceMeters','path', 'legs']);
+                    travelMode='WALKING');
                 clearPolylines();
-
+                let threshold = parseInt(document.getElementById('transit-threshold').value) * 60 * 1000;
                 for (let i = 0; i < route.routes[0].legs.length; i++) {
                     let leg = route.routes[0].legs[i];
-                    if (leg.durationMillis > 30 * 60 * 1000){
+                    if (leg.durationMillis > threshold){
                         transitRoute = await getRoute({latitude: leg.startLocation.lat, longitude: leg.startLocation.lng },
                             {latitude: leg.endLocation.lat, longitude: leg.endLocation.lng },
                             intermediates=[],
-                            travelMode='TRANSIT',
-                            fields=['durationMillis', 'distanceMeters','path', 'legs']);
+                            travelMode='TRANSIT');
                         transitRoute.routes[0].legs[0].steps.forEach((step) => {
                             if (step.travelMode == 'WALKING') {
                                 polylines.push(new Polyline({
@@ -261,17 +263,29 @@
                                 }));
                             }
                         });
+                        durationMillis += transitRoute.routes[0].durationMillis;
                     } else {
                         polylines.push(new Polyline({
                             map: map,
                             path: leg.path,
                         }));
+                        durationMillis += leg.durationMillis;
                     }
-                }           
+                }
+                
             }
+            via_media = polylines[Math.round((polylines.length - 1) / 2)].getPath().Cg;
+            console.debug(JSON.stringify(via_media));
+            pos = via_media[Math.round((via_media.length - 1) / 2)];
+            console.debug(JSON.stringify(pos));
+            routeInfoWindow.close();
+            routeInfoWindow.setContent(durationString(durationMillis));
+            routeInfoWindow.setPosition(pos);
+            routeInfoWindow.open(map);
+
         }
 
-        async function getRoute(origin, destination, intermediates=[], travelMode='WALKING', fields=['durationMillis', 'distanceMeters', 'path']){
+        async function getRoute(origin, destination, intermediates=[], travelMode='WALKING', fields=['durationMillis', 'distanceMeters', 'path', 'legs']){
             const {Route} = await google.maps.importLibrary("routes");
             const request = {
                 origin: {lat:  parseFloat(origin.latitude), lng:  parseFloat(origin.longitude)},
@@ -287,6 +301,15 @@
         function clearPolylines(){
             polylines.forEach((polyline) => {polyline.setMap(null)});
             polylines = [];
+        }
+
+        function durationString(durationMillis){
+            durationMinutes = Math.round(durationMillis / 60 / 1000);
+            if (durationMinutes < 60) {
+                return durationMinutes + " min";
+            } else {
+                return Math.round(durationMinutes / 60) + " h " + (durationMinutes % 60) + " min";
+            }
         }
     </script>
 
