@@ -1,0 +1,115 @@
+﻿@model IEnumerable<TravelHub.Domain.Entities.Notification>
+
+@{
+    ViewData["Title"] = "My Notifications";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Notifications</h2>
+        <a href="@Url.Action("Create")" class="btn btn-primary">
+            <i class="fas fa-bell"></i> New Notification
+        </a>
+    </div>
+
+    <!-- Success/Error Messages -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Notifications List -->
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No notifications found</h4>
+            <p class="text-muted">You haven't created any notifications yet.</p>
+            <a href="@Url.Action("Create")" class="btn btn-primary">Create Your First Notification</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var notification in Model)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 @(notification.IsSent ? "border-success" : "border-warning")">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">@notification.Title</h6>
+                            <span class="badge @(notification.IsSent ? "bg-success" : "bg-warning")">
+                                @(notification.IsSent ? "Sent" : "Pending")
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">@notification.Content</p>
+                            <div class="notification-details">
+                                <small class="text-muted">
+                                    <strong>To:</strong> @notification.User!.Email<br>
+                                    <strong>Scheduled for:</strong> @notification.ScheduledFor.LocalDateTime.ToString("g")<br>
+                                    @if (notification.IsSent)
+                                    {
+                                        <strong>Sent at:</strong>
+                                        @notification.SentAt?.LocalDateTime.ToString("g")
+                                    }
+                                    else
+                                    {
+                                        <strong>Created:</strong>
+                                        @notification.CreatedAt.LocalDateTime.ToString("g")
+                                    }
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            @if (!notification.IsSent)
+                            {
+                                <form method="post" action="@Url.Action("Cancel", new { id = notification.Id })"
+                                      onsubmit="return confirm('Are you sure you want to cancel this notification?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                        <i class="fas fa-times"></i> Cancel Notification
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-secondary w-100" disabled>
+                                    <i class="fas fa-check"></i> Already Sent
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .card {
+            transition: transform 0.2s;
+        }
+
+            .card:hover {
+                transform: translateY(-2px);
+            }
+
+        .notification-details {
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+    </style>
+}
