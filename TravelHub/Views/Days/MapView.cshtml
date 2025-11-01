@@ -225,6 +225,7 @@
         async function showRoute(travelMode){
             const {Polyline} = await google.maps.importLibrary("maps");
             let durationMillis = 0;
+            clearTravelCards();
             if (travelMode == 'WALKING' || travelMode == 'DRIVING'){
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
@@ -236,6 +237,11 @@
                 });
                 polylines.push(polyline);
                 durationMillis = route.routes[0].durationMillis;
+                route.routes[0].legs.forEach((leg, i) => {
+                    locationCard = document.getElementById("spot-" + i);
+                    let div = buildTravelCard(i, leg.durationMillis, travelMode);
+                    locationCard.after(div);
+                });
             } else if (travelMode == 'TRANSIT') {
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
@@ -245,24 +251,38 @@
                 for (let i = 0; i < route.routes[0].legs.length; i++) {
                     let leg = route.routes[0].legs[i];
                     if (leg.durationMillis > threshold){
+                        let div = buildTravelCard(i);
+                        locationCard = document.getElementById("spot-" + i);
+                        locationCard.after(div);
                         transitRoute = await getRoute({latitude: leg.startLocation.lat, longitude: leg.startLocation.lng },
                             {latitude: leg.endLocation.lat, longitude: leg.endLocation.lng },
                             intermediates=[],
                             travelMode='TRANSIT');
+                        let partialDurationMillis = 0;
                         transitRoute.routes[0].legs[0].steps.forEach((step) => {
                             if (step.travelMode == 'WALKING') {
                                 polylines.push(new Polyline({
                                     map: map,
                                     path: step.path,
                                 }));
+                                partialDurationMillis += step.staticDurationMillis;
                             } else if (step.travelMode == 'TRANSIT') {
                                 polylines.push(new Polyline({
                                     map: map,
                                     path: step.path,
                                     strokeColor: 'red',
                                 }));
+                                if (partialDurationMillis > 0) {                                    
+                                    addEntryToTravelCard(div,  "..." + durationString(partialDurationMillis) + " walking...<br>");
+                                }
+                                partialDurationMillis = 0;
+                                addIconToTravelCard(div, step.transitDetails.transitLine.vehicle.iconURL);
+                                addEntryToTravelCard(div, step.transitDetails.departureStop.name + " - " + step.transitDetails.arrivalStop.name + ', ' + durationString(parseInt(step.staticDurationMillis)) + "<br>");
                             }
                         });
+                        if (partialDurationMillis > 0) {
+                                addEntryToTravelCard(div,  "..." + durationString(partialDurationMillis) + " walking...<br>");
+                        }
                         durationMillis += transitRoute.routes[0].durationMillis;
                     } else {
                         polylines.push(new Polyline({
@@ -270,19 +290,19 @@
                             path: leg.path,
                         }));
                         durationMillis += leg.durationMillis;
+                        locationCard = document.getElementById("spot-" + i);
+                        let div = buildTravelCard(i, leg.durationMillis, 'WALKING');
+                        locationCard.after(div);
                     }
                 }
                 
             }
             via_media = polylines[Math.round((polylines.length - 1) / 2)].getPath().Cg;
-            console.debug(JSON.stringify(via_media));
             pos = via_media[Math.round((via_media.length - 1) / 2)];
-            console.debug(JSON.stringify(pos));
             routeInfoWindow.close();
             routeInfoWindow.setContent(durationString(durationMillis));
             routeInfoWindow.setPosition(pos);
             routeInfoWindow.open(map);
-
         }
 
         async function getRoute(origin, destination, intermediates=[], travelMode='WALKING', fields=['durationMillis', 'distanceMeters', 'path', 'legs']){
@@ -311,6 +331,41 @@
                 return Math.round(durationMinutes / 60) + " h " + (durationMinutes % 60) + " min";
             }
         }
+
+        function addEntryToTravelCard(card, text) {
+            let span = document.createElement("span");
+            span.innerHTML = text;
+            card.appendChild(span);
+        }
+
+        function addIconToTravelCard(card, url){
+            let img = document.createElement('img');
+            img.src = url;
+            card.appendChild(img);
+        }
+
+        function buildTravelCard(i, durationMillis=0, travelMode=''){
+            let div = document.createElement("div");
+            div.setAttribute("id", 'travel-' + i);
+            div.classList.add('list-group-item');
+            div.classList.add('travel-card');
+            if (durationMillis > 0) {
+                let span = document.createElement("span");
+                span.innerHTML = "..." + durationString(durationMillis) + " " + travelMode.toLowerCase() + "...";
+                div.appendChild(span);
+            }
+            return div;
+        }
+
+        function clearTravelCards(){
+            var cards = document.getElementsByClassName('travel-card');
+
+            while(cards[0]) {
+                cards[0].parentNode.removeChild(cards[0]);
+            }
+        }
+
+
     </script>
 
     <style>
