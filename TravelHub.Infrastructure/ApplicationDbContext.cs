@@ -23,6 +23,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<ExchangeRate> ExchangeRates { get; set; }
     public DbSet<Post> Posts { get; set; }
     public DbSet<Comment> Comments { get; set; }
+    public DbSet<Country> Countries { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -70,11 +71,20 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(t => t.EndDate).HasColumnType("date");
             entity.Property(t => t.IsPrivate).IsRequired();
 
+            var currencyCodeConverter = new EnumToStringConverter<CurrencyCode>();
+            entity.Property(t => t.CurrencyCode)
+                  .HasConversion(currencyCodeConverter)
+                  .HasMaxLength(3);
+
             // 1:N relationship with Person (Trip organizer)
             entity.HasOne(t => t.Person)
                   .WithMany(p => p.Trips)
                   .HasForeignKey(t => t.PersonId)
                   .OnDelete(DeleteBehavior.Cascade); // If a person is deleted, their trips are deleted.
+
+            entity.HasMany(t => t.Countries)
+                  .WithMany(c => c.Trips)
+                  .UsingEntity(j => j.ToTable("TripCountries"));
         });
 
         // --- Day Configuration ---
@@ -271,6 +281,16 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .WithMany(p => p.Comments)
                   .HasForeignKey(c => c.PostId)
                   .OnDelete(DeleteBehavior.Restrict); // Don't delete a post if it has comments.
+        });
+
+        // --- Country Configuration ---
+        builder.Entity<Country>(entity =>
+        {
+            // Composite key configuration
+            entity.HasKey(c => new { c.Code, c.Name });
+
+            entity.Property(c => c.Code).IsRequired().HasMaxLength(3);
+            entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
         });
     }
 }
