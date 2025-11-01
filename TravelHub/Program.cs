@@ -14,18 +14,19 @@ using TravelHub.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("LocalConnection");
+
 // Connection to SQL Server configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-    //options.UseSqlServer(builder.Configuration.GetConnectionString("LocalConnection")));
+    options.UseSqlServer(connectionString));
 
 // Hangfire Configuration
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"),
-    //.UseSqlServerStorage(builder.Configuration.GetConnectionString("LocalConnection"),
+    .UseSqlServerStorage(connectionString,
         new SqlServerStorageOptions
         {
             CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
