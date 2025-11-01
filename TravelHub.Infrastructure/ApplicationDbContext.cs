@@ -24,6 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<Post> Posts { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Country> Countries { get; set; }
+    public DbSet<ExpenseParticipant> ExpenseParticipants { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -57,9 +58,9 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                           });
 
             // M:N relationship with Expense
-            entity.HasMany(p => p.ExpensesToCover)
-                  .WithMany(e => e.Participants)
-                  .UsingEntity(j => j.ToTable("ExpenseParticipants"));
+            // entity.HasMany(p => p.ExpensesToCover)
+            //       .WithMany(e => e.Participants)
+            //       .UsingEntity(j => j.ToTable("ExpenseParticipants"));
         });
 
         // --- Trip Configuration ---
@@ -289,8 +290,39 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // Composite key configuration
             entity.HasKey(c => new { c.Code, c.Name });
 
-            entity.Property(c => c.Code).IsRequired().HasMaxLength(3);
-            entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
+            entity.Property(c => c.Code)
+                  .IsRequired()
+                  .HasMaxLength(3);
+
+            entity.Property(c => c.Name)
+                  .IsRequired()
+                  .HasMaxLength(100);
+        });
+
+        // --- ExpenseParticipant Configuration ---
+        builder.Entity<ExpenseParticipant>(entity =>
+        {
+            entity.HasKey(ep => new { ep.ExpenseId, ep.PersonId });
+
+            entity.Property(ep => ep.Share)
+                  .IsRequired()
+                  .HasPrecision(18, 3);
+
+            entity.Property(ep => ep.ActualShareValue)
+                  .IsRequired()
+                  .HasPrecision(18, 2);
+
+            entity.HasOne(ep => ep.Expense)
+                  .WithMany(e => e.Participants)
+                  .HasForeignKey(ep => ep.ExpenseId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(ep => ep.Person)
+                  .WithMany(p => p.ExpensesToCover)
+                  .HasForeignKey(ep => ep.PersonId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.ToTable("ExpenseParticipants");
         });
     }
 }

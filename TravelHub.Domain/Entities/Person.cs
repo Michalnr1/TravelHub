@@ -28,5 +28,6 @@ public class Person : IdentityUser
     public ICollection<Expense> PaidExpenses { get; set; } = new List<Expense>();
 
     // An expense can be for many people, and a person can be part of many expenses (M:N)
-    public ICollection<Expense> ExpensesToCover { get; set; } = new List<Expense>();
+    // public ICollection<Expense> ExpensesToCover { get; set; } = new List<Expense>();
+    public ICollection<ExpenseParticipant> ExpensesToCover { get; set; } = new List<ExpenseParticipant>();
 }

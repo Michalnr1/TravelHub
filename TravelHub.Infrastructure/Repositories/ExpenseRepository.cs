@@ -10,6 +10,14 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
     {
     }
 
+    public async Task<Expense?> GetByIdWithParticipantsAsync(int expenseId)
+    {
+        return await _context.Expenses
+            .Include(e => e.Participants)
+                .ThenInclude(ep => ep.Person)
+            .FirstOrDefaultAsync(e => e.Id == expenseId);
+    }
+
     public async Task<IReadOnlyList<Expense>> GetExpensesByUserIdAsync(string userId)
     {
         return await _context.Set<Expense>()
@@ -26,7 +34,8 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
             .Include(e => e.Category)
             .Include(e => e.ExchangeRate)
             .Include(e => e.PaidBy)
-            .Include(e => e.Participants)
+            .Include(e => e.Participants!)
+                .ThenInclude(ep => ep.Person)
             .Where(e => e.TripId == tripId)
             .ToListAsync();
     }

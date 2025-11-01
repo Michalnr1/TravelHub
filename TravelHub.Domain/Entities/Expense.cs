@@ -27,5 +27,6 @@ public class Expense
     public ExchangeRate? ExchangeRate { get; set; }
 
     // Navigation property for people the expense was for (M:N)
-    public ICollection<Person> Participants { get; set; } = new List<Person>();
+    // public ICollection<Person> Participants { get; set; } = new List<Person>();
+    public ICollection<ExpenseParticipant> Participants { get; set; } = new List<ExpenseParticipant>();
 }
