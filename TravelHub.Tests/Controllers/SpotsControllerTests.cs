@@ -82,7 +82,7 @@ public class SpotsControllerTests
             Day = day,
             Latitude = 10,
             Longitude = 20,
-            Cost = 5m
+            // Cost = 5m
         };
         var seeded = spotRepo.SeedSpot(s);
         photo.SpotId = seeded.Id;
@@ -193,7 +193,7 @@ public class SpotsControllerTests
             DurationString = "01:00",
             Longitude = 1.0,
             Latitude = 2.0,
-            Cost = 0m
+            // Cost = 0m
         };
 
         var result = await controller.Create(model);

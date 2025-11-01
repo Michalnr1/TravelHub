@@ -34,7 +34,7 @@ public class SpotService : GenericService<Spot>, ISpotService
             return 0;
         }
 
-        return spotsInDay.Sum(s => s.Cost);
+        return spotsInDay.Sum(s => s.Expense?.Value ?? 0M);
     }
 
     public async Task<IReadOnlyList<Spot>> GetSpotsByTripAsync(int tripId)

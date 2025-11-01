@@ -8,7 +8,7 @@ public class AccommodationViewModel
     public int Id { get; set; }
     public required string Name { get; set; }
     public string? Description { get; set; }
-    public decimal Cost { get; set; }
+    // public decimal Cost { get; set; }
     public string? CategoryName { get; set; }
     public string? DayName { get; set; }
     public DateTime CheckIn { get; set; }
@@ -29,7 +29,7 @@ public class AccommodationDetailsViewModel
     public string? DayName { get; set; }
     public double Longitude { get; set; }
     public double Latitude { get; set; }
-    public decimal Cost { get; set; }
+    // public decimal Cost { get; set; }
     public DateTime CheckIn { get; set; }
     public DateTime CheckOut { get; set; }
     public decimal CheckInTime { get; set; }
@@ -72,9 +72,9 @@ public class AccommodationCreateEditViewModel
     [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
     public double Latitude { get; set; }
 
-    [Required(ErrorMessage = "Cost is required")]
-    [Range(0, double.MaxValue, ErrorMessage = "Cost must be greater than or equal to 0")]
-    public decimal Cost { get; set; }
+    //[Required(ErrorMessage = "Cost is required")]
+    //[Range(0, double.MaxValue, ErrorMessage = "Cost must be greater than or equal to 0")]
+    //public decimal Cost { get; set; }
 
     [Required(ErrorMessage = "Check-in date is required")]
     [Display(Name = "Check-in Date")]

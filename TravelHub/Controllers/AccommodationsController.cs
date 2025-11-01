@@ -47,7 +47,7 @@ namespace TravelHub.Web.Controllers
                 Id = a.Id,
                 Name = a.Name,
                 Description = a.Description,
-                Cost = a.Cost,
+                // Cost = a.Cost,
                 CategoryName = a.Category?.Name,
                 DayName = a.Day?.Name,
                 CheckIn = a.CheckIn,
@@ -82,7 +82,7 @@ namespace TravelHub.Web.Controllers
                 DayName = accommodation.Day?.Name,
                 Longitude = accommodation.Longitude,
                 Latitude = accommodation.Latitude,
-                Cost = accommodation.Cost,
+                // Cost = accommodation.Cost,
                 CheckIn = accommodation.CheckIn,
                 CheckOut = accommodation.CheckOut,
                 CheckInTime = accommodation.CheckInTime,
@@ -119,7 +119,7 @@ namespace TravelHub.Web.Controllers
                     DayId = viewModel.DayId,
                     Longitude = viewModel.Longitude,
                     Latitude = viewModel.Latitude,
-                    Cost = viewModel.Cost,
+                    // Cost = viewModel.Cost,
                     CheckIn = viewModel.CheckIn,
                     CheckOut = viewModel.CheckOut,
                     CheckInTime = viewModel.CheckInTime,
@@ -181,7 +181,7 @@ namespace TravelHub.Web.Controllers
                     existingAccommodation.DayId = viewModel.DayId;
                     existingAccommodation.Longitude = viewModel.Longitude;
                     existingAccommodation.Latitude = viewModel.Latitude;
-                    existingAccommodation.Cost = viewModel.Cost;
+                    // existingAccommodation.Cost = viewModel.Cost;
                     existingAccommodation.CheckIn = viewModel.CheckIn;
                     existingAccommodation.CheckOut = viewModel.CheckOut;
                     existingAccommodation.CheckInTime = viewModel.CheckInTime;
@@ -226,7 +226,7 @@ namespace TravelHub.Web.Controllers
                 Id = accommodation.Id,
                 Name = accommodation.Name,
                 Description = accommodation.Description,
-                Cost = accommodation.Cost,
+                // Cost = accommodation.Cost,
                 CheckIn = accommodation.CheckIn,
                 CheckOut = accommodation.CheckOut
             };
@@ -336,7 +336,7 @@ namespace TravelHub.Web.Controllers
                         DayId = dayId, // Przypisz tylko jeśli dzień istnieje, inaczej null
                         Longitude = viewModel.Longitude,
                         Latitude = viewModel.Latitude,
-                        Cost = viewModel.Cost,
+                        // Cost = viewModel.Cost,
                         CheckIn = viewModel.CheckIn,
                         CheckOut = viewModel.CheckOut,
                         CheckInTime = viewModel.CheckInTime,
@@ -449,7 +449,7 @@ namespace TravelHub.Web.Controllers
                 viewModel.DayId = accommodation.DayId;
                 viewModel.Longitude = accommodation.Longitude;
                 viewModel.Latitude = accommodation.Latitude;
-                viewModel.Cost = accommodation.Cost;
+                // viewModel.Cost = accommodation.Cost;
                 viewModel.CheckIn = accommodation.CheckIn;
                 viewModel.CheckOut = accommodation.CheckOut;
                 viewModel.CheckInTime = accommodation.CheckInTime;

@@ -142,7 +142,7 @@ public class TripsController : Controller
                 DayName = s.Day?.Name,
                 Longitude = s.Longitude,
                 Latitude = s.Latitude,
-                Cost = s.Cost,
+                // Cost = s.Cost,
                 PhotoCount = s.Photos?.Count ?? 0,
                 TransportsFromCount = s.TransportsFrom?.Count ?? 0,
                 TransportsToCount = s.TransportsTo?.Count ?? 0
@@ -153,7 +153,7 @@ public class TripsController : Controller
                 Name = t.Name,
                 Type = t.Type,
                 Duration = t.Duration,
-                Cost = t.Cost,
+                // Cost = t.Cost,
                 TripName = t.Trip?.Name ?? string.Empty,
                 FromSpotName = t.FromSpot?.Name ?? string.Empty,
                 ToSpotName = t.ToSpot?.Name ?? string.Empty
@@ -163,7 +163,7 @@ public class TripsController : Controller
                 Id = a.Id,
                 Name = a.Name,
                 Description = a.Description ?? string.Empty,
-                Cost = a.Cost,
+                // Cost = a.Cost,
                 CategoryName = a.Category?.Name,
                 DayName = a.Day?.Name,
                 CheckIn = a.CheckIn,
@@ -257,7 +257,7 @@ public class TripsController : Controller
                 DayName = s.Day?.Name,
                 Longitude = s.Longitude,
                 Latitude = s.Latitude,
-                Cost = s.Cost,
+                // Cost = s.Cost,
                 PhotoCount = s.Photos?.Count ?? 0,
                 TransportsFromCount = s.TransportsFrom?.Count ?? 0,
                 TransportsToCount = s.TransportsTo?.Count ?? 0
@@ -268,7 +268,7 @@ public class TripsController : Controller
                 Name = t.Name,
                 Type = t.Type,
                 Duration = t.Duration,
-                Cost = t.Cost,
+                // Cost = t.Cost,
                 TripName = t.Trip?.Name ?? string.Empty,
                 FromSpotName = t.FromSpot?.Name ?? string.Empty,
                 ToSpotName = t.ToSpot?.Name ?? string.Empty
@@ -278,7 +278,7 @@ public class TripsController : Controller
                 Id = a.Id,
                 Name = a.Name,
                 Description = a.Description ?? string.Empty,
-                Cost = a.Cost,
+                // Cost = a.Cost,
                 CategoryName = a.Category?.Name,
                 DayName = a.Day?.Name,
                 CheckIn = a.CheckIn,

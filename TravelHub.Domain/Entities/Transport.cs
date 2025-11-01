@@ -1,4 +1,6 @@
-﻿namespace TravelHub.Domain.Entities;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace TravelHub.Domain.Entities;
 
 public class Transport
 {
@@ -6,7 +8,7 @@ public class Transport
     public required string Name { get; set; }
     public TransportationType Type { get; set; }
     public decimal Duration { get; set; }
-    public decimal Cost { get; set; }
+    // public decimal Cost { get; set; }
 
     // Foreign Key for Trip
     public required int TripId { get; set; }
@@ -22,4 +24,7 @@ public class Transport
     public required int ToSpotId { get; set; }
     // Navigation Property for the arrival spot
     public Spot? ToSpot { get; set; }
+
+    [InverseProperty("Transport")]
+    public Expense? Expense { get; set; }
 }

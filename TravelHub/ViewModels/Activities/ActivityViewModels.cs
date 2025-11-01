@@ -79,9 +79,9 @@ public class SpotCreateEditViewModel : ActivityCreateEditViewModel
     [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
     public double Latitude { get; set; }
 
-    [Required(ErrorMessage = "Cost is required")]
-    [Range(0, double.MaxValue, ErrorMessage = "Cost must be greater than or equal to 0")]
-    public decimal Cost { get; set; }
+    //[Required(ErrorMessage = "Cost is required")]
+    //[Range(0, double.MaxValue, ErrorMessage = "Cost must be greater than or equal to 0")]
+    //public decimal Cost { get; set; }
 
     public Rating? Rating { get; set; }
 }
@@ -97,7 +97,7 @@ public class SpotDetailsViewModel : ActivityDetailsViewModel
 {
     public double Longitude { get; set; }
     public double Latitude { get; set; }
-    public decimal Cost { get; set; }
+    // public decimal Cost { get; set; }
     public Rating? Rating { get; set; }
     public IEnumerable<PhotoViewModel>? Photos { get; set; }
     public int PhotoCount { get; set; }
