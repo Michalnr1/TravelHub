@@ -6,6 +6,8 @@ using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Accommodations;
+using TravelHub.Web.ViewModels.Expenses;
+using CategorySelectItem = TravelHub.Web.ViewModels.Accommodations.CategorySelectItem;
 
 namespace TravelHub.Web.Controllers
 {
@@ -17,6 +19,9 @@ namespace TravelHub.Web.Controllers
         private readonly ITripService _tripService;
         private readonly IDayService _dayService;
         private readonly ISpotService _spotService;
+        private readonly IExchangeRateService _exchangeRateService;
+        private readonly IExpenseService _expenseService;
+        private readonly UserManager<Person> _userManager;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AccommodationsController> _logger;
 
@@ -26,6 +31,9 @@ namespace TravelHub.Web.Controllers
             ITripService tripService,
             IDayService dayService,
             ISpotService spotService,
+            IExchangeRateService exchangeRateService,
+            IExpenseService expenseService,
+            UserManager<Person> userManager,
             IConfiguration configuration,
             ILogger<AccommodationsController> logger)
         {
@@ -34,6 +42,9 @@ namespace TravelHub.Web.Controllers
             _tripService = tripService;
             _dayService = dayService;
             _spotService = spotService;
+            _exchangeRateService = exchangeRateService;
+            _expenseService = expenseService;
+            _userManager = userManager;
             _configuration = configuration;
             _logger = logger;
         }
@@ -343,7 +354,14 @@ namespace TravelHub.Web.Controllers
                         CheckOutTime = viewModel.CheckOutTime
                     };
 
-                    await _accommodationService.AddAsync(accommodation);
+                    // Dodaj accommodation
+                    var createdAccommodation = await _accommodationService.AddAsync(accommodation);
+
+                    // Jeśli podano koszt, utwórz powiązany Expense (opcjonalnie)
+                    if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
+                    {
+                        await CreateExpenseForAccommodation(createdAccommodation, viewModel);
+                    }
 
                     TempData["SuccessMessage"] = "Accommodation added successfully!" +
                         (dayId == null ? " It will be automatically assigned to a day when one is created for its date range." : "");
@@ -379,6 +397,48 @@ namespace TravelHub.Web.Controllers
             return matchingDay?.Id;
         }
 
+        private async Task CreateExpenseForAccommodation(Accommodation accommodation, AccommodationCreateEditViewModel viewModel)
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                _logger.LogWarning("Cannot create expense for accommodation: User not found");
+                return;
+            }
+
+            try
+            {
+                // Pobierz lub utwórz exchange rate
+                var exchangeRateEntry = await _exchangeRateService
+                    .GetOrCreateExchangeRateAsync(
+                        accommodation.TripId,
+                        viewModel.ExpenseCurrencyCode ?? CurrencyCode.PLN,
+                        viewModel.ExpenseExchangeRateValue ?? 1.0M);
+
+                // Utwórz Expense
+                var expense = new Expense
+                {
+                    Name = $"{accommodation.Name} (Expense)",
+                    Value = viewModel.ExpenseValue!.Value,
+                    PaidById = currentUser.Id,
+                    CategoryId = null,
+                    ExchangeRateId = exchangeRateEntry.Id,
+                    TripId = accommodation.TripId,
+                    SpotId = accommodation.Id,
+                    IsEstimated = true
+                };
+
+                // Dodaj expense bez uczestników
+                await _expenseService.AddAsync(expense);
+
+                _logger.LogInformation("Expense created for accommodation {AccommodationId}", accommodation.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating expense for accommodation {AccommodationId}", accommodation.Id);
+            }
+        }
+
         private async Task PopulateSelectListsForTrip(AccommodationCreateEditViewModel viewModel, int tripId)
         {
             // Categories
@@ -397,6 +457,58 @@ namespace TravelHub.Web.Controllers
                     Id = d.Id,
                     DisplayName = d.Name!
                 }).ToList();
+
+            // Currencies dla Expense
+            var usedRates = await _exchangeRateService.GetTripExchangeRatesAsync(tripId);
+            PopulateCurrencySelectList(viewModel, usedRates);
+        }
+
+        private void PopulateCurrencySelectList(AccommodationCreateEditViewModel viewModel, IReadOnlyList<ExchangeRate> usedRates)
+        {
+            var allCurrencyCodes = Enum.GetValues(typeof(CurrencyCode))
+                .Cast<CurrencyCode>()
+                .ToDictionary(code => code, code => code.GetDisplayName());
+
+            var usedCurrencies = usedRates
+                .Select(er => new CurrencySelectGroupItem
+                {
+                    Key = er.CurrencyCodeKey,
+                    Name = er.Name,
+                    ExchangeRate = er.ExchangeRateValue,
+                    IsUsed = true
+                })
+                .OrderBy(c => c.Key.ToString())
+                .ThenByDescending(c => c.ExchangeRate)
+                .ToList();
+
+            var allCurrencies = allCurrencyCodes
+                .Select(pair => new CurrencySelectGroupItem
+                {
+                    Key = pair.Key,
+                    Name = pair.Value,
+                    ExchangeRate = 1.0M,
+                    IsUsed = false
+                })
+                .OrderBy(c => c.Key.ToString())
+                .ToList();
+
+            viewModel.CurrenciesGroups = usedCurrencies
+                .Concat(allCurrencies)
+                .ToList();
+
+            // Ustaw domyślne wartości jeśli nie ustawione
+            if (!viewModel.ExpenseCurrencyCode.HasValue && viewModel.ExpenseValue.HasValue)
+            {
+                var defaultCurrency = usedCurrencies.FirstOrDefault()
+                                    ?? allCurrencies.FirstOrDefault(c => c.Key == CurrencyCode.PLN)
+                                    ?? allCurrencies.FirstOrDefault();
+
+                if (defaultCurrency != null)
+                {
+                    viewModel.ExpenseCurrencyCode = defaultCurrency.Key;
+                    viewModel.ExpenseExchangeRateValue = defaultCurrency.ExchangeRate;
+                }
+            }
         }
 
         private async Task<int?> FindDayForDate(int tripId, DateTime date)

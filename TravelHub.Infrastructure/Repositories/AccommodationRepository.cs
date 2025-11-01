@@ -23,6 +23,7 @@ public class AccommodationRepository : GenericRepository<Accommodation>, IAccomm
         return await _context.Set<Accommodation>()
             .Where(a => a.Id == id)
             .Include(a => a.Photos)
+            .Include(a => a.Expense)
             .FirstOrDefaultAsync();
     }
 }

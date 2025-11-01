@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using TravelHub.Domain.Entities;
+using TravelHub.Web.ViewModels.Expenses;
 
 namespace TravelHub.Web.ViewModels.Accommodations;
 
@@ -96,10 +97,25 @@ public class AccommodationCreateEditViewModel
     [Display(Name = "Check-out Time")]
     public decimal CheckOutTime { get; set; } = 10.0m;
 
+    // Sekcja Expense
+    [Display(Name = "Estimated Cost")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Cost must be greater than 0")]
+    public decimal? ExpenseValue { get; set; }
+
+    [Display(Name = "Currency")]
+    public CurrencyCode? ExpenseCurrencyCode { get; set; } = CurrencyCode.PLN;
+
+    [Display(Name = "Exchange Rate (to Base)")]
+    [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]
+    public decimal? ExpenseExchangeRateValue { get; set; } = 1.0M;
+
     // Select lists
     public List<CategorySelectItem> Categories { get; set; } = new List<CategorySelectItem>();
     public List<TripSelectItem> Trips { get; set; } = new List<TripSelectItem>();
     public List<DaySelectItem> Days { get; set; } = new List<DaySelectItem>();
+
+    // Select lists dla Expense
+    public List<CurrencySelectGroupItem> CurrenciesGroups { get; set; } = new List<CurrencySelectGroupItem>();
 }
 
 public class CategorySelectItem
