@@ -1,7 +1,9 @@
+using System.Globalization;
 using Hangfire;
 using Hangfire.Dashboard;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces;
@@ -107,10 +109,25 @@ builder.Services.AddScoped<IPhotoService, PhotoService>();
 
 builder.Services.AddRazorPages();
 
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = new[]
+    {
+        new CultureInfo("pl-PL"),
+        new CultureInfo("en-US")
+    };
+
+    options.DefaultRequestCulture = new RequestCulture("pl-PL");
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+});
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+
+app.UseRequestLocalization();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
