@@ -72,7 +72,14 @@ public class ExpensesController : Controller
             CategoryName = expense.Category?.Name,
             CurrencyName = expense.ExchangeRate?.Name!,
             CurrencyKey = expense.ExchangeRate?.CurrencyCodeKey,
-            ParticipantNames = expense.Participants?.Select(ep => ep.Person?.FirstName + " " + ep.Person?.LastName).ToList() ?? new List<string>()
+            TripId = expense.TripId,
+            TripName = expense.Trip?.Name,
+            Participants = expense.Participants?.Select(ep => new ExpenseParticipantDetail
+            {
+                FullName = ep.Person?.FirstName + " " + ep.Person?.LastName,
+                ShareAmount = ep.ActualShareValue,
+                SharePercentage = ep.Share * 100 // Konwersja z 0-1 na 0-100%
+            }).ToList() ?? new List<ExpenseParticipantDetail>()
         };
 
         return View(viewModel);
@@ -139,6 +146,7 @@ public class ExpensesController : Controller
         }
 
         var viewModel = await CreateExpenseCreateEditViewModel(expense);
+        await PopulateSelectLists(viewModel);
         return View(viewModel);
     }
 
@@ -150,6 +158,19 @@ public class ExpensesController : Controller
         if (id != viewModel.Id)
         {
             return NotFound();
+        }
+
+        // Tymczasowo wyłącz walidację dla ParticipantsShares
+        ModelState.Remove("ParticipantsShares");
+
+        // Własna walidacja
+        if (viewModel.ParticipantsShares != null)
+        {
+            var totalDistributed = viewModel.ParticipantsShares.Sum(ps => ps.ActualShareValue);
+            if (Math.Abs(totalDistributed - viewModel.Value) > 0.01m)
+            {
+                ModelState.AddModelError("", $"Suma udziałów ({totalDistributed}) nie zgadza się z kwotą wydatku ({viewModel.Value})");
+            }
         }
 
         if (ModelState.IsValid)
@@ -171,26 +192,16 @@ public class ExpensesController : Controller
                 existingExpense.PaidById = viewModel.PaidById;
                 existingExpense.CategoryId = viewModel.CategoryId;
                 existingExpense.ExchangeRateId = exchangeRateEntry.Id;
+                existingExpense.TripId = viewModel.TripId;
 
-                // Update participants
-                //if (viewModel.SelectedParticipants != null)
-                //{
-                //    var participants = await _userManager.Users
-                //        .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
-                //        .ToListAsync();
-                //    existingExpense.Participants = participants;
-                //}
-                //else
-                //{
-                //    existingExpense.Participants.Clear();
-                //}
+                var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares!
+                    .Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0)
+                    .ToList());
 
-                //await _expenseService.UpdateAsync(existingExpense);
-                //await _expenseService.UpdateAsync(existingExpense, viewModel.SelectedParticipants ?? new List<string>());
+                await _expenseService.UpdateAsync(existingExpense, participantSharesDto);
 
-                var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares.Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0).ToList());
-
-                await _expenseService.AddAsync(existingExpense, participantSharesDto);
+                TempData["SuccessMessage"] = "Wydatek został zaktualizowany pomyślnie!";
+                return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -203,7 +214,6 @@ public class ExpensesController : Controller
                     throw;
                 }
             }
-            return RedirectToAction(nameof(Index));
         }
 
         await PopulateSelectLists(viewModel);
@@ -305,7 +315,7 @@ public class ExpensesController : Controller
         }
 
         // Reload people for the trip if validation fails
-        var tripPeople = await GetPeopleFromTrip(viewModel.Id);
+        var tripPeople = await GetPeopleFromTrip(viewModel.TripId);
         viewModel.People = tripPeople;
         viewModel.AllPeople = tripPeople;
         await PopulateSelectLists(viewModel);
@@ -366,9 +376,10 @@ public class ExpensesController : Controller
                 var shareViewModel = new ParticipantShareViewModel
                 {
                     PersonId = person,
+                    FullName = existingLink!.Person!.FirstName + existingLink.Person.LastName,
                     Share = existingLink?.Share ?? 0.000m,
                     ActualShareValue = existingLink?.ActualShareValue ?? 0.00m,
-                    ShareType = 0 // Domyślnie 0, widok niech to zinterpretuje.
+                    ShareType = 1 // Domyślnie 0, widok niech to zinterpretuje.
                 };
 
                 return shareViewModel;

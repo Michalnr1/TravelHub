@@ -15,6 +15,9 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
         return await _context.Expenses
             .Include(e => e.Participants)
                 .ThenInclude(ep => ep.Person)
+            .Include(e => e.ExchangeRate)
+            .Include(e => e.Trip)
+            .Include(e => e.PaidBy)
             .FirstOrDefaultAsync(e => e.Id == expenseId);
     }
 

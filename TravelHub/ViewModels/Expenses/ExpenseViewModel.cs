@@ -22,9 +22,16 @@ public class ExpenseDetailsViewModel
     public string? CategoryName { get; set; }
     public required string CurrencyName { get; set; }
     public CurrencyCode? CurrencyKey { get; set; }
-    public List<string> ParticipantNames { get; set; } = new List<string>();
+    public List<ExpenseParticipantDetail> Participants { get; set; } = new List<ExpenseParticipantDetail>();
     public int TripId { get; set; }
     public string? TripName { get; set; }
+}
+
+public class ExpenseParticipantDetail
+{
+    public required string FullName { get; set; }
+    public decimal ShareAmount { get; set; }
+    public decimal SharePercentage { get; set; } // W procentach 0-100
 }
 
 public class ExpenseCreateEditViewModel
@@ -73,12 +80,13 @@ public class ExpenseCreateEditViewModel
 public class ParticipantShareViewModel
 {
     public required string PersonId { get; set; }
+    public required string FullName { get; set; }
 
     public decimal Share { get; set; } = 0.000m;
 
     public decimal ActualShareValue { get; set; } = 0.00m;
 
-    public int ShareType { get; set; } // ie. 0: Default/Equal, 1: Amount, 2: Percent
+    public int ShareType { get; set; } = 1; // ie. 0: Default/Equal, 1: Amount, 2: Percent
 }
 
 public class CurrencySelectGroupItem

@@ -4,87 +4,201 @@
     ViewData["Title"] = "Edit Expense";
 }
 
-<h1>Edit Expense</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Edit Expense</h1>
+    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Back to Details</a>
+</div>
 
-<hr />
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="TripId" />
 
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="CategoryId" class="form-label">Category</label>
+                        <select asp-for="CategoryId" class="form-control">
+                            <option value="">-- Select Category --</option>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Value" class="control-label"></label>
-                <input asp-for="Value" class="form-control" type="number" step="0.01" />
-                <span asp-validation-for="Value" class="text-danger"></span>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label asp-for="Value" class="form-label">Total Amount</label>
+                        <input asp-for="Value" class="form-control"
+                               type="text"
+                               inputmode="decimal"
+                               pattern="[0-9]*[.,]?[0-9]*"
+                               id="totalAmount"
+                               placeholder="0.00" />
+                        <span asp-validation-for="Value" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label asp-for="SelectedCurrencyCode" class="form-label">Currency</label>
+                        <select asp-for="SelectedCurrencyCode" class="form-control" id="currencySelect" required>
+                            @{
+                                var usedCurrencies = Model.CurrenciesGroups.Where(c => c.IsUsed).ToList();
+                                var allCurrencies = Model.CurrenciesGroups.Where(c => !c.IsUsed).ToList();
+                            }
+
+                            @if (usedCurrencies.Any())
+                            {
+                                <optgroup label="-- Used Currency (Currency, Rate) --">
+                                    @foreach (var currency in usedCurrencies)
+                                    {
+                                        bool isSelected = (Model.SelectedCurrencyCode == currency.Key && Model.ExchangeRateValue == currency.ExchangeRate);
+                                        <option value="@currency.Key"
+                                                data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                selected="@isSelected">
+                                            @currency.DropdownText
+                                        </option>
+                                    }
+                                </optgroup>
+                            }
+
+                            <optgroup label="-- All currencies --">
+                                @foreach (var currency in allCurrencies)
+                                {
+                                    <option value="@currency.Key"
+                                            data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                            selected="@(Model.SelectedCurrencyCode == currency.Key && Model.ExchangeRateValue == 1.0M)">
+                                        @currency.DropdownText
+                                    </option>
+                                }
+                            </optgroup>
+                        </select>
+                        <span asp-validation-for="SelectedCurrencyCode" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label asp-for="ExchangeRateValue" class="form-label">Exchange Rate (to Base)</label>
+                        <input asp-for="ExchangeRateValue" class="form-control"
+                               type="text"
+                               inputmode="decimal"
+                               pattern="[0-9]*[.,]?[0-9]*"
+                               placeholder="1.000000" />
+                        <span asp-validation-for="ExchangeRateValue" class="text-danger"></span>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label asp-for="SelectedCurrencyCode" class="control-label"></label>
-                <select asp-for="SelectedCurrencyCode" class="form-control">
-                    <option value="">-- Select Currency --</option>
-                    @foreach (var currency in Model.CurrenciesGroups)
-                    {
-                        <option value="@currency.Key" selected="@(currency.Key == Model.SelectedCurrencyCode)">@currency.Name</option>
-                    }
-                </select>
-                <span asp-validation-for="SelectedCurrencyCode" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="CategoryId" class="control-label"></label>
-                <select asp-for="CategoryId" class="form-control">
-                    <option value="">-- Select Category --</option>
-                    @foreach (var category in Model.Categories)
-                    {
-                        <option value="@category.Id" selected="@(category.Id == Model.CategoryId)">@category.Name</option>
-                    }
-                </select>
-                <span asp-validation-for="CategoryId" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="PaidById" class="control-label"></label>
-                <select asp-for="PaidById" class="form-control">
+            <div class="form-group mb-3">
+                <label asp-for="PaidById" class="form-label">Paid By</label>
+                <select asp-for="PaidById" class="form-control" required>
                     <option value="">-- Select Person --</option>
                     @foreach (var person in Model.People)
                     {
-                        <option value="@person.Id" selected="@(person.Id == Model.PaidById)">@person.FullName (@person.Email)</option>
+                        <option value="@person.Id">@person.FullName</option>
                     }
                 </select>
                 <span asp-validation-for="PaidById" class="text-danger"></span>
             </div>
 
-            <div class="form-group">
-                <label class="control-label">Participants</label>
-                <div class="border p-2" style="max-height: 200px; overflow-y: auto;">
-                    @foreach (var person in Model.AllPeople)
+            <!-- Sekcja uczestników z checkboxami -->
+            <div class="form-group mb-4">
+                <label class="form-label">Select Participants</label>
+                <div class="border rounded p-3">
+                    @if (Model.People.Any())
                     {
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox"
-                                   name="SelectedParticipants"
-                                   value="@person.Id"
-                                   id="participant_@person.Id"
-                                   @(Model.SelectedParticipants.Contains(person.Id) ? "checked" : "")>
-                            <label class="form-check-label" for="participant_@person.Id">
-                                @person.FullName (@person.Email)
-                            </label>
-                        </div>
+                        foreach (var person in Model.People)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input participant-checkbox" type="checkbox"
+                                       name="SelectedParticipants" value="@person.Id"
+                                       id="participant-@person.Id"
+                                       data-person-id="@person.Id"
+                                       data-person-name="@person.FullName"
+                                       @(Model.SelectedParticipants?.Contains(person.Id) == true ? "checked" : "") />
+                                <label class="form-check-label" for="participant-@person.Id">
+                                    @person.FullName
+                                </label>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">No people available for this trip.</p>
                     }
                 </div>
             </div>
 
-            <div class="form-group mt-3">
-                <input type="submit" value="Save" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            <!-- Sekcja zarządzania udziałami -->
+            <div class="form-group mb-4" id="sharesSection" style="display: none;">
+                <label class="form-label">Manage Shares</label>
+                <div class="border rounded p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-bold">Distribution of <span id="totalAmountDisplay">@Model.Value.ToString("F2")</span></span>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="distributeEqual">Distribute Equally</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearShares">Clear All</button>
+                        </div>
+                    </div>
+
+                    <div id="sharesContainer">
+                        <!-- Udziały będą dodawane dynamicznie -->
+                    </div>
+
+                    <div class="mt-3 p-2 rounded" style="background-color: #f8f9fa;">
+                        <div class="d-flex justify-content-between">
+                            <strong>Total distributed:</strong>
+                            <span id="totalDistributed">0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <strong>Remaining:</strong>
+                            <span id="remainingAmount">@Model.Value.ToString("F2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Update Expense</button>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quick Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li>💡 Select all participants who should share this expense</li>
+                    <li>💡 Choose the person who actually paid for the expense</li>
+                    <li>💡 Use categories to organize your expenses</li>
+                    <li>💡 Make sure to select the correct currency</li>
+                    <li>💡 Manage shares in the distribution section</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -92,4 +206,392 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        $(document).ready(function () {
+            var $currencySelect = $('#currencySelect');
+            var $exchangeRateInput = $('#ExchangeRateValue');
+            var $totalAmountInput = $('#totalAmount');
+            var $sharesSection = $('#sharesSection');
+            var $sharesContainer = $('#sharesContainer');
+            var $submitButton = $('button[type="submit"]');
+            var shareIndex = 0;
+            var hasInitializedExistingShares = false;
+
+            // Funkcja do parsowania liczb z przecinkiem/kropką
+            function parseDecimal(value) {
+                if (!value || value === '') return 0;
+                return parseFloat(value.replace(',', '.')) || 0;
+            }
+
+            // Funkcja do formatowania wyświetlania
+            function formatDecimal(value, decimals = 2) {
+                if (!value || value === 0) return '';
+                return value.toFixed(decimals).replace('.', ',');
+            }
+
+            // Walidacja sumy kosztów
+            function validateTotalDistribution() {
+                var totalAmount = parseDecimal($totalAmountInput.val());
+                var totalDistributed = 0;
+
+                $('.amount-input').each(function() {
+                    totalDistributed += parseDecimal($(this).val());
+                });
+
+                var isValid = Math.abs(totalDistributed - totalAmount) < 0.01;
+
+                if (!isValid) {
+                    $('#remainingAmount').addClass('text-danger fw-bold');
+                    $submitButton.prop('disabled', true).attr('title', 'Suma udziałów musi być równa kwocie całkowitej');
+                } else {
+                    $('#remainingAmount').removeClass('text-danger fw-bold');
+                    $submitButton.prop('disabled', false).removeAttr('title');
+                }
+
+                return isValid;
+            }
+
+            function setExchangeRate(selectedOption) {
+                var rate = selectedOption.data('rate');
+                if (rate) {
+                    $exchangeRateInput.val(parseFloat(rate).toFixed(6));
+                } else {
+                    $exchangeRateInput.val('1.000000');
+                }
+            }
+
+            // Obsługa zmiany waluty
+            $currencySelect.on('change', function () {
+                var $selected = $(this).find('option:selected');
+                setExchangeRate($selected);
+            });
+
+            // Inicjalizacja kursu waluty
+            var $initialSelectedOption = $currencySelect.find('option:selected');
+            if ($initialSelectedOption.length > 0 && $exchangeRateInput.val() === '') {
+                setExchangeRate($initialSelectedOption);
+            }
+
+            // Obsługa checkboxów uczestników
+            $('.participant-checkbox').on('change', function () {
+                updateSharesSection();
+            });
+
+            // Rozdział równy
+            $('#distributeEqual').on('click', function () {
+                distributeEqually();
+            });
+
+            // Wyczyść wszystkie udziały
+            $('#clearShares').on('click', function () {
+                clearAllShares();
+            });
+
+            // Obsługa zmiany kwoty całkowitej
+            $totalAmountInput.on('input', function () {
+                updateTotalAmountDisplay();
+                recalculateSharesFromPercentages();
+                validateTotalDistribution();
+            });
+
+            function updateTotalAmountDisplay() {
+                var totalAmount = parseDecimal($totalAmountInput.val());
+                $('#totalAmountDisplay').text(formatDecimal(totalAmount));
+                updateRemainingAmount();
+            }
+
+            function updateSharesSection() {
+                var checkedCount = $('.participant-checkbox:checked').length;
+                if (checkedCount > 0) {
+                    $sharesSection.show();
+                    if (!hasInitializedExistingShares) {
+                        renderExistingShares();
+                    } else {
+                        renderShares();
+                    }
+                } else {
+                    $sharesSection.hide();
+                    $sharesContainer.empty();
+                    shareIndex = 0;
+                }
+                validateTotalDistribution();
+            }
+
+            // Funkcja do renderowania istniejących udziałów (tylko raz)
+            function renderExistingShares() {
+                $sharesContainer.empty();
+                shareIndex = 0;
+
+                // Najpierw zaznacz checkboxy dla istniejących uczestników
+                @if (Model.ParticipantsShares != null && Model.ParticipantsShares.Any())
+                {
+                        foreach (var share in Model.ParticipantsShares)
+                        {
+                                <text>
+                                $('.participant-checkbox[data-person-id="@share.PersonId"]').prop('checked', true);
+                                </text>
+                        }
+                }
+
+                // Następnie dodaj udziały tylko dla zaznaczonych uczestników
+                $('.participant-checkbox:checked').each(function() {
+                    var personId = $(this).data('person-id');
+                    var fullName = $(this).data('person-name');
+
+                    // Sprawdź czy istnieją już dane dla tego uczestnika
+                    var existingShareData = getExistingShareData(personId);
+                    if (existingShareData) {
+                        addParticipantShare(personId, fullName, existingShareData.sharePercentage, existingShareData.amount, existingShareData.shareType);
+                    } else {
+                        addParticipantShare(personId, fullName, 0, 0, 1);
+                    }
+                });
+
+                hasInitializedExistingShares = true;
+                updateCalculations();
+                validateTotalDistribution();
+            }
+
+            // Funkcja do pobierania istniejących danych udziału
+            function getExistingShareData(personId) {
+                @if (Model.ParticipantsShares != null && Model.ParticipantsShares.Any())
+                {
+                        foreach (var share in Model.ParticipantsShares)
+                        {
+                                <text>
+                                if ('@share.PersonId' === personId) {
+                                    return {
+                                        sharePercentage: @(share.Share * 100),
+                                        amount: @share.ActualShareValue,
+                                        shareType: @share.ShareType
+                                    };
+                                }
+                                </text>
+                        }
+                }
+                return null;
+            }
+
+            // Normalna funkcja renderowania (dla nowych zaznaczeń)
+            function renderShares() {
+                $sharesContainer.empty();
+                shareIndex = 0;
+
+                $('.participant-checkbox:checked').each(function() {
+                    var personId = $(this).data('person-id');
+                    var fullName = $(this).data('person-name');
+
+                    var existingShare = $('.share-item[data-person-id="' + personId + '"]');
+                    if (existingShare.length === 0) {
+                        addParticipantShare(personId, fullName, 0, 0, 1);
+                    }
+                });
+
+                if ($('.participant-checkbox:checked').length > 0) {
+                    distributeEqually();
+                }
+            }
+
+            function addParticipantShare(personId, fullName, sharePercentage, amount, shareType) {
+                var shareHtml = `
+                    <div class="share-item mb-3 p-2 border rounded" data-person-id="${personId}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>${fullName}</strong>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-share" data-person-id="${personId}">Remove</button>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label small">Percentage (%)</label>
+                                <input type="text"
+                                       class="form-control form-control-sm share-input"
+                                       inputmode="decimal"
+                                       value="${formatDecimal(sharePercentage, 3)}"
+                                       placeholder="0.000"
+                                       data-person-id="${personId}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Amount</label>
+                                <input type="text"
+                                       class="form-control form-control-sm amount-input"
+                                       inputmode="decimal"
+                                       value="${formatDecimal(amount)}"
+                                       placeholder="0.00"
+                                       data-person-id="${personId}">
+                            </div>
+                        </div>
+                        <input type="hidden" name="ParticipantsShares[${shareIndex}].PersonId" value="${personId}" />
+                        <input type="hidden" name="ParticipantsShares[${shareIndex}].FullName" value="${fullName}" />
+                        <input type="hidden" name="ParticipantsShares[${shareIndex}].Share" class="share-hidden" value="${(sharePercentage / 100).toFixed(6)}" />
+                        <input type="hidden" name="ParticipantsShares[${shareIndex}].ActualShareValue" class="amount-hidden" value="${amount}" />
+                        <input type="hidden" name="ParticipantsShares[${shareIndex}].ShareType" class="share-type-hidden" value="${shareType}" />
+                    </div>
+                `;
+
+                $sharesContainer.append(shareHtml);
+                shareIndex++;
+
+                // Dodaj event listeners
+                $(`.share-input[data-person-id="${personId}"]`).on('input', function() {
+                    var value = parseDecimal($(this).val());
+                    updateShareFromPercentage(personId, value);
+                    validateTotalDistribution();
+                });
+
+                $(`.amount-input[data-person-id="${personId}"]`).on('input', function() {
+                    var value = parseDecimal($(this).val());
+                    updateShareFromAmount(personId, value);
+                    validateTotalDistribution();
+                });
+
+                $(`.remove-share[data-person-id="${personId}"]`).on('click', function() {
+                    removeParticipantShare(personId);
+                });
+            }
+
+            function removeParticipantShare(personId) {
+                $(`.participant-checkbox[data-person-id="${personId}"]`).prop('checked', false);
+                $(`.share-item[data-person-id="${personId}"]`).remove();
+                updateSharesSection();
+                updateCalculations();
+                validateTotalDistribution();
+            }
+
+            function updateShareFromPercentage(personId, percentage) {
+                var totalAmount = parseDecimal($totalAmountInput.val());
+                var amount = (totalAmount * percentage) / 100;
+                var shareForBackend = percentage / 100;
+
+                // Aktualizuj widoczne pola
+                $(`.amount-input[data-person-id="${personId}"]`).val(formatDecimal(amount));
+                $(`.share-input[data-person-id="${personId}"]`).val(formatDecimal(percentage, 3));
+
+                // Aktualizuj ukryte pola
+                updateHiddenFields(personId, shareForBackend, amount, 2);
+                updateCalculations();
+            }
+
+            function updateShareFromAmount(personId, amount) {
+                var totalAmount = parseDecimal($totalAmountInput.val());
+                var percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
+                var shareForBackend = percentage / 100;
+
+                // Aktualizuj widoczne pola
+                $(`.share-input[data-person-id="${personId}"]`).val(formatDecimal(percentage, 3));
+                $(`.amount-input[data-person-id="${personId}"]`).val(formatDecimal(amount));
+
+                // Aktualizuj ukryte pola
+                updateHiddenFields(personId, shareForBackend, amount, 1);
+                updateCalculations();
+            }
+
+            function updateHiddenFields(personId, share, actualShareValue, shareType) {
+                var $shareItem = $(`.share-item[data-person-id="${personId}"]`);
+                $shareItem.find('.share-hidden').val(share.toFixed(6));
+                $shareItem.find('.amount-hidden').val(actualShareValue);
+                $shareItem.find('.share-type-hidden').val(shareType);
+            }
+
+            function distributeEqually() {
+                var checkedCount = $('.participant-checkbox:checked').length;
+                if (checkedCount === 0) return;
+
+                var totalAmount = parseDecimal($totalAmountInput.val());
+                var equalShare = totalAmount / checkedCount;
+                var equalPercentage = 100 / checkedCount;
+                var equalShareForBackend = (1 / checkedCount);
+
+                $('.participant-checkbox:checked').each(function() {
+                    var personId = $(this).data('person-id');
+
+                    // Aktualizuj widoczne pola
+                    $(`.amount-input[data-person-id="${personId}"]`).val(formatDecimal(equalShare));
+                    $(`.share-input[data-person-id="${personId}"]`).val(formatDecimal(equalPercentage, 3));
+
+                    // Aktualizuj ukryte pola
+                    updateHiddenFields(personId, equalShareForBackend, equalShare, 1);
+                });
+
+                updateCalculations();
+                validateTotalDistribution();
+            }
+
+            function clearAllShares() {
+                $('.share-input, .amount-input').val('');
+                $('.participant-checkbox:checked').each(function() {
+                    var personId = $(this).data('person-id');
+                    updateHiddenFields(personId, 0, 0, 1);
+                });
+                updateCalculations();
+                validateTotalDistribution();
+            }
+
+            function recalculateSharesFromPercentages() {
+                $('.share-input').each(function() {
+                    var personId = $(this).data('person-id');
+                    var percentage = parseDecimal($(this).val());
+                    if (percentage > 0) {
+                        updateShareFromPercentage(personId, percentage);
+                    }
+                });
+                validateTotalDistribution();
+            }
+
+            function updateCalculations() {
+                var totalAmount = parseDecimal($totalAmountInput.val());
+                var totalDistributed = 0;
+
+                $('.amount-input').each(function() {
+                    totalDistributed += parseDecimal($(this).val());
+                });
+
+                $('#totalDistributed').text(formatDecimal(totalDistributed));
+                updateRemainingAmount();
+            }
+
+            function updateRemainingAmount() {
+                var totalAmount = parseDecimal($totalAmountInput.val());
+                var totalDistributed = parseDecimal($('#totalDistributed').text());
+                var remaining = totalAmount - totalDistributed;
+
+                $('#remainingAmount').text(formatDecimal(remaining));
+
+                // Kolorowanie pozostałej kwoty
+                var $remaining = $('#remainingAmount');
+                $remaining.removeClass('text-success text-warning text-danger');
+
+                if (Math.abs(remaining) < 0.01) {
+                    $remaining.addClass('text-success');
+                } else if (remaining > 0) {
+                    $remaining.addClass('text-warning');
+                } else {
+                    $remaining.addClass('text-danger');
+                }
+            }
+
+            // Walidacja przed wysłaniem formularza
+            $('form').on('submit', function(e) {
+                if (!validateTotalDistribution()) {
+                    e.preventDefault();
+                    alert('Nie można zapisać: Suma udziałów (' + $('#totalDistributed').text() + ') nie zgadza się z kwotą całkowitą (' + $('#totalAmountDisplay').text() + ')');
+                    return false;
+                }
+
+                // Upewnij się, że wszystkie ukryte pola mają poprawne wartości
+                $('.share-item').each(function() {
+                    var personId = $(this).data('person-id');
+                    var $shareHidden = $(this).find('.share-hidden');
+                    var $amountHidden = $(this).find('.amount-hidden');
+
+                    // Zamień przecinki na kropki w ukrytych polach
+                    $shareHidden.val($shareHidden.val().replace(',', '.'));
+                    $amountHidden.val($amountHidden.val().replace(',', '.'));
+                });
+            });
+
+            // Inicjalizacja
+            updateTotalAmountDisplay();
+            updateSharesSection(); // To wywoła renderExistingShares() przez updateSharesSection()
+        });
+    </script>
 }
