@@ -18,4 +18,5 @@ public class Notification
     public DateTimeOffset? SentAt { get; set; }
     public bool IsSent { get; set; } = false;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public string? HangfireJobId { get; set; }
 }

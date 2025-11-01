@@ -37,11 +37,7 @@
                             <input asp-for="ScheduledFor" class="form-control" type="datetime-local" id="ScheduledForInput" />
                             <span asp-validation-for="ScheduledFor" class="text-danger"></span>
                             <div class="form-text">
-                                <i class="fas fa-info-circle"></i> Time will be automatically rounded down to 15-minute intervals (00, 15, 30, 45)
-                                <br><small class="text-info">Your timezone: <span id="userTimezone"></span></small>
-                            </div>
-                            <div id="timePreview" class="mt-2 p-2 bg-light rounded d-none">
-                                <small><strong>Selected time:</strong> <span id="previewTime"></span></small>
+                                <small class="text-info">Your timezone: <span id="userTimezone"></span></small>
                             </div>
                         </div>
 
@@ -73,32 +69,28 @@
             const scheduledForInput = document.getElementById('ScheduledForInput');
             const scheduledForDateTimeOffsetInput = document.getElementById('ScheduledForDateTimeOffset');
             const userTimezoneSpan = document.getElementById('userTimezone');
-            const timePreview = document.getElementById('timePreview');
-            const previewTime = document.getElementById('previewTime');
 
             // Pokaż strefę czasową użytkownika
             const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             userTimezoneSpan.textContent = userTimezone;
 
-            // Ustaw minimalną datę (następny kwadrans)
-            const minTime = getNextQuarterHour();
+            // Ustaw minimalną datę (1 minutę od teraz)
+            const minTime = new Date();
+            minTime.setMinutes(minTime.getMinutes() + 1);
             scheduledForInput.min = formatDateTimeForInput(minTime);
 
-            // Ustaw domyślną wartość (następny kwadrans)
-            const defaultTime = getNextQuarterHour();
+            // Ustaw domyślną wartość (1 minutę od teraz)
+            const defaultTime = new Date();
+            defaultTime.setMinutes(defaultTime.getMinutes() + 1);
             scheduledForInput.value = formatDateTimeForInput(defaultTime);
 
             // Ustaw początkową wartość DateTimeOffset
-            updateDateTimeAndPreview(defaultTime);
+            updateDateTimeOffset(defaultTime);
 
             // Aktualizuj przy każdej zmianie
-            scheduledForInput.addEventListener('input', function() {
+            scheduledForInput.addEventListener('change', function() {
                 const localDate = parseLocalDateTime(this.value);
-                const roundedDate = roundDownToQuarterHour(localDate);
-                updateDateTimeAndPreview(roundedDate);
-
-                // Aktualizuj wartość inputa z zaokrąglonym czasem
-                this.value = formatDateTimeForInput(roundedDate);
+                updateDateTimeOffset(localDate);
             });
 
             // Custom validation for future date
@@ -116,32 +108,6 @@
                 return true;
             });
 
-            // Funkcja do uzyskania następnego pełnego kwadransa
-            function getNextQuarterHour() {
-                const now = new Date();
-                return roundDownToQuarterHour(now, true); // true = zawsze w przyszłość
-            }
-
-            // Funkcja zaokrąglająca W DÓŁ do kwadransa
-            function roundDownToQuarterHour(date, alwaysFuture = false) {
-                const roundedDate = new Date(date);
-                const minutes = roundedDate.getMinutes();
-
-                // Zaokrąglij W DÓŁ do najbliższego kwadransa
-                const roundedMinutes = Math.floor(minutes / 15) * 15;
-
-                roundedDate.setMinutes(roundedMinutes);
-                roundedDate.setSeconds(0);
-                roundedDate.setMilliseconds(0);
-
-                // Jeśli zawsze w przyszłość i zaokrąglona data jest w przeszłości
-                if (alwaysFuture && roundedDate <= new Date()) {
-                    roundedDate.setMinutes(roundedMinutes + 15);
-                }
-
-                return roundedDate;
-            }
-
             // Funkcja do parsowania daty z inputa datetime-local
             function parseLocalDateTime(dateTimeString) {
                 if (!dateTimeString) return new Date();
@@ -151,12 +117,6 @@
                 const [hours, minutes] = timePart.split(':').map(Number);
 
                 return new Date(year, month - 1, day, hours, minutes);
-            }
-
-            // Funkcja aktualizująca DateTimeOffset i podgląd
-            function updateDateTimeAndPreview(localDate) {
-                updateDateTimeOffset(localDate);
-                updateTimePreview(localDate);
             }
 
             // Funkcja aktualizująca DateTimeOffset
@@ -178,22 +138,6 @@
                 scheduledForDateTimeOffsetInput.value = dateTimeOffsetString;
             }
 
-            // Funkcja aktualizująca podgląd czasu
-            function updateTimePreview(localDate) {
-                const formattedTime = localDate.toLocaleString('en-US', {
-                    weekday: 'short',
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    timeZoneName: 'short'
-                });
-
-                previewTime.textContent = formattedTime;
-                timePreview.classList.remove('d-none');
-            }
-
             // Helper function to format date for datetime-local input
             function formatDateTimeForInput(date) {
                 const year = date.getFullYear();
@@ -204,34 +148,6 @@
 
                 return `${year}-${month}-${day}T${hours}:${minutes}`;
             }
-
-            // Dodatkowo: blokuj ręczne wpisywanie nieprawidłowych minut
-            scheduledForInput.addEventListener('keydown', function(e) {
-                const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Escape', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
-
-                // Pozwól na klawisze nawigacyjne i edycyjne
-                if (allowedKeys.includes(e.key)) {
-                    return;
-                }
-
-                // Sprawdź czy użytkownik próbuje edytować minuty
-                const selectionStart = this.selectionStart;
-                if (selectionStart >= 14 && selectionStart <= 16) { // Pozycja minut
-                    e.preventDefault();
-                }
-            });
-
         });
     </script>
 }
-
-<style>
-    #timePreview {
-        border-left: 4px solid #007bff;
-    }
-
-    /* Opcjonalnie: zmień kursor na niedozwolony gdy nad minutami */
-    #ScheduledForInput {
-        cursor: pointer;
-    }
-</style>

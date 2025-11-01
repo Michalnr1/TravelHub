@@ -16,16 +16,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Connection to SQL Server configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-    //options.UseSqlServer(builder.Configuration.GetConnectionString("LocalConnection")));
+    //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("LocalConnection")));
 
 // Hangfire Configuration
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"),
-    //.UseSqlServerStorage(builder.Configuration.GetConnectionString("LocalConnection"),
+    //.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"),
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("LocalConnection"),
         new SqlServerStorageOptions
         {
             CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
@@ -142,21 +142,6 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 app.MapRazorPages();
-
-// Zaplanuj zadanie przetwarzania powiadomień
-using (var scope = app.Services.CreateScope())
-{
-    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-    var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-
-    // Zaplanuj zadanie co 15 minut
-    recurringJobManager.AddOrUpdate(
-        "process-notifications",
-        () => notificationService.ProcessPendingNotificationsAsync(),
-        "*/15 * * * *"); // CRON: co 15 minut
-
-    Console.WriteLine("Hangfire job 'process-notifications' scheduled every 15 minutes!");
-}
 
 app.Run();
 

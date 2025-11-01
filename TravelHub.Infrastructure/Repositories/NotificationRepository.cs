@@ -10,6 +10,13 @@ public class NotificationRepository : GenericRepository<Notification>, INotifica
     {
     }
 
+    public async Task<Notification?> GetByIdWithUserAsync(int id)
+    {
+        return await _context.Notifications
+            .Include(n => n.User)
+            .FirstOrDefaultAsync(n => n.Id == id);
+    }
+
     public async Task<IEnumerable<Notification>> GetByUserIdAsync(string userId)
     {
         return await _context.Notifications
