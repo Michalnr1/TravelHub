@@ -25,6 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Country> Countries { get; set; }
     public DbSet<ExpenseParticipant> ExpenseParticipants { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -282,6 +283,36 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .WithMany(p => p.Comments)
                   .HasForeignKey(c => c.PostId)
                   .OnDelete(DeleteBehavior.Restrict); // Don't delete a post if it has comments.
+        });
+
+        // --- Notification configuration ---
+        builder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+
+            entity.Property(n => n.Title)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(n => n.Content)
+                .IsRequired();
+
+            entity.Property(n => n.ScheduledFor)
+                .IsRequired();
+
+            entity.Property(n => n.CreatedAt)
+                .IsRequired();
+
+            // 1:N relationship with Person (User)
+            entity.HasOne(n => n.User)
+                .WithMany(person => person.Notifications)
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade); // If a person is deleted, their notifications are deleted.
+
+            // Index for better performance
+            entity.HasIndex(n => n.UserId);
+            entity.HasIndex(n => n.ScheduledFor);
+            entity.HasIndex(n => n.IsSent);
         });
 
         // --- Country Configuration ---

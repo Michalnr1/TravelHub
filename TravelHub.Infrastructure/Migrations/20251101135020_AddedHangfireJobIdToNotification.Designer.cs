@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelHub.Infrastructure;
 
@@ -11,9 +12,11 @@ using TravelHub.Infrastructure;
 namespace TravelHub.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251101135020_AddedHangfireJobIdToNotification")]
+    partial class AddedHangfireJobIdToNotification
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,22 +25,19 @@ namespace TravelHub.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("CountryTrip", b =>
+            modelBuilder.Entity("ExpensePerson", b =>
                 {
-                    b.Property<int>("TripsId")
+                    b.Property<int>("ExpensesToCoverId")
                         .HasColumnType("int");
 
-                    b.Property<string>("CountriesCode")
-                        .HasColumnType("nvarchar(3)");
+                    b.Property<string>("ParticipantsId")
+                        .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("CountriesName")
-                        .HasColumnType("nvarchar(100)");
+                    b.HasKey("ExpensesToCoverId", "ParticipantsId");
 
-                    b.HasKey("TripsId", "CountriesCode", "CountriesName");
+                    b.HasIndex("ParticipantsId");
 
-                    b.HasIndex("CountriesCode", "CountriesName");
-
-                    b.ToTable("TripCountries", (string)null);
+                    b.ToTable("ExpenseParticipants", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -299,21 +299,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.ToTable("Comments");
                 });
 
-            modelBuilder.Entity("TravelHub.Domain.Entities.Country", b =>
-                {
-                    b.Property<string>("Code")
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Code", "Name");
-
-                    b.ToTable("Countries");
-                });
-
             modelBuilder.Entity("TravelHub.Domain.Entities.Day", b =>
                 {
                     b.Property<int>("Id")
@@ -457,29 +442,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("TravelHub.Domain.Entities.ExpenseParticipant", b =>
-                {
-                    b.Property<int>("ExpenseId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PersonId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal>("ActualShareValue")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("Share")
-                        .HasPrecision(18, 3)
-                        .HasColumnType("decimal(18,3)");
-
-                    b.HasKey("ExpenseId", "PersonId");
-
-                    b.HasIndex("PersonId");
-
-                    b.ToTable("ExpenseParticipants", (string)null);
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Person", b =>
@@ -683,11 +645,6 @@ namespace TravelHub.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
-
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("date");
 
@@ -757,17 +714,17 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasDiscriminator().HasValue("Accommodation");
                 });
 
-            modelBuilder.Entity("CountryTrip", b =>
+            modelBuilder.Entity("ExpensePerson", b =>
                 {
-                    b.HasOne("TravelHub.Domain.Entities.Trip", null)
+                    b.HasOne("TravelHub.Domain.Entities.Expense", null)
                         .WithMany()
-                        .HasForeignKey("TripsId")
+                        .HasForeignKey("ExpensesToCoverId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TravelHub.Domain.Entities.Country", null)
+                    b.HasOne("TravelHub.Domain.Entities.Person", null)
                         .WithMany()
-                        .HasForeignKey("CountriesCode", "CountriesName")
+                        .HasForeignKey("ParticipantsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -948,25 +905,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TravelHub.Domain.Entities.ExpenseParticipant", b =>
-                {
-                    b.HasOne("TravelHub.Domain.Entities.Expense", "Expense")
-                        .WithMany("Participants")
-                        .HasForeignKey("ExpenseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TravelHub.Domain.Entities.Person", "Person")
-                        .WithMany("ExpensesToCover")
-                        .HasForeignKey("PersonId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Expense");
-
-                    b.Navigation("Person");
-                });
-
             modelBuilder.Entity("TravelHub.Domain.Entities.Photo", b =>
                 {
                     b.HasOne("TravelHub.Domain.Entities.Comment", "Comment")
@@ -1062,16 +1000,9 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Navigation("Expenses");
                 });
 
-            modelBuilder.Entity("TravelHub.Domain.Entities.Expense", b =>
-                {
-                    b.Navigation("Participants");
-                });
-
             modelBuilder.Entity("TravelHub.Domain.Entities.Person", b =>
                 {
                     b.Navigation("Comments");
-
-                    b.Navigation("ExpensesToCover");
 
                     b.Navigation("Notifications");
 

@@ -1,3 +1,6 @@
+using Hangfire;
+using Hangfire.Dashboard;
+using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
@@ -13,8 +16,27 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Connection to SQL Server configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-    options.UseSqlServer(builder.Configuration.GetConnectionString("LocalConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    //options.UseSqlServer(builder.Configuration.GetConnectionString("LocalConnection")));
+
+// Hangfire Configuration
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"),
+    //.UseSqlServerStorage(builder.Configuration.GetConnectionString("LocalConnection"),
+        new SqlServerStorageOptions
+        {
+            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+            QueuePollInterval = TimeSpan.Zero,
+            UseRecommendedIsolationLevel = true,
+            DisableGlobalLocks = true,
+            PrepareSchemaIfNecessary = true // Automatycznie tworzy tabele Hangfire
+        }));
+
+builder.Services.AddHangfireServer();
 
 // Email Configuration
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
@@ -61,6 +83,7 @@ builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<IDayRepository, DayRepository>();
 builder.Services.AddScoped<IExchangeRateRepository, ExchangeRateRepository>();
 builder.Services.AddScoped<IExpenseRepository, ExpenseRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
 builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<ISpotRepository, SpotRepository>();
@@ -69,16 +92,17 @@ builder.Services.AddScoped<ITripRepository, TripRepository>();
 
 // Services
 builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
+builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IDayService, DayService>();
 builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISpotService, SpotService>();
 builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<ITripService, TripService>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
-builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 
 builder.Services.AddRazorPages();
 
@@ -101,6 +125,16 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Hangfire Dashboard (tylko dla development)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        DashboardTitle = "TravelHub Jobs Dashboard",
+        Authorization = new[] { new HangfireAuthorizationFilter() }
+    });
+}
+
 app.MapStaticAssets();
 
 app.MapControllerRoute(
@@ -109,5 +143,20 @@ app.MapControllerRoute(
     .WithStaticAssets();
 app.MapRazorPages();
 
-
 app.Run();
+
+// Klasa autoryzacji dla Hangfire Dashboard
+public class HangfireAuthorizationFilter : IDashboardAuthorizationFilter
+{
+    public bool Authorize(DashboardContext context)
+    {
+        // W development pozwól wszystkim
+        // W produkcji dodaj odpowiednią logikę autoryzacji
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        return environment == Environments.Development;
+
+        // Dla produkcji możesz użyć:
+        // var httpContext = context.GetHttpContext();
+        // return httpContext.User.IsInRole("Admin");
+    }
+}
