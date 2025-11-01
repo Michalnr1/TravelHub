@@ -56,7 +56,7 @@
             <div id="map" style="height:500px;width:100%;margin-top:10px;"></div>
             <button id="route-walk-btn">Find walking route</button>
             <button id="route-drive-btn">Find car route</button>
-            <button id="route-public-btn">Find route with public transportation</button>
+            <button id="route-transit-btn">Find route with public transportation</button>
         </div>
     </div>
     <!-- Spots -->
@@ -131,13 +131,12 @@
         let pointsJson = '@Json.Serialize(Model.Spots)';
         let points = JSON.parse(pointsJson);
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
-        let polyline;
+        let polylines = [];
 
         async function initMap() {
             // Request needed libraries.
             const { Place } = await google.maps.importLibrary("places");
             const {AdvancedMarkerElement} = await google.maps.importLibrary("marker");
-            const {Polyline} = await google.maps.importLibrary("maps");
 
             // Initialize the map.
             map = new google.maps.Map(document.getElementById("map"), {
@@ -150,9 +149,6 @@
                map,
             });
             infoWindow = new google.maps.InfoWindow({});
-            polyline = new Polyline({
-                map: map,
-            });
 
             points.forEach((point, i) => {
               let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
@@ -208,28 +204,89 @@
                   listElem.classList.remove("selected-item");
               });
 
-              let walkRouteBtn = document.getElementById("route-walk-btn");
-              walkRouteBtn.addEventListener('click', (event) => {showRoute('WALKING')});
-
-              let driveRouteBtn = document.getElementById("route-drive-btn");
-              driveRouteBtn.addEventListener('click', (event) => {showRoute('DRIVING')});
-
             });
+
+
+            let walkRouteBtn = document.getElementById("route-walk-btn");
+            walkRouteBtn.addEventListener('click', (event) => {showRoute('WALKING')});
+
+            let driveRouteBtn = document.getElementById("route-drive-btn");
+            driveRouteBtn.addEventListener('click', (event) => {showRoute('DRIVING')});
+
+            let transitRouteBtn = document.getElementById("route-transit-btn");
+            transitRouteBtn.addEventListener('click', (event) => {showRoute('TRANSIT')});
         }
 
 
 
         async function showRoute(travelMode){
+            const {Polyline} = await google.maps.importLibrary("maps");
+
+            if (travelMode == 'WALKING' || travelMode == 'DRIVING'){
+                route = await getRoute(points[0], points[points.length - 1],
+                    intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
+                    travelMode=travelMode);
+                clearPolylines();
+                const polyline = new Polyline({
+                    map: map,
+                    path: route.routes[0].path,
+                });
+                polylines.push(polyline);
+            } else if (travelMode == 'TRANSIT') {
+                route = await getRoute(points[0], points[points.length - 1],
+                    intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
+                    travelMode='WALKING',
+                    fields=['durationMillis', 'distanceMeters','path', 'legs']);
+                clearPolylines();
+
+                for (let i = 0; i < route.routes[0].legs.length; i++) {
+                    let leg = route.routes[0].legs[i];
+                    if (leg.durationMillis > 30 * 60 * 1000){
+                        transitRoute = await getRoute({latitude: leg.startLocation.lat, longitude: leg.startLocation.lng },
+                            {latitude: leg.endLocation.lat, longitude: leg.endLocation.lng },
+                            intermediates=[],
+                            travelMode='TRANSIT',
+                            fields=['durationMillis', 'distanceMeters','path', 'legs']);
+                        transitRoute.routes[0].legs[0].steps.forEach((step) => {
+                            if (step.travelMode == 'WALKING') {
+                                polylines.push(new Polyline({
+                                    map: map,
+                                    path: step.path,
+                                }));
+                            } else if (step.travelMode == 'TRANSIT') {
+                                polylines.push(new Polyline({
+                                    map: map,
+                                    path: step.path,
+                                    strokeColor: 'red',
+                                }));
+                            }
+                        });
+                    } else {
+                        polylines.push(new Polyline({
+                            map: map,
+                            path: leg.path,
+                        }));
+                    }
+                }           
+            }
+        }
+
+        async function getRoute(origin, destination, intermediates=[], travelMode='WALKING', fields=['durationMillis', 'distanceMeters', 'path']){
             const {Route} = await google.maps.importLibrary("routes");
             const request = {
-                origin: {lat:  parseFloat(points[0].latitude), lng:  parseFloat(points[0].longitude)},
-                intermediates: points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
-                destination: {lat:  parseFloat(points[points.length - 1].latitude), lng:  parseFloat(points[points.length - 1].longitude)},
-                fields: ['durationMillis', 'distanceMeters', 'path'],
+                origin: {lat:  parseFloat(origin.latitude), lng:  parseFloat(origin.longitude)},
+                intermediates: intermediates,
+                destination: {lat:  parseFloat(destination.latitude), lng:  parseFloat(destination.longitude)},
+                fields: fields,
                 travelMode: travelMode,
             };
             const route = await Route.computeRoutes(request);
-            polyline.setPath(route.routes[0].path);
+            return route;
+        }
+
+        function clearPolylines(){
+            polylines.forEach((polyline) => {polyline.setMap(null)});
+            polylines = [];
         }
     </script>
 
