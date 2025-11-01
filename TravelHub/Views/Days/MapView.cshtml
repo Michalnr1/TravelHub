@@ -230,23 +230,30 @@
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
                     travelMode=travelMode);
-                clearPolylines();
-                const polyline = new Polyline({
-                    map: map,
-                    path: route.routes[0].path,
-                });
-                polylines.push(polyline);
-                durationMillis = route.routes[0].durationMillis;
-                route.routes[0].legs.forEach((leg, i) => {
-                    locationCard = document.getElementById("spot-" + i);
-                    let div = buildTravelCard(i, leg.durationMillis, travelMode);
-                    locationCard.after(div);
-                });
+                if (route.routes.length > 0){
+                    clearPolylines();
+                    const polyline = new Polyline({
+                        map: map,
+                        path: route.routes[0].path,
+                    });
+                    polylines.push(polyline);
+                    durationMillis = route.routes[0].durationMillis;
+                    route.routes[0].legs.forEach((leg, i) => {
+                        locationCard = document.getElementById("spot-" + i);
+                        let div = buildTravelCard(i, leg.durationMillis, travelMode);
+                        locationCard.after(div);
+                    });
+                } else {
+                    alert('Unable to compute route');
+                    return;
+                }
+                
             } else if (travelMode == 'TRANSIT') {
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
                     travelMode='WALKING');
-                clearPolylines();
+                if (route.routes.length > 0){
+                    clearPolylines();
                 let threshold = parseInt(document.getElementById('transit-threshold').value) * 60 * 1000;
                 for (let i = 0; i < route.routes[0].legs.length; i++) {
                     let leg = route.routes[0].legs[i];
@@ -272,7 +279,7 @@
                                     path: step.path,
                                     strokeColor: 'red',
                                 }));
-                                if (partialDurationMillis > 0) {                                    
+                                if (partialDurationMillis > 0) {
                                     addEntryToTravelCard(div,  "..." + durationString(partialDurationMillis) + " walking...<br>");
                                 }
                                 partialDurationMillis = 0;
@@ -295,6 +302,11 @@
                         locationCard.after(div);
                     }
                 }
+                } else {
+                    alert('Unable to compute route');
+                    return;
+                }
+                
                 
             }
             via_media = polylines[Math.round((polylines.length - 1) / 2)].getPath().Cg;
