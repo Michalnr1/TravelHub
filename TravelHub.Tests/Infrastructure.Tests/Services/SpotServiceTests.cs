@@ -27,11 +27,13 @@ public class SpotServiceTests
         var activities = new List<Activity>
         {
             // Spot 1
-            new Spot { Id = 1, Name = "Muzeum", Cost = 15.50m, DayId = dayId, Duration = 2m },
+            // new Spot { Id = 1, Name = "Muzeum", Cost = 15.50m, DayId = dayId, Duration = 2m },
+            new Spot { Id = 1, Name = "Muzeum", DayId = dayId, Duration = 2m },
             // Activity
             new Activity { Id = 2, Name = "Przejazd pociągiem", DayId = dayId, Duration = 1m },
             // Spot 2
-            new Spot { Id = 3, Name = "Wieża widokowa", Cost = 5.00m, DayId = dayId, Duration = 1.5m }
+            // new Spot { Id = 3, Name = "Wieża widokowa", Cost = 5.00m, DayId = dayId, Duration = 1.5m }
+            new Spot { Id = 3, Name = "Wieża widokowa", DayId = dayId, Duration = 1.5m }
         };
         decimal expectedTotalCost = 20.50m;
 

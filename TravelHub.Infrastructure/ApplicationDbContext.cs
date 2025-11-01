@@ -134,7 +134,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
         builder.Entity<Spot>(entity =>
         {
             // entity.HasKey(s => s.Id);
-            entity.Property(s => s.Cost).HasPrecision(18, 2);
+            // entity.Property(s => s.Cost).HasPrecision(18, 2);
             entity.Property(s => s.Rating);
         });
 
@@ -151,7 +151,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasKey(t => t.Id);
             entity.Property(t => t.Name).HasMaxLength(150);
             entity.Property(t => t.Duration).HasPrecision(18, 2);
-            entity.Property(s => s.Cost).HasPrecision(18, 2);
+            // entity.Property(s => s.Cost).HasPrecision(18, 2);
 
             // Configure the two 1:N relationships from Transport to Spot
             entity.HasOne(t => t.FromSpot)
@@ -199,6 +199,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Value).HasPrecision(18, 2);
+            entity.Property(e => e.IsEstimated).IsRequired();
 
             // 1:N relationship for the person who paid
             entity.HasOne(e => e.PaidBy)
@@ -208,15 +209,29 @@ public class ApplicationDbContext : IdentityDbContext<Person>
 
             // 1:N relationship with Trip
             entity.HasOne(e => e.Trip)
-                    .WithMany(t => t.Expenses)
-                    .HasForeignKey(e => e.TripId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                  .WithMany(t => t.Expenses)
+                  .HasForeignKey(e => e.TripId)
+                  .OnDelete(DeleteBehavior.Restrict);
 
             // 1:N relationship with ExchangeRate
             entity.HasOne(e => e.ExchangeRate)
-                    .WithMany(c => c.Expenses)
-                    .HasForeignKey(e => e.ExchangeRateId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                  .WithMany(c => c.Expenses)
+                  .HasForeignKey(e => e.ExchangeRateId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // 1:1 relationship with Spot
+            entity.HasOne(e => e.Spot)
+                  .WithOne(s => s.Expense!)
+                  .HasForeignKey<Expense>(e => e.SpotId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.NoAction);
+
+            // 1:1 relationship with Transport
+            entity.HasOne(e => e.Transport)
+                  .WithOne(t => t.Expense!)
+                  .HasForeignKey<Expense>(e => e.TransportId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.NoAction);
         });
 
         // --- Category Configuration ---

@@ -222,7 +222,7 @@
                                         <p class="mb-1 small text-muted">@accommodation.Description</p>
                                         <div class="small">
                                             <span class="badge bg-light text-dark">@accommodation.DurationString</span>
-                                            <span class="badge bg-warning">$@accommodation.Cost</span>
+                                            @* <span class="badge bg-warning">$@accommodation.Cost</span> *@
                                             @if (!string.IsNullOrEmpty(accommodation.CategoryName))
                                             {
                                                 <span class="badge bg-secondary">@accommodation.CategoryName</span>
@@ -378,7 +378,7 @@
                                         <p class="mb-1 small text-muted">@spot.Description</p>
                                         <div class="small">
                                             <span class="badge bg-light text-dark">@spot.DurationString</span>
-                                            <span class="badge bg-warning">$@spot.Cost</span>
+                                            @* <span class="badge bg-warning">$@spot.Cost</span> *@
                                             @if (!string.IsNullOrEmpty(spot.CategoryName))
                                             {
                                                 <span class="badge bg-secondary">@spot.CategoryName</span>
@@ -430,7 +430,7 @@
                                         <div class="small">
                                             <span class="badge bg-light text-dark">@transport.Duration.ToString("F1")h</span>
                                             <span class="badge bg-secondary">@transport.Type</span>
-                                            <span class="badge bg-warning">$@transport.Cost</span>
+                                            @* <span class="badge bg-warning">$@transport.Cost</span> *@
                                         </div>
                                         <div class="small text-muted">
                                             <div>From: @transport.FromSpotName</div>

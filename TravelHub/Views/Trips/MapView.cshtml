@@ -142,7 +142,7 @@
                                         <p class="mb-1 small text-muted">@spot.Description</p>
                                         <div class="small">
                                             <span class="badge bg-light text-dark">@spot.DurationString</span>
-                                            <span class="badge bg-warning">$@spot.Cost</span>
+                                            @* <span class="badge bg-warning">$@spot.Cost</span> *@
                                             @if (!string.IsNullOrEmpty(spot.CategoryName))
                                             {
                                                 <span class="badge bg-secondary">@spot.CategoryName</span>
