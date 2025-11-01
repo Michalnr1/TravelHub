@@ -2,14 +2,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
-using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Expenses;
 
 namespace TravelHub.Web.Controllers;
@@ -363,6 +358,21 @@ public class ExpensesController : Controller
                 viewModel.ExchangeRateValue = expense.ExchangeRate.ExchangeRateValue;
             }
             viewModel.SelectedParticipants = expense.Participants?.Select(ep => ep.PersonId).ToList() ?? new List<string>();
+
+            viewModel.ParticipantsShares = viewModel.SelectedParticipants.Select(person =>
+            {
+                var existingLink = expense.Participants?.FirstOrDefault(ep => ep.PersonId == person);
+
+                var shareViewModel = new ParticipantShareViewModel
+                {
+                    PersonId = person,
+                    Share = existingLink?.Share ?? 0.000m,
+                    ActualShareValue = existingLink?.ActualShareValue ?? 0.00m,
+                    ShareType = 0 // Domyślnie 0, widok niech to zinterpretuje.
+                };
+
+                return shareViewModel;
+            }).ToList();
         }
 
         return Task.FromResult(viewModel);
