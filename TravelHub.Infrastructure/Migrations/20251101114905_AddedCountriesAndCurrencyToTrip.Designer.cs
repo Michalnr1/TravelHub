@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelHub.Infrastructure;
 
@@ -11,9 +12,11 @@ using TravelHub.Infrastructure;
 namespace TravelHub.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251101114905_AddedCountriesAndCurrencyToTrip")]
+    partial class AddedCountriesAndCurrencyToTrip
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -425,53 +428,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasIndex("TripId");
 
                     b.ToTable("Expenses");
-                });
-
-            modelBuilder.Entity("TravelHub.Domain.Entities.Notification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("HangfireJobId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsSent")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTimeOffset>("ScheduledFor")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("SentAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsSent");
-
-                    b.HasIndex("ScheduledFor");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Person", b =>
@@ -944,17 +900,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Navigation("Trip");
                 });
 
-            modelBuilder.Entity("TravelHub.Domain.Entities.Notification", b =>
-                {
-                    b.HasOne("TravelHub.Domain.Entities.Person", "User")
-                        .WithMany("Notifications")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("TravelHub.Domain.Entities.Photo", b =>
                 {
                     b.HasOne("TravelHub.Domain.Entities.Comment", "Comment")
@@ -1053,8 +998,6 @@ namespace TravelHub.Infrastructure.Migrations
             modelBuilder.Entity("TravelHub.Domain.Entities.Person", b =>
                 {
                     b.Navigation("Comments");
-
-                    b.Navigation("Notifications");
 
                     b.Navigation("PaidExpenses");
 

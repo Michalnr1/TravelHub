@@ -8,6 +8,7 @@ public class Trip
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public bool IsPrivate { get; set; }
+    public CurrencyCode CurrencyCode { get; set; }
 
     // Foreign Key for Person
     public required string PersonId { get; set; }
@@ -28,4 +29,7 @@ public class Trip
 
     // A trip can have many exchange rates (1:N)
     public ICollection<ExchangeRate> ExchangeRates { get; set; } = new List<ExchangeRate>();
+
+    // A trip can have many countries (1:N)
+    public ICollection<Country> Countries { get; set; } = new List<Country>();
 }
