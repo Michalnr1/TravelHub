@@ -76,7 +76,7 @@ public class FakeSpotRepository : ISpotRepository
             existing.Name = entity.Name;
             existing.Latitude = entity.Latitude;
             existing.Longitude = entity.Longitude;
-            existing.Cost = entity.Cost;
+            // existing.Cost = entity.Cost;
             existing.TripId = entity.TripId;
             existing.Trip = entity.Trip;
             existing.CategoryId = entity.CategoryId;

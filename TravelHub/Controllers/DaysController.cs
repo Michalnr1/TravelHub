@@ -104,7 +104,7 @@ public class DaysController : Controller
                                 DayName = s.Day?.Name,
                                 Longitude = s.Longitude,
                                 Latitude = s.Latitude,
-                                Cost = s.Cost,
+                                // Cost = s.Cost,
                                 PhotoCount = s.Photos?.Count ?? 0,
                                 TransportsFromCount = s.TransportsFrom?.Count ?? 0,
                                 TransportsToCount = s.TransportsTo?.Count ?? 0

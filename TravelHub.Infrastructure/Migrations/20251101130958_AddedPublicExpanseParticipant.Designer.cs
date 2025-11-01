@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelHub.Infrastructure;
 
@@ -11,9 +12,11 @@ using TravelHub.Infrastructure;
 namespace TravelHub.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251101130958_AddedPublicExpanseParticipant")]
+    partial class AddedPublicExpanseParticipant
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -383,9 +386,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Property<int>("ExchangeRateId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("IsEstimated")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -394,12 +394,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Property<string>("PaidById")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<int?>("SpotId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TransportId")
-                        .HasColumnType("int");
 
                     b.Property<int>("TripId")
                         .HasColumnType("int");
@@ -415,14 +409,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasIndex("ExchangeRateId");
 
                     b.HasIndex("PaidById");
-
-                    b.HasIndex("SpotId")
-                        .IsUnique()
-                        .HasFilter("[SpotId] IS NOT NULL");
-
-                    b.HasIndex("TransportId")
-                        .IsUnique()
-                        .HasFilter("[TransportId] IS NOT NULL");
 
                     b.HasIndex("TripId");
 
@@ -450,53 +436,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasIndex("PersonId");
 
                     b.ToTable("ExpenseParticipants", (string)null);
-                });
-
-            modelBuilder.Entity("TravelHub.Domain.Entities.Notification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("HangfireJobId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsSent")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTimeOffset>("ScheduledFor")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("SentAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsSent");
-
-                    b.HasIndex("ScheduledFor");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Person", b =>
@@ -656,6 +595,10 @@ namespace TravelHub.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("Duration")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -732,6 +675,10 @@ namespace TravelHub.Infrastructure.Migrations
             modelBuilder.Entity("TravelHub.Domain.Entities.Spot", b =>
                 {
                     b.HasBaseType("TravelHub.Domain.Entities.Activity");
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("float");
@@ -931,16 +878,6 @@ namespace TravelHub.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TravelHub.Domain.Entities.Spot", "Spot")
-                        .WithOne("Expense")
-                        .HasForeignKey("TravelHub.Domain.Entities.Expense", "SpotId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("TravelHub.Domain.Entities.Transport", "Transport")
-                        .WithOne("Expense")
-                        .HasForeignKey("TravelHub.Domain.Entities.Expense", "TransportId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("TravelHub.Domain.Entities.Trip", "Trip")
                         .WithMany("Expenses")
                         .HasForeignKey("TripId")
@@ -952,10 +889,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Navigation("ExchangeRate");
 
                     b.Navigation("PaidBy");
-
-                    b.Navigation("Spot");
-
-                    b.Navigation("Transport");
 
                     b.Navigation("Trip");
                 });
@@ -977,17 +910,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Navigation("Expense");
 
                     b.Navigation("Person");
-                });
-
-            modelBuilder.Entity("TravelHub.Domain.Entities.Notification", b =>
-                {
-                    b.HasOne("TravelHub.Domain.Entities.Person", "User")
-                        .WithMany("Notifications")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Photo", b =>
@@ -1096,8 +1018,6 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.Navigation("ExpensesToCover");
 
-                    b.Navigation("Notifications");
-
                     b.Navigation("PaidExpenses");
 
                     b.Navigation("Posts");
@@ -1110,11 +1030,6 @@ namespace TravelHub.Infrastructure.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Photos");
-                });
-
-            modelBuilder.Entity("TravelHub.Domain.Entities.Transport", b =>
-                {
-                    b.Navigation("Expense");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Trip", b =>
@@ -1132,8 +1047,6 @@ namespace TravelHub.Infrastructure.Migrations
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Spot", b =>
                 {
-                    b.Navigation("Expense");
-
                     b.Navigation("Photos");
 
                     b.Navigation("TransportsFrom");

@@ -1,14 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
-using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Expenses;
 
 namespace TravelHub.Web.Controllers;
@@ -76,7 +72,7 @@ public class ExpensesController : Controller
             CategoryName = expense.Category?.Name,
             CurrencyName = expense.ExchangeRate?.Name!,
             CurrencyKey = expense.ExchangeRate?.CurrencyCodeKey,
-            ParticipantNames = expense.Participants?.Select(p => p.FirstName + " " + p.LastName).ToList() ?? new List<string>()
+            ParticipantNames = expense.Participants?.Select(ep => ep.Person?.FirstName + " " + ep.Person?.LastName).ToList() ?? new List<string>()
         };
 
         return View(viewModel);
@@ -106,15 +102,21 @@ public class ExpensesController : Controller
                 // CurrencyCodeKey = viewModel.CurrencyKey
             };
 
-            if (viewModel.SelectedParticipants != null && viewModel.SelectedParticipants.Any())
-            {
-                var participants = await _userManager.Users
-                    .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
-                    .ToListAsync();
-                expense.Participants = participants;
-            }
+            //if (viewModel.SelectedParticipants != null && viewModel.SelectedParticipants.Any())
+            //{
+            //    var participants = await _userManager.Users
+            //        .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
+            //        .ToListAsync();
+            //    expense.Participants = participants;
+            //}
 
-            await _expenseService.AddAsync(expense);
+            //await _expenseService.AddAsync(expense);
+            //await _expenseService.AddAsync(expense, viewModel.SelectedParticipants ?? new List<string>());
+
+            var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares.Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0).ToList());
+
+            await _expenseService.AddAsync(expense, participantSharesDto);
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -171,19 +173,24 @@ public class ExpensesController : Controller
                 existingExpense.ExchangeRateId = exchangeRateEntry.Id;
 
                 // Update participants
-                if (viewModel.SelectedParticipants != null)
-                {
-                    var participants = await _userManager.Users
-                        .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
-                        .ToListAsync();
-                    existingExpense.Participants = participants;
-                }
-                else
-                {
-                    existingExpense.Participants.Clear();
-                }
+                //if (viewModel.SelectedParticipants != null)
+                //{
+                //    var participants = await _userManager.Users
+                //        .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
+                //        .ToListAsync();
+                //    existingExpense.Participants = participants;
+                //}
+                //else
+                //{
+                //    existingExpense.Participants.Clear();
+                //}
 
-                await _expenseService.UpdateAsync(existingExpense);
+                //await _expenseService.UpdateAsync(existingExpense);
+                //await _expenseService.UpdateAsync(existingExpense, viewModel.SelectedParticipants ?? new List<string>());
+
+                var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares.Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0).ToList());
+
+                await _expenseService.AddAsync(existingExpense, participantSharesDto);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -280,15 +287,19 @@ public class ExpensesController : Controller
                 TripId = viewModel.TripId
             };
 
-            if (viewModel.SelectedParticipants != null && viewModel.SelectedParticipants.Any())
-            {
-                var participants = await _userManager.Users
-                    .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
-                    .ToListAsync();
-                expense.Participants = participants;
-            }
+            //if (viewModel.SelectedParticipants != null && viewModel.SelectedParticipants.Any())
+            //{
+            //    var participants = await _userManager.Users
+            //        .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
+            //        .ToListAsync();
+            //    expense.Participants = participants;
+            //}
 
-            await _expenseService.AddAsync(expense);
+            //await _expenseService.AddAsync(expense);
+            //await _expenseService.AddAsync(expense, viewModel.SelectedParticipants ?? new List<string>());
+            var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares.Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0).ToList());
+
+            await _expenseService.AddAsync(expense, participantSharesDto);
             TempData["SuccessMessage"] = "Expense added successfully!";
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
@@ -346,7 +357,22 @@ public class ExpensesController : Controller
                 viewModel.SelectedCurrencyCode = expense.ExchangeRate.CurrencyCodeKey;
                 viewModel.ExchangeRateValue = expense.ExchangeRate.ExchangeRateValue;
             }
-            viewModel.SelectedParticipants = expense.Participants?.Select(p => p.Id).ToList() ?? new List<string>();
+            viewModel.SelectedParticipants = expense.Participants?.Select(ep => ep.PersonId).ToList() ?? new List<string>();
+
+            viewModel.ParticipantsShares = viewModel.SelectedParticipants.Select(person =>
+            {
+                var existingLink = expense.Participants?.FirstOrDefault(ep => ep.PersonId == person);
+
+                var shareViewModel = new ParticipantShareViewModel
+                {
+                    PersonId = person,
+                    Share = existingLink?.Share ?? 0.000m,
+                    ActualShareValue = existingLink?.ActualShareValue ?? 0.00m,
+                    ShareType = 0 // Domyślnie 0, widok niech to zinterpretuje.
+                };
+
+                return shareViewModel;
+            }).ToList();
         }
 
         return Task.FromResult(viewModel);
@@ -428,5 +454,17 @@ public class ExpensesController : Controller
             FullName = $"{p.FirstName} {p.LastName}",
             Email = p.Email!
         }).ToList();
+    }
+
+    private List<ParticipantShareDto> MapSharesToDto(IEnumerable<ParticipantShareViewModel> viewModels)
+    {
+        return viewModels
+            .Select(vm => new ParticipantShareDto
+            {
+                PersonId = vm.PersonId,
+                ShareType = vm.ShareType,
+                InputValue = vm.ShareType == 1 ? vm.ActualShareValue : vm.Share
+            })
+            .ToList();
     }
 }

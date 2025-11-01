@@ -14,6 +14,7 @@ public class ActivityRepository : GenericRepository<Activity>, IActivityReposito
     {
         return await _context.Set<Activity>()
             .Where(a => a.DayId == dayId)
+            .Include(a => (a as Spot)!.Expense)
             .Include(a => a.Category)
             .OrderBy(a => a.Order)
             .ToListAsync();

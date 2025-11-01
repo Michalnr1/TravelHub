@@ -61,12 +61,24 @@ public class ExpenseCreateEditViewModel
 
     [Display(Name = "Participants")]
     public List<string> SelectedParticipants { get; set; } = new List<string>();
+    public List<ParticipantShareViewModel> ParticipantsShares { get; set; } = new List<ParticipantShareViewModel>();
 
     // Select lists
     public List<CurrencySelectGroupItem> CurrenciesGroups { get; set; } = new List<CurrencySelectGroupItem>();
     public List<CategorySelectItem> Categories { get; set; } = new List<CategorySelectItem>();
     public List<PersonSelectItem> People { get; set; } = new List<PersonSelectItem>();
     public List<PersonSelectItem> AllPeople { get; set; } = new List<PersonSelectItem>();
+}
+
+public class ParticipantShareViewModel
+{
+    public required string PersonId { get; set; }
+
+    public decimal Share { get; set; } = 0.000m;
+
+    public decimal ActualShareValue { get; set; } = 0.00m;
+
+    public int ShareType { get; set; } // ie. 0: Default/Equal, 1: Amount, 2: Percent
 }
 
 public class CurrencySelectGroupItem

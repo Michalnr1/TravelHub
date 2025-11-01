@@ -54,7 +54,7 @@ namespace TravelHub.Tests.Repositories
                 DayId = day.Id,
                 Latitude = 10.1,
                 Longitude = 20.2,
-                Cost = 12.5m
+                // Cost = 12.5m
             };
             var spot2 = new Spot
             {
@@ -76,7 +76,7 @@ namespace TravelHub.Tests.Repositories
                 ToSpotId = spot2.Id,
                 Type = TransportationType.Car,
                 Duration = 1,
-                Cost = 0
+                // Cost = 0
             };
             var transport2 = new Transport
             {
@@ -86,7 +86,7 @@ namespace TravelHub.Tests.Repositories
                 ToSpotId = spot1.Id,
                 Type = TransportationType.Bus,
                 Duration = 2,
-                Cost = 0
+                // Cost = 0
             };
             context.Transports.AddRange(transport1, transport2);
             await context.SaveChangesAsync();
@@ -128,9 +128,11 @@ namespace TravelHub.Tests.Repositories
             await context.SaveChangesAsync();
 
             // transport for tripA connecting s1 <-> s2
-            var t1 = new Transport { Name = "TA1", TripId = tripA.Id, FromSpotId = s1.Id, ToSpotId = s2.Id, Type = TransportationType.Walk, Duration = 1, Cost = 0 };
+            // var t1 = new Transport { Name = "TA1", TripId = tripA.Id, FromSpotId = s1.Id, ToSpotId = s2.Id, Type = TransportationType.Walk, Duration = 1, Cost = 0 };
+            var t1 = new Transport { Name = "TA1", TripId = tripA.Id, FromSpotId = s1.Id, ToSpotId = s2.Id, Type = TransportationType.Walk, Duration = 1 };
             // transport for tripB connecting s3 <-> s1 (shouldn't be counted for tripA)
-            var t2 = new Transport { Name = "TB1", TripId = tripB.Id, FromSpotId = s3.Id, ToSpotId = s1.Id, Type = TransportationType.Bus, Duration = 1, Cost = 0 };
+            // var t2 = new Transport { Name = "TB1", TripId = tripB.Id, FromSpotId = s3.Id, ToSpotId = s1.Id, Type = TransportationType.Bus, Duration = 1, Cost = 0 };
+            var t2 = new Transport { Name = "TB1", TripId = tripB.Id, FromSpotId = s3.Id, ToSpotId = s1.Id, Type = TransportationType.Bus, Duration = 1 };
             context.Transports.AddRange(t1, t2);
             await context.SaveChangesAsync();
 

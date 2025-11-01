@@ -5,6 +5,7 @@ public class Expense
     public int Id { get; set; }
     public decimal Value { get; set; }
     public required string Name { get; set; }
+    public bool IsEstimated { get; set; }
 
     // Foreign Key for the person who paid
     public required string PaidById { get; set; }
@@ -26,6 +27,17 @@ public class Expense
     // Navigation Property to the currency
     public ExchangeRate? ExchangeRate { get; set; }
 
+    // Foreign Key for Spot
+    public int? SpotId { get; set; }
+    // Navigation Property to the spot
+    public Spot? Spot { get; set; }
+
+    // Foreign Key for Transport
+    public int? TransportId { get; set; }
+    // Navigation Property to the transport
+    public Transport? Transport { get; set; }
+
     // Navigation property for people the expense was for (M:N)
-    public ICollection<Person> Participants { get; set; } = new List<Person>();
+    // public ICollection<Person> Participants { get; set; } = new List<Person>();
+    public ICollection<ExpenseParticipant> Participants { get; set; } = new List<ExpenseParticipant>();
 }

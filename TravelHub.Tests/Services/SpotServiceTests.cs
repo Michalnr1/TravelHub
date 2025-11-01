@@ -32,7 +32,7 @@ public class SpotServiceTests
             Day = day,
             Latitude = 10,
             Longitude = 20,
-            Cost = 12.5m
+            // Cost = 12.5m
         };
 
         spotRepo.SeedSpot(spot);
@@ -57,8 +57,10 @@ public class SpotServiceTests
         var service = new SpotService(spotRepo, activityRepo);
 
         int dayId = 42;
-        activityRepo.SeedActivity(new Spot { DayId = dayId, Cost = 5m, Name = "test" });
-        activityRepo.SeedActivity(new Spot { DayId = dayId, Cost = 7.5m, Name = "test" });
+        // activityRepo.SeedActivity(new Spot { DayId = dayId, Cost = 5m, Name = "test" });
+        activityRepo.SeedActivity(new Spot { DayId = dayId, Name = "test" });
+        // activityRepo.SeedActivity(new Spot { DayId = dayId, Cost = 7.5m, Name = "test" });
+        activityRepo.SeedActivity(new Spot { DayId = dayId, Name = "test" });
         // non-spot activity should be ignored
         activityRepo.SeedActivity(new Activity { DayId = dayId, Name = "test" });
 

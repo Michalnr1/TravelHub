@@ -16,7 +16,7 @@
                     <h5 class="card-title">@Model.Name</h5>
                     <p class="card-text">@Model.Description</p>
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><strong>Cost:</strong> $@Model.Cost</li>
+                        @* <li class="list-group-item"><strong>Cost:</strong> $@Model.Cost</li> *@
                         <li class="list-group-item"><strong>Check-in:</strong> @Model.CheckIn.ToString("MMM dd, yyyy")</li>
                         <li class="list-group-item"><strong>Check-out:</strong> @Model.CheckOut.ToString("MMM dd, yyyy")</li>
                     </ul>
