@@ -288,7 +288,8 @@
                                 }
                                 partialDurationMillis = 0;
                                 addIconToTravelCard(div, step.transitDetails.transitLine.vehicle.iconURL);
-                                addEntryToTravelCard(div, step.transitDetails.departureStop.name + " - " + step.transitDetails.arrivalStop.name + ', ' + durationString(parseInt(step.staticDurationMillis)) + "<br>");
+                                addTransitEntryToTravelCard(div, step);
+                                //addEntryToTravelCard(div, transitString(step));
                                 setPolylineEventBindings(polyline, div);
                             }
                         });
@@ -349,6 +350,33 @@
             } else {
                 return Math.round(durationMinutes / 60) + " h " + (durationMinutes % 60) + " min";
             }
+        }
+
+        function addTransitEntryToTravelCard(card, step){
+            let span = document.createElement("span");
+            let lineNumberSpan = document.createElement('span');
+            lineNumberSpan.innerHTML = step.transitDetails.transitLine.shortName;
+            lineNumberSpan.classList.add('transit-line');
+            span.appendChild(lineNumberSpan);
+            span.append(step.transitDetails.departureStop.name + " ");
+            let depHourSpan = document.createElement("span");
+            depHourSpan.innerHTML = step.transitDetails.departureTime.toLocaleTimeString(navigator.language, {
+                hour: '2-digit',
+                minute:'2-digit'
+            });
+            depHourSpan.classList.add('hour');
+            span.appendChild(depHourSpan);
+            span.append(" ---> " + step.transitDetails.arrivalStop.name + " ");
+            let arrHourSpan = document.createElement("span");
+            arrHourSpan.innerHTML = step.transitDetails.arrivalTime.toLocaleTimeString(navigator.language, {
+              hour: '2-digit',
+              minute:'2-digit'
+            });
+            arrHourSpan.classList.add('hour');
+            span.appendChild(arrHourSpan);
+            span.append(', ' + durationString(parseInt(step.staticDurationMillis)));
+            span.append(document.createElement("br"))
+            card.appendChild(span);
         }
 
         function addEntryToTravelCard(card, text) {
@@ -418,6 +446,16 @@
             transform: translateX(2px);
             background-color: lightgray;
         }
+
+        .transit-line {
+            background-color: red;
+            border-radius: 2px;
+        }
+
+        .hour {
+            color: gray;
+        }
+
     </style>
 
 }
