@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Expenses;
 using TravelHub.Web.ViewModels.Transports;
 
@@ -19,6 +20,7 @@ public class TransportsController : Controller
 {
     private readonly ITransportService _transportService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly ISpotService _spotService;
     private readonly IExpenseService _expenseService;
     private readonly IExchangeRateService _exchangeRateService;
@@ -28,6 +30,7 @@ public class TransportsController : Controller
     public TransportsController(
         ITransportService transportService,
         ITripService tripService,
+        ITripParticipantService tripParticipantService,
         ISpotService spotService,
         IExpenseService expenseService,
         IExchangeRateService exchangeRateService,
@@ -36,6 +39,7 @@ public class TransportsController : Controller
     {
         _transportService = transportService;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _spotService = spotService;
         _expenseService = expenseService;
         _exchangeRateService = exchangeRateService;
@@ -312,6 +316,11 @@ public class TransportsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddToTrip(int tripId, TransportCreateEditViewModel viewModel)
     {
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         if (tripId != viewModel.TripId)
         {
             return NotFound();
@@ -360,6 +369,11 @@ public class TransportsController : Controller
 
         await PopulateSelectListsForTrip(viewModel, tripId);
         return View("AddToTrip", viewModel);
+    }
+
+    private string GetCurrentUserId()
+    {
+        return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 
     private async Task CreateExpenseForTransport(Transport transport, TransportCreateEditViewModel viewModel)

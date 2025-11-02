@@ -1,4 +1,4 @@
-﻿@model IEnumerable<TravelHub.Web.ViewModels.Trips.TripViewModel>
+﻿@model TravelHub.Web.ViewModels.Trips.MyTripsViewModel
 
 @{
     ViewData["Title"] = "My Trips";
@@ -14,39 +14,133 @@
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
 
-<div class="row">
-    @foreach (var trip in Model)
-    {
-        <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">@trip.Name</h5>
-                    <p class="card-text">
-                        <strong>Status:</strong> <span class="badge bg-info">@trip.Status</span><br>
-                        <strong>Dates:</strong> @trip.StartDate.ToString("MMM dd, yyyy") - @trip.EndDate.ToString("MMM dd, yyyy")<br>
-                        <strong>Days:</strong> @trip.DaysCount<br>
-                        <strong>Groups:</strong> @trip.GroupsCount<br>
-                        <strong>Privacy:</strong>
-                        <span class="badge @(trip.IsPrivate ? "bg-danger" : "bg-success")">
-                            @(trip.IsPrivate ? "Private" : "Public")
-                        </span>
-                    </p>
+<!-- Oczekujące zaproszenia -->
+@if (Model.PendingInvitations.Any())
+{
+    <div class="mb-5">
+        <h2 class="mb-3 text-warning">Pending Invitations</h2>
+        <div class="row">
+            @foreach (var trip in Model.PendingInvitations)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 border-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title">@trip.Name</h5>
+                                <span class="badge bg-warning">Invitation Pending</span>
+                            </div>
+                            <p class="card-text">
+                                <strong>Status:</strong> <span class="badge bg-info">@trip.Status</span><br>
+                                <strong>Dates:</strong> @trip.StartDate.ToString("MMM dd, yyyy") - @trip.EndDate.ToString("MMM dd, yyyy")<br>
+                                <strong>Days:</strong> @trip.DaysCount<br>
+                                <strong>Groups:</strong> @trip.GroupsCount<br>
+                                <strong>Participants:</strong> @trip.ParticipantsCount<br>
+                                <strong>Privacy:</strong>
+                                <span class="badge @(trip.IsPrivate ? "bg-danger" : "bg-success")">
+                                    @(trip.IsPrivate ? "Private" : "Public")
+                                </span>
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            <form asp-action="AcceptInvitation" method="post" class="d-inline">
+                                <input type="hidden" name="participantId" value="@trip.ParticipantId" />
+                                <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                            </form>
+                            <form asp-action="DeclineInvitation" method="post" class="d-inline">
+                                <input type="hidden" name="participantId" value="@trip.ParticipantId" />
+                                <button type="submit" class="btn btn-sm btn-danger">Decline</button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-footer">
-                    <a asp-action="Details" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-primary">Details</a>
-                    <a asp-action="Edit" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                    <a asp-action="Delete" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-danger">Delete</a>
-                </div>
-            </div>
+            }
         </div>
-    }
-</div>
+    </div>
+}
 
-@if (!Model.Any())
+<!-- Wycieczki gdzie użytkownik jest właścicielem -->
+@if (Model.OwnedTrips.Any())
+{
+    <div class="mb-5">
+        <h2 class="mb-3">Trips I Own</h2>
+        <div class="row">
+            @foreach (var trip in Model.OwnedTrips)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 border-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title">@trip.Name</h5>
+                                <span class="badge bg-primary">Owner</span>
+                            </div>
+                            <p class="card-text">
+                                <strong>Status:</strong> <span class="badge bg-info">@trip.Status</span><br>
+                                <strong>Dates:</strong> @trip.StartDate.ToString("MMM dd, yyyy") - @trip.EndDate.ToString("MMM dd, yyyy")<br>
+                                <strong>Days:</strong> @trip.DaysCount<br>
+                                <strong>Groups:</strong> @trip.GroupsCount<br>
+                                <strong>Participants:</strong> @trip.ParticipantsCount<br>
+                                <strong>Privacy:</strong>
+                                <span class="badge @(trip.IsPrivate ? "bg-danger" : "bg-success")">
+                                    @(trip.IsPrivate ? "Private" : "Public")
+                                </span>
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            <a asp-action="Details" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                            <a asp-action="Edit" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a asp-action="Participants" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-info">Participants</a>
+                            <a asp-action="Delete" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- Wycieczki gdzie użytkownik jest uczestnikiem -->
+@if (Model.ParticipatingTrips.Any())
+{
+    <div class="mb-5">
+        <h2 class="mb-3">Trips I Participate In</h2>
+        <div class="row">
+            @foreach (var trip in Model.ParticipatingTrips)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 border-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title">@trip.Name</h5>
+                                <span class="badge bg-success">Participant</span>
+                            </div>
+                            <p class="card-text">
+                                <strong>Status:</strong> <span class="badge bg-info">@trip.Status</span><br>
+                                <strong>Dates:</strong> @trip.StartDate.ToString("MMM dd, yyyy") - @trip.EndDate.ToString("MMM dd, yyyy")<br>
+                                <strong>Days:</strong> @trip.DaysCount<br>
+                                <strong>Groups:</strong> @trip.GroupsCount<br>
+                                <strong>Participants:</strong> @trip.ParticipantsCount<br>
+                                <strong>Privacy:</strong>
+                                <span class="badge @(trip.IsPrivate ? "bg-danger" : "bg-success")">
+                                    @(trip.IsPrivate ? "Private" : "Public")
+                                </span>
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            <a asp-action="Details" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                            <a asp-action="MapView" asp-route-id="@trip.Id" class="btn btn-sm btn-outline-success">Map View</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (!Model.OwnedTrips.Any() && !Model.ParticipatingTrips.Any() && !Model.PendingInvitations.Any())
 {
     <div class="text-center py-5">
         <h3>No trips found</h3>
-        <p class="text-muted">You haven't created any trips yet. Start by creating your first trip!</p>
+        <p class="text-muted">You haven't created or been invited to any trips yet. Start by creating your first trip!</p>
         <a asp-action="Create" class="btn btn-primary btn-lg">Create Your First Trip</a>
     </div>
 }

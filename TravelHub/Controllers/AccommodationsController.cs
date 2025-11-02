@@ -17,6 +17,7 @@ public class AccommodationsController : Controller
     private readonly IAccommodationService _accommodationService;
     private readonly ICategoryService _categoryService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly IDayService _dayService;
     private readonly ISpotService _spotService;
     private readonly IExchangeRateService _exchangeRateService;
@@ -29,6 +30,7 @@ public class AccommodationsController : Controller
         IAccommodationService accommodationService,
         ICategoryService categoryService,
         ITripService tripService,
+        ITripParticipantService tripParticipantService,
         IDayService dayService,
         ISpotService spotService,
         IExchangeRateService exchangeRateService,
@@ -40,6 +42,7 @@ public class AccommodationsController : Controller
         _accommodationService = accommodationService;
         _categoryService = categoryService;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _dayService = dayService;
         _spotService = spotService;
         _exchangeRateService = exchangeRateService;
@@ -305,6 +308,11 @@ public class AccommodationsController : Controller
         if (tripId != viewModel.TripId)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var trip = await _tripService.GetByIdAsync(tripId);
@@ -636,5 +644,10 @@ public class AccommodationsController : Controller
                 DisplayName = d.Name!
             })
             .ToList();
+    }
+
+    private string GetCurrentUserId()
+    {
+        return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 }

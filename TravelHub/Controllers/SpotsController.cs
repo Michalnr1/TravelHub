@@ -20,6 +20,7 @@ public class SpotsController : Controller
     private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
     private readonly IReverseGeocodingService _reverseGeocodingService;
@@ -34,6 +35,7 @@ public class SpotsController : Controller
         IActivityService activityService,
         IGenericService<Category> categoryService,
         ITripService tripService,
+        ITripParticipantService tripParticipantService,
         IGenericService<Day> dayService,
         IPhotoService photoService,
         IReverseGeocodingService reverseGeocodingService,
@@ -47,6 +49,7 @@ public class SpotsController : Controller
         _activityService = activityService;
         _categoryService = categoryService;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _dayService = dayService;
         _photoService = photoService;
         _reverseGeocodingService = reverseGeocodingService;
@@ -391,7 +394,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!UserOwnsTrip(trip))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
         {
             return Forbid();
         }

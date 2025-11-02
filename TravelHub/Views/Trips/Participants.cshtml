@@ -1,0 +1,347 @@
+﻿@using TravelHub.Domain.Entities
+@model TravelHub.Web.ViewModels.Trips.TripDetailViewModel
+
+@{
+    ViewData["Title"] = $"Participants - {Model.Name}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Participants - @Model.Name</h1>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Trip
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Current Participants
+                    <span class="badge bg-primary ms-2">@Model.Participants.Count</span>
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Właściciel wycieczki -->
+                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-placeholder bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            @Model.OwnerName?.Split(' ').Select(n => n[0]).FirstOrDefault()
+                        </div>
+                        <div>
+                            <h6 class="mb-0">@Model.OwnerName</h6>
+                            <small class="text-muted">@Model.OwnerId</small>
+                        </div>
+                    </div>
+                    <span class="badge bg-primary">Owner</span>
+                </div>
+
+                <!-- Lista uczestników -->
+                @if (Model.Participants.Any(p => !p.IsOwner))
+                {
+                    <div class="list-group">
+                        @foreach (var participant in Model.Participants.Where(p => !p.IsOwner))
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-placeholder bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                        @participant.FirstName[0]@participant.LastName[0]
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">@participant.FirstName @participant.LastName</h6>
+                                        <small class="text-muted">@participant.Email</small>
+                                        <div class="text-muted small">
+                                            Joined: @participant.JoinedAt.ToString("MMM dd, yyyy")
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge @GetStatusBadgeClass(participant.Status) me-2">
+                                        @participant.Status
+                                    </span>
+                                    @if (participant.Status != TripParticipantStatus.Pending)
+                                    {
+                                        <form asp-action="RemoveParticipant" method="post" class="d-inline">
+                                            <input type="hidden" name="tripId" value="@Model.Id" />
+                                            <input type="hidden" name="personId" value="@participant.PersonId" />
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Are you sure you want to remove @participant.FirstName from this trip?')">
+                                                <i class="fas fa-times"></i> Remove
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5>No participants yet</h5>
+                        <p class="text-muted">Add some friends to your trip to start collaborating!</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Statystyki -->
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="text-primary">@Model.Participants.Count(p => p.Status == TripParticipantStatus.Accepted)</h3>
+                        <p class="text-muted mb-0">Accepted</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="text-warning">@Model.Participants.Count(p => p.Status == TripParticipantStatus.Pending)</h3>
+                        <p class="text-muted mb-0">Pending</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="text-danger">@Model.Participants.Count(p => p.Status == TripParticipantStatus.Declined)</h3>
+                        <p class="text-muted mb-0">Declined</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Dodawanie uczestnika -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-plus me-2"></i>Add Participant
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AddParticipant" method="post">
+                    <input type="hidden" name="TripId" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label for="SelectedFriendId" class="form-label">Select Friend</label>
+                        <select name="SelectedFriendId" class="form-select" id="SelectedFriendId" required>
+                            <option value="">Choose a friend...</option>
+                            @foreach (var friend in Model.AvailableFriends)
+                            {
+                                <option value="@friend.Id">@friend.FirstName @friend.LastName (@friend.Email)</option>
+                            }
+                        </select>
+                        <div class="form-text">Only your friends can be added as participants.</div>
+                    </div>
+
+                    @if (!Model.AvailableFriends.Any())
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>No friends available</strong>
+                            <p class="mb-0 mt-1">You need to add friends before you can invite them to your trip.</p>
+                            <a href="/Friends" class="btn btn-sm btn-outline-primary mt-2">Manage Friends</a>
+                        </div>
+                    }
+
+                    <button type="submit" class="btn btn-primary w-100"
+                            @(!Model.AvailableFriends.Any() ? "disabled" : "")>
+                        <i class="fas fa-paper-plane me-2"></i>Send Invitation
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Informacje o wycieczce -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Trip Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Trip Name:</dt>
+                    <dd class="col-sm-7">@Model.Name</dd>
+
+                    <dt class="col-sm-5">Dates:</dt>
+                    <dd class="col-sm-7">@Model.StartDate.ToString("MMM dd, yyyy") - @Model.EndDate.ToString("MMM dd, yyyy")</dd>
+
+                    <dt class="col-sm-5">Status:</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge bg-info">@Model.Status</span>
+                    </dd>
+
+                    <dt class="col-sm-5">Privacy:</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge @(Model.IsPrivate ? "bg-danger" : "bg-success")">
+                            @(Model.IsPrivate ? "Private" : "Public")
+                        </span>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Szybkie akcje -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-2"></i>View Trip Details
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                        <i class="fas fa-edit me-2"></i>Edit Trip
+                    </a>
+                    <a href="/Friends" class="btn btn-outline-info">
+                        <i class="fas fa-user-friends me-2"></i>Manage Friends
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal potwierdzenia usuwania -->
+<div class="modal fade" id="confirmRemoveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Removal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove <strong id="participantName"></strong> from this trip?</p>
+                <p class="text-muted small">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="removeForm" method="post">
+                    <input type="hidden" name="tripId" value="@Model.Id" />
+                    <input type="hidden" name="personId" id="removePersonId" />
+                    <button type="submit" class="btn btn-danger">Remove Participant</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Inicjalizacja tooltipów Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        // Obsługa modal potwierdzenia usuwania
+        function confirmRemove(participantId, participantName) {
+            document.getElementById('participantName').textContent = participantName;
+            document.getElementById('removePersonId').value = participantId;
+
+            const removeForm = document.getElementById('removeForm');
+            removeForm.action = '@Url.Action("RemoveParticipant")';
+
+            const modal = new bootstrap.Modal(document.getElementById('confirmRemoveModal'));
+            modal.show();
+        }
+
+        // Filtrowanie znajomych w select
+        document.getElementById('SelectedFriendId')?.addEventListener('focus', function() {
+            this.size = 5;
+        });
+
+        document.getElementById('SelectedFriendId')?.addEventListener('blur', function() {
+            this.size = 1;
+        });
+
+        // Auto-zamknięcie alertów po 5 sekundach
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    </script>
+}
+
+<style>
+    .avatar-placeholder {
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+    }
+
+        .list-group-item:first-child {
+            border-top: none;
+        }
+
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    }
+
+    .btn {
+        border-radius: 0.375rem;
+    }
+
+    .form-select {
+        border-radius: 0.375rem;
+    }
+</style>
+
+@functions {
+    public string GetStatusBadgeClass(TripParticipantStatus status)
+    {
+        return status switch
+        {
+            TripParticipantStatus.Pending => "bg-warning",
+            TripParticipantStatus.Accepted => "bg-success",
+            TripParticipantStatus.Declined => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

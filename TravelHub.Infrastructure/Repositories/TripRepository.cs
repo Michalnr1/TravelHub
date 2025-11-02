@@ -24,6 +24,8 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
                 .ThenInclude(d => d.Activities)
             .Include(t => t.Activities)
             .Include(t => t.Transports)
+            .Include(t => t.Person)
+                .ThenInclude(p => p.Friends)
             .FirstOrDefaultAsync(t => t.Id == id);
     }
 

@@ -1,5 +1,5 @@
-﻿using System.Text;
-using System.Globalization;
+﻿using System.Globalization;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Extensions;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
 
 namespace TravelHub.Web.Controllers;
@@ -17,6 +18,7 @@ public class ActivitiesController : Controller
     private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly IGenericService<Day> _dayService;
     private readonly UserManager<Person> _userManager;
     private readonly ILogger<ActivitiesController> _logger;
@@ -25,6 +27,7 @@ public class ActivitiesController : Controller
         IActivityService activityService,
         IGenericService<Category> categoryService,
         ITripService tripService,
+        ITripParticipantService tripParticipantService,
         IGenericService<Day> dayService,
         ILogger<ActivitiesController> logger,
          UserManager<Person> userManager)
@@ -32,6 +35,7 @@ public class ActivitiesController : Controller
         _activityService = activityService;
         _categoryService = categoryService;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _dayService = dayService;
         _logger = logger;
         _userManager = userManager;
@@ -298,7 +302,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!UserOwnsTrip(trip))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
         {
             return Forbid();
         }

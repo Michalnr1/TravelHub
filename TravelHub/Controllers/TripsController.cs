@@ -17,6 +17,7 @@ namespace TravelHub.Web.Controllers;
 public class TripsController : Controller
 {
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly ITransportService _transportService;
     private readonly ISpotService _spotService;
     private readonly IActivityService _activityService;
@@ -28,6 +29,7 @@ public class TripsController : Controller
     private readonly IConfiguration _configuration;
 
     public TripsController(ITripService tripService,
+        ITripParticipantService tripParticipantService,
         ITransportService transportService,
         ISpotService spotService,
         IActivityService activityService,
@@ -39,6 +41,7 @@ public class TripsController : Controller
         IConfiguration configuration)
     {
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _transportService = transportService;
         _spotService = spotService;
         _activityService = activityService;
@@ -54,7 +57,7 @@ public class TripsController : Controller
     public async Task<IActionResult> Index()
     {
         var trips = await _tripService.GetAllWithUserAsync();
-        var viewModel = trips.Select(t => new TripWithUserViewModel
+        var viewModel = trips.Select(async t => new TripWithUserViewModel
         {
             Id = t.Id,
             Name = t.Name,
@@ -63,7 +66,8 @@ public class TripsController : Controller
             EndDate = t.EndDate,
             DaysCount = t.Days?.Count ?? 0,
             Person = t.Person!,
-            IsPrivate = t.IsPrivate
+            IsPrivate = t.IsPrivate,
+            ParticipantsCount = await _tripParticipantService.GetParticipantCountAsync(t.Id)
         });
 
         return View(viewModel);
@@ -78,7 +82,7 @@ public class TripsController : Controller
             return NotFound();
         }
 
-        if (!UserOwnsTrip(trip))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -88,6 +92,10 @@ public class TripsController : Controller
         var transports = await _transportService.GetTripTransportsWithDetailsAsync(id);
         var accommodations = await _accommodationService.GetAccommodationByTripAsync(id);
         var expenses = await _expenseService.GetByTripIdWithParticipantsAsync(id);
+
+        // Pobierz uczestników i dostępnych znajomych
+        var participants = await _tripParticipantService.GetTripParticipantsAsync(id);
+        var availableFriends = await _tripParticipantService.GetFriendsAvailableForTripAsync(id, GetCurrentUserId());
 
         // Oblicz całkowite wydatki w walucie podróży
         var expensesSummary = await _expenseService.CalculateTripExpensesInTripCurrencyAsync(id, trip.CurrencyCode);
@@ -122,6 +130,27 @@ public class TripsController : Controller
             IsPrivate = trip.IsPrivate,
             CurrencyCode = trip.CurrencyCode,
             TotalExpenses = expensesSummary.TotalExpensesInTripCurrency,
+            OwnerId = trip.PersonId,
+            OwnerName = $"{trip.Person?.FirstName} {trip.Person?.LastName}",
+            IsCurrentUserOwner = UserOwnsTrip(trip),
+            Participants = participants.Select(p => new TripParticipantViewModel
+            {
+                Id = p.Id,
+                PersonId = p.PersonId,
+                FirstName = p.Person.FirstName,
+                LastName = p.Person.LastName,
+                Email = p.Person.Email!,
+                Status = p.Status,
+                JoinedAt = p.JoinedAt,
+                IsOwner = p.PersonId == trip.PersonId
+            }).ToList(),
+            AvailableFriends = availableFriends.Select(f => new FriendViewModel
+            {
+                Id = f.Id,
+                FirstName = f.FirstName,
+                LastName = f.LastName,
+                Email = f.Email!
+            }).ToList(),
             Days = trip.Days?.Select(d => new DayViewModel
             {
                 Id = d.Id,
@@ -202,7 +231,8 @@ public class TripsController : Controller
             return View(viewModel);
     }
 
-    public async Task<IActionResult> MapView(int id)
+    // GET: Trips/Participants/5
+    public async Task<IActionResult> Participants(int id)
     {
         var trip = await _tripService.GetTripWithDetailsAsync(id);
         if (trip == null)
@@ -211,6 +241,181 @@ public class TripsController : Controller
         }
 
         if (!UserOwnsTrip(trip))
+        {
+            return Forbid();
+        }
+
+        var participants = await _tripParticipantService.GetTripParticipantsAsync(id);
+        var availableFriends = await _tripParticipantService.GetFriendsAvailableForTripAsync(id, GetCurrentUserId());
+
+        var viewModel = new TripDetailViewModel
+        {
+            Id = trip.Id,
+            Name = trip.Name,
+            OwnerId = trip.PersonId,
+            OwnerName = $"{trip.Person?.FirstName} {trip.Person?.LastName}",
+            Participants = participants.Select(p => new TripParticipantViewModel
+            {
+                Id = p.Id,
+                PersonId = p.PersonId,
+                FirstName = p.Person.FirstName,
+                LastName = p.Person.LastName,
+                Email = p.Person.Email!,
+                Status = p.Status,
+                JoinedAt = p.JoinedAt,
+                IsOwner = p.PersonId == trip.PersonId
+            }).ToList(),
+            AvailableFriends = availableFriends.Select(f => new FriendViewModel
+            {
+                Id = f.Id,
+                FirstName = f.FirstName,
+                LastName = f.LastName,
+                Email = f.Email!
+            }).ToList(),
+            IsCurrentUserOwner = true
+        };
+
+        return View(viewModel);
+    }
+
+    // POST: Trips/AddParticipant
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddParticipant(AddParticipantViewModel viewModel)
+    {
+        var trip = await _tripService.GetByIdAsync(viewModel.TripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!UserOwnsTrip(trip))
+        {
+            return Forbid();
+        }
+
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                // Sprawdź czy użytkownik jest dostępnym znajomym
+                var availableFriends = await _tripParticipantService.GetFriendsAvailableForTripAsync(viewModel.TripId, GetCurrentUserId());
+                if (!availableFriends.Any(f => f.Id == viewModel.SelectedFriendId))
+                {
+                    TempData["ErrorMessage"] = "Selected user is not your friend or is already a participant.";
+                    return RedirectToAction(nameof(Participants), new { id = viewModel.TripId });
+                }
+
+                await _tripParticipantService.AddParticipantAsync(viewModel.TripId, viewModel.SelectedFriendId);
+
+                TempData["SuccessMessage"] = "Participant added successfully! Invitation email sent.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding participant to trip {TripId}", viewModel.TripId);
+                TempData["ErrorMessage"] = "An error occurred while adding the participant.";
+            }
+        }
+
+        return RedirectToAction(nameof(Participants), new { id = viewModel.TripId });
+    }
+
+    // POST: Trips/RemoveParticipant
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveParticipant(int tripId, string personId)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!UserOwnsTrip(trip))
+        {
+            return Forbid();
+        }
+
+        var result = await _tripParticipantService.RemoveParticipantAsync(tripId, personId);
+        if (result)
+        {
+            TempData["SuccessMessage"] = "Participant removed successfully!";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = "Failed to remove participant.";
+        }
+
+        return RedirectToAction(nameof(Participants), new { id = tripId });
+    }
+
+    // POST: Trips/AcceptInvitation
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AcceptInvitation(int participantId)
+    {
+        var participant = await _tripParticipantService.GetByIdAsync(participantId);
+        if (participant == null)
+        {
+            return NotFound();
+        }
+
+        if (participant.PersonId != GetCurrentUserId())
+        {
+            return Forbid();
+        }
+
+        var result = await _tripParticipantService.UpdateParticipantStatusAsync(participantId, TripParticipantStatus.Accepted);
+        if (result)
+        {
+            TempData["SuccessMessage"] = "Trip invitation accepted!";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = "Failed to accept invitation.";
+        }
+
+        return RedirectToAction(nameof(MyTrips));
+    }
+
+    // POST: Trips/DeclineInvitation
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeclineInvitation(int participantId)
+    {
+        var participant = await _tripParticipantService.GetByIdAsync(participantId);
+        if (participant == null)
+        {
+            return NotFound();
+        }
+
+        if (participant.PersonId != GetCurrentUserId())
+        {
+            return Forbid();
+        }
+
+        var result = await _tripParticipantService.UpdateParticipantStatusAsync(participantId, TripParticipantStatus.Declined);
+        if (result)
+        {
+            TempData["SuccessMessage"] = "Trip invitation declined.";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = "Failed to decline invitation.";
+        }
+
+        return RedirectToAction(nameof(MyTrips));
+    }
+
+    public async Task<IActionResult> MapView(int id)
+    {
+        var trip = await _tripService.GetTripWithDetailsAsync(id);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -499,7 +704,7 @@ public class TripsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddDay(int id)
     {
-        if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -532,6 +737,11 @@ public class TripsController : Controller
     // GET: Trips/AddGroup/5
     public async Task<IActionResult> AddGroup(int id)
     {
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var trip = await _tripService.GetByIdAsync(id);
         // ... walidacja i błędy (NotFound, Forbid)
 
@@ -623,18 +833,78 @@ public class TripsController : Controller
     public async Task<IActionResult> MyTrips()
     {
         var userId = GetCurrentUserId();
-        var trips = await _tripService.GetUserTripsAsync(userId);
-        var viewModel = trips.Select(t => new TripViewModel
+
+        // Pobierz wycieczki gdzie użytkownik jest właścicielem
+        var ownedTrips = await _tripService.GetUserTripsAsync(userId);
+
+        var ownedTripsViewModel = new List<TripViewModel>();
+        foreach (var t in ownedTrips)
         {
-            Id = t.Id,
-            Name = t.Name,
-            Status = t.Status,
-            StartDate = t.StartDate,
-            EndDate = t.EndDate,
-            IsPrivate = t.IsPrivate,
-            DaysCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => d.Number.HasValue).Count(),
-            GroupsCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => !d.Number.HasValue).Count()
-        });
+            ownedTripsViewModel.Add(new TripViewModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Status = t.Status,
+                StartDate = t.StartDate,
+                EndDate = t.EndDate,
+                IsPrivate = t.IsPrivate,
+                DaysCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => d.Number.HasValue).Count(),
+                GroupsCount = (t.Days ?? Enumerable.Empty<Day>()).Where(d => !d.Number.HasValue).Count(),
+                ParticipantsCount = await _tripParticipantService.GetParticipantCountAsync(t.Id),
+                IsOwner = true
+            });
+        }
+
+        // Pobierz wycieczki gdzie użytkownik jest uczestnikiem
+        var participatingTrips = await _tripParticipantService.GetUserParticipatingTripsAsync(userId);
+
+        var participatingTripsViewModel = new List<TripViewModel>();
+        foreach (var tp in participatingTrips)
+        {
+            participatingTripsViewModel.Add(new TripViewModel
+            {
+                Id = tp.Trip.Id,
+                Name = tp.Trip.Name,
+                Status = tp.Trip.Status,
+                StartDate = tp.Trip.StartDate,
+                EndDate = tp.Trip.EndDate,
+                IsPrivate = tp.Trip.IsPrivate,
+                DaysCount = (tp.Trip.Days ?? Enumerable.Empty<Day>()).Where(d => d.Number.HasValue).Count(),
+                GroupsCount = (tp.Trip.Days ?? Enumerable.Empty<Day>()).Where(d => !d.Number.HasValue).Count(),
+                ParticipantsCount = await _tripParticipantService.GetParticipantCountAsync(tp.Trip.Id),
+                IsOwner = false
+            });
+        }
+
+        // Pobierz oczekujące zaproszenia
+        var pendingInvitations = await _tripParticipantService.GetPendingInvitationsAsync(userId);
+
+        var pendingInvitationsViewModel = new List<TripViewModel>();
+        foreach (var tp in pendingInvitations)
+        {
+            pendingInvitationsViewModel.Add(new TripViewModel
+            {
+                Id = tp.Trip.Id,
+                Name = tp.Trip.Name,
+                Status = tp.Trip.Status,
+                StartDate = tp.Trip.StartDate,
+                EndDate = tp.Trip.EndDate,
+                IsPrivate = tp.Trip.IsPrivate,
+                DaysCount = (tp.Trip.Days ?? Enumerable.Empty<Day>()).Where(d => d.Number.HasValue).Count(),
+                GroupsCount = (tp.Trip.Days ?? Enumerable.Empty<Day>()).Where(d => !d.Number.HasValue).Count(),
+                ParticipantsCount = await _tripParticipantService.GetParticipantCountAsync(tp.Trip.Id),
+                IsOwner = false,
+                UserParticipantStatus = TripParticipantStatus.Pending,
+                ParticipantId = tp.Id // Dodane dla formularzy Accept/Decline
+            });
+        }
+
+        var viewModel = new MyTripsViewModel
+        {
+            OwnedTrips = ownedTripsViewModel,
+            ParticipatingTrips = participatingTripsViewModel,
+            PendingInvitations = pendingInvitationsViewModel
+        };
 
         return View(viewModel);
     }

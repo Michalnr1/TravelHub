@@ -1,8 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Diagnostics.Metrics;
+﻿using System.Diagnostics.Metrics;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Repositories;
 
 namespace TravelHub.Infrastructure.Services;
 
