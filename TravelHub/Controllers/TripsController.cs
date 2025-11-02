@@ -89,6 +89,29 @@ public class TripsController : Controller
         var accommodations = await _accommodationService.GetAccommodationByTripAsync(id);
         var expenses = await _expenseService.GetByTripIdWithParticipantsAsync(id);
 
+        // Oblicz całkowite wydatki w walucie podróży
+        var expensesSummary = await _expenseService.CalculateTripExpensesInTripCurrencyAsync(id, trip.CurrencyCode);
+
+        // Mapowanie expenses z obliczonymi wartościami
+        var expenseViewModels = expenses.Select(e =>
+        {
+            var calculation = expensesSummary.ExpenseCalculations
+                .FirstOrDefault(calc => calc.ExpenseId == e.Id);
+
+            return new ExpenseViewModel
+            {
+                Id = e.Id,
+                Name = e.Name,
+                Value = e.Value,
+                PaidByName = e.PaidBy != null ? $"{e.PaidBy.FirstName} {e.PaidBy.LastName}" : "Unknown",
+                CategoryName = e.Category?.Name,
+                CurrencyName = e.ExchangeRate?.Name ?? trip.CurrencyCode.GetDisplayName(),
+                CurrencyCode = e.ExchangeRate?.CurrencyCodeKey ?? trip.CurrencyCode,
+                ExchangeRateValue = e.ExchangeRate?.ExchangeRateValue ?? 1m,
+                ConvertedValue = calculation?.ConvertedValue ?? e.Value
+            };
+        }).ToList();
+
         var viewModel = new TripDetailViewModel
         {
             Id = trip.Id,
@@ -97,6 +120,8 @@ public class TripsController : Controller
             StartDate = trip.StartDate,
             EndDate = trip.EndDate,
             IsPrivate = trip.IsPrivate,
+            CurrencyCode = trip.CurrencyCode,
+            TotalExpenses = expensesSummary.TotalExpensesInTripCurrency,
             Days = trip.Days?.Select(d => new DayViewModel
             {
                 Id = d.Id,
@@ -171,15 +196,7 @@ public class TripsController : Controller
                 Latitude = a.Latitude,
                 Longitude = a.Longitude
             }).ToList(),
-            Expenses = expenses.Select(e => new ExpenseViewModel
-            {
-                Id = e.Id,
-                Name = e.Name,
-                Value = e.Value,
-                PaidByName = e.PaidBy != null ? $"{e.PaidBy.FirstName} {e.PaidBy.LastName}" : "Unknown",
-                CategoryName = e.Category?.Name,
-                CurrencyName = e.ExchangeRate?.Name ?? "Unknown"
-            }).ToList()
+            Expenses = expenseViewModels
         };
 
             return View(viewModel);
@@ -477,102 +494,6 @@ public class TripsController : Controller
         TempData["SuccessMessage"] = "Trip deleted successfully!";
         return RedirectToAction(nameof(MyTrips));
     }
-
-    //// GET: Trips/AddDay/5
-    //public async Task<IActionResult> AddDay(int id)
-    //{
-    //    var trip = await _tripService.GetByIdAsync(id);
-    //    if (trip == null)
-    //    {
-    //        return NotFound();
-    //    }
-
-    //    if (!UserOwnsTrip(trip))
-    //    {
-    //        return Forbid();
-    //    }
-
-    //    var viewModel = new AddDayViewModel
-    //    {
-    //        TripId = id,
-    //        TripName = trip.Name,
-    //        MinDate = trip.StartDate,
-    //        MaxDate = trip.EndDate,
-    //        Date = trip.StartDate,
-    //        Number = trip.Days.Where(d => d.Number.HasValue).Count() + 1, // Liczymy tylko dni z numerem
-    //        IsGroup = false // Domyślnie na 'false' dla dodawania Dnia
-    //    };
-
-    //    ViewData["FormTitle"] = "Add New Day";
-    //    return View("AddGroup", viewModel);
-    //}
-
-    //// POST: Trips/AddDay/5
-    //[HttpPost]
-    //[ValidateAntiForgeryToken]
-    //public async Task<IActionResult> AddDay(int id, AddDayViewModel viewModel)
-    //{
-    //    // Ustaw IsGroup na false na wypadek, gdyby formularz nie przesłał tej wartości
-    //    viewModel.IsGroup = false;
-
-    //    if (id != viewModel.TripId)
-    //    {
-    //        return NotFound();
-    //    }
-
-    //    if (!await _tripService.UserOwnsTripAsync(id, GetCurrentUserId()))
-    //    {
-    //        return Forbid();
-    //    }
-
-    //    // Walidacja: Numer jest wymagany dla Dnia
-    //    if (!viewModel.Number.HasValue)
-    //    {
-    //        ModelState.AddModelError(nameof(viewModel.Number), "Day number is required.");
-    //    }
-
-    //    var trip = await _tripService.GetByIdAsync(id);
-    //    if (trip == null)
-    //    {
-    //        return NotFound();
-    //    }
-
-    //    if (ModelState.IsValid)
-    //    {
-    //        try
-    //        {
-    //            var day = new Day
-    //            {
-    //                Number = viewModel.Number,
-    //                Name = $"Day {viewModel.Number}",
-    //                Date = viewModel.Date,
-    //                TripId = id
-    //            };
-
-    //            await _tripService.AddDayToTripAsync(id, day);
-
-    //            TempData["SuccessMessage"] = "Day added successfully!";
-    //            return RedirectToAction(nameof(Details), new { id });
-    //        }
-    //        catch (ArgumentException ex)
-    //        {
-    //            ModelState.AddModelError("", ex.Message);
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            _logger.LogError(ex, "Error adding day to trip");
-    //            ModelState.AddModelError("", "An error occurred while adding the day.");
-    //        }
-    //    }
-
-    //    // Ponownie ustaw właściwości potrzebne dla widoku
-    //    viewModel.TripName = trip.Name;
-    //    viewModel.MinDate = trip.StartDate;
-    //    viewModel.MaxDate = trip.EndDate;
-
-    //    ViewData["FormTitle"] = "Add New Day";
-    //    return View("AddGroup", viewModel);
-    //}
 
     [HttpPost]
     [ValidateAntiForgeryToken]

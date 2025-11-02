@@ -42,4 +42,16 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
             .Where(e => e.TripId == tripId)
             .ToListAsync();
     }
+
+    //public async Task<IEnumerable<Expense>> GetByTripIdWithExchangeRatesAsync(int tripId)
+    //{
+    //    return await _context.Expenses
+    //        .Include(e => e.ExchangeRate)
+    //        .Include(e => e.PaidBy)
+    //        .Include(e => e.Category)
+    //        .Include(e => e.Participants!)
+    //            .ThenInclude(ep => ep.Person)
+    //        .Where(e => e.TripId == tripId)
+    //        .ToListAsync();
+    //}
 }
