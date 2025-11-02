@@ -259,6 +259,7 @@
 
             let startTime = getStartDatetime();
             let time = getStartDatetime();
+            time = time.plus({hour: Math.floor(parseFloat(points[0].duration)), minute: Math.round(60 * (parseFloat(points[0].duration) % 1))});
             if (travelMode == 'WALKING' || travelMode == 'DRIVING'){
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
@@ -277,7 +278,9 @@
                         setPolylineEventBindings(polyline, div);
                         polylines.push(polyline);
                         time = time.plus({millisecond: parseInt(leg.durationMillis)});
-                    });
+                        //alert(JSON.stringify({hour: Math.floor(parseFloat(points[i].duration)), minute: Math.round(60 * (parseFloat(points[i].duration) % 1))}));
+                        time = time.plus({hour: Math.floor(parseFloat(points[i+1].duration)), minute: Math.round(60 * (parseFloat(points[i+1].duration) % 1))});
+                    }); 
                 } else {
                     alert('Unable to compute route');
                     return;
@@ -344,7 +347,7 @@
                         setPolylineEventBindings(polyline, div);
                         time = time.plus({millisecond: parseInt(leg.staticDurationMillis)});
                     }
-                    
+                    time = time.plus({hour: Math.floor(parseFloat(points[i+1].duration)), minute: Math.round(60 * (parseFloat(points[i+1].duration) % 1))});
                 }
                 } else {
                     alert('Unable to compute route');
@@ -356,7 +359,6 @@
             via_media = polylines[Math.round((polylines.length - 1) / 2)].getPath().Cg;
             pos = via_media[Math.round((via_media.length - 1) / 2)];
             routeInfoWindow.close();
-            alert(time);
             let duration = time.diff(startTime, ["hours", "minutes"])
             routeInfoWindow.setContent(durationString(duration));
             routeInfoWindow.setPosition(pos);
