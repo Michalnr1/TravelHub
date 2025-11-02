@@ -312,17 +312,7 @@ public class ActivitiesController : Controller
 
         await PopulateSelectListsForTrip(viewModel, tripId);
 
-        ViewData["TripName"] = trip.Name;
-        ViewData["DayName"] = dayId.HasValue ?
-            trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
-        if (dayId != null)
-        {
-            ViewData["ReturnUrl"] = Url.Action("Details", "Days", new { id = dayId });
-        }
-        else
-        {
-            ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
-        }
+        SetAddToTripViewData(trip, dayId);
 
         return View("AddToTrip", viewModel);
     }
@@ -337,7 +327,13 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(tripId, GetCurrentUserId()))
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -373,7 +369,23 @@ public class ActivitiesController : Controller
         }
 
         await PopulateSelectListsForTrip(viewModel, tripId);
+        SetAddToTripViewData(trip, viewModel.DayId);
         return View("AddToTrip", viewModel);
+    }
+
+    private void SetAddToTripViewData(Trip trip, int? dayId)
+    {
+        ViewData["TripName"] = trip.Name;
+        ViewData["DayName"] = dayId.HasValue ?
+            trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
+        if (dayId != null)
+        {
+            ViewData["ReturnUrl"] = Url.Action("Details", "Days", new { id = dayId });
+        }
+        else
+        {
+            ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = trip.Id });
+        }
     }
 
     [HttpPost]
