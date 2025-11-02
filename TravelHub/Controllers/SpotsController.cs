@@ -20,6 +20,7 @@ public class SpotsController : Controller
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
+    private readonly IReverseGeocodingService _reverseGeocodingService;
     private readonly ILogger<SpotsController> _logger;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
@@ -31,6 +32,7 @@ public class SpotsController : Controller
         ITripService tripService,
         IGenericService<Day> dayService,
         IPhotoService photoService,
+        IReverseGeocodingService reverseGeocodingService,
         ILogger<SpotsController> logger,
         IConfiguration configuration,
         UserManager<Person> userManager)
@@ -41,6 +43,7 @@ public class SpotsController : Controller
         _tripService = tripService;
         _dayService = dayService;
         _photoService = photoService;
+        _reverseGeocodingService = reverseGeocodingService;
         _logger = logger;
         _configuration = configuration;
         _userManager = userManager;
@@ -408,6 +411,12 @@ public class SpotsController : Controller
                 };
 
                 await _spotService.AddAsync(spot);
+
+                (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(spot.Latitude, spot.Longitude);
+                if (countryName != null && countryCode != null)
+                {
+                    await _tripService.AddCountryToTrip(tripId, countryName, countryCode);
+                }
 
                 TempData["SuccessMessage"] = "Spot added successfully!";
                 return RedirectToAction("Details", "Trips", new { id = tripId });

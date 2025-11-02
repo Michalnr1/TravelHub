@@ -359,21 +359,21 @@
             lineNumberSpan.classList.add('transit-line');
             span.appendChild(lineNumberSpan);
             span.append(step.transitDetails.departureStop.name + " ");
-            let depHourSpan = document.createElement("span");
-            depHourSpan.innerHTML = step.transitDetails.departureTime.toLocaleTimeString(navigator.language, {
-                hour: '2-digit',
-                minute:'2-digit'
-            });
-            depHourSpan.classList.add('hour');
-            span.appendChild(depHourSpan);
+            // let depHourSpan = document.createElement("span");
+            // depHourSpan.innerHTML = step.transitDetails.departureTime.toLocaleTimeString(navigator.language, {
+            //     hour: '2-digit',
+            //     minute:'2-digit'
+            // });
+            // depHourSpan.classList.add('hour');
+            // span.appendChild(depHourSpan);
             span.append(" ---> " + step.transitDetails.arrivalStop.name + " ");
-            let arrHourSpan = document.createElement("span");
-            arrHourSpan.innerHTML = step.transitDetails.arrivalTime.toLocaleTimeString(navigator.language, {
-              hour: '2-digit',
-              minute:'2-digit'
-            });
-            arrHourSpan.classList.add('hour');
-            span.appendChild(arrHourSpan);
+            // let arrHourSpan = document.createElement("span");
+            // arrHourSpan.innerHTML = step.transitDetails.arrivalTime.toLocaleTimeString(navigator.language, {
+            //   hour: '2-digit',
+            //   minute:'2-digit'
+            // });
+            // arrHourSpan.classList.add('hour');
+            // span.appendChild(arrHourSpan);
             span.append(', ' + durationString(parseInt(step.staticDurationMillis)));
             span.append(document.createElement("br"))
             card.appendChild(span);

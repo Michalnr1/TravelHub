@@ -48,4 +48,17 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
             .OrderByDescending(t => t.StartDate)
             .ToListAsync();
     }
+
+    public async Task AddCountryToTrip(int id, Country country)
+    {
+        Trip? trip = await _context.Set<Trip>().Include(t => t.Countries).FirstOrDefaultAsync(t => t.Id == id);
+        if (trip != null)
+        {   
+            if (!trip.Countries.Contains(country))
+            {
+                trip.Countries.Add(country);
+                await _context.SaveChangesAsync();
+            }      
+        } 
+    }
 }
