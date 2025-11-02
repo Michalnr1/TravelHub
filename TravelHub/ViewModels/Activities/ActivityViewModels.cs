@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using TravelHub.Domain.Entities;
+using TravelHub.Web.ViewModels.Expenses;
 
 namespace TravelHub.Web.ViewModels.Activities;
 
@@ -82,6 +83,21 @@ public class SpotCreateEditViewModel : ActivityCreateEditViewModel
     //[Required(ErrorMessage = "Cost is required")]
     //[Range(0, double.MaxValue, ErrorMessage = "Cost must be greater than or equal to 0")]
     //public decimal Cost { get; set; }
+
+    // Sekcja Expense
+    [Display(Name = "Estimated Cost")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Cost must be greater than 0")]
+    public decimal? ExpenseValue { get; set; }
+
+    [Display(Name = "Currency")]
+    public CurrencyCode? ExpenseCurrencyCode { get; set; } = CurrencyCode.PLN;
+
+    [Display(Name = "Exchange Rate (to Base)")]
+    [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]
+    public decimal? ExpenseExchangeRateValue { get; set; } = 1.0M;
+
+    // Select lists dla Expense
+    public List<CurrencySelectGroupItem> CurrenciesGroups { get; set; } = new List<CurrencySelectGroupItem>();
 
     public Rating? Rating { get; set; }
 }

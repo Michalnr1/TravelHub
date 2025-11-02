@@ -6,8 +6,10 @@ using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Expenses;
 using System.Text;
 using System.Globalization;
+using CategorySelectItem = TravelHub.Web.ViewModels.Activities.CategorySelectItem;
 
 namespace TravelHub.Web.Controllers;
 
@@ -20,6 +22,8 @@ public class SpotsController : Controller
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
+    private readonly IExpenseService _expenseService;
+    private readonly IExchangeRateService _exchangeRateService;
     private readonly ILogger<SpotsController> _logger;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
@@ -31,6 +35,8 @@ public class SpotsController : Controller
         ITripService tripService,
         IGenericService<Day> dayService,
         IPhotoService photoService,
+        IExpenseService expenseService,
+        IExchangeRateService exchangeRateService,
         ILogger<SpotsController> logger,
         IConfiguration configuration,
         UserManager<Person> userManager)
@@ -41,6 +47,8 @@ public class SpotsController : Controller
         _tripService = tripService;
         _dayService = dayService;
         _photoService = photoService;
+        _expenseService = expenseService;
+        _exchangeRateService = exchangeRateService;
         _logger = logger;
         _configuration = configuration;
         _userManager = userManager;
@@ -159,11 +167,18 @@ public class SpotsController : Controller
                 Rating = viewModel.Rating
             };
 
-            await _spotService.AddAsync(spot);
+            var createdSpot = await _spotService.AddAsync(spot);
+
+            // Jeśli podano koszt, utwórz powiązany Expense
+            if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
+            {
+                await CreateExpenseForSpot(createdSpot, viewModel);
+            }
+
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
-        await PopulateSelectLists(viewModel);
+        await PopulateSelectLists(viewModel, viewModel.TripId);
         return View(viewModel);
     }
 
@@ -246,6 +261,9 @@ public class SpotsController : Controller
                 {
                     await RecalculateOrdersForBothDays(oldDayId, viewModel.DayId);
                 }
+
+                // Aktualizacja Expense
+                await UpdateExpenseForSpot(existingSpot, viewModel);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -261,7 +279,7 @@ public class SpotsController : Controller
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
-        await PopulateSelectLists(viewModel);
+        await PopulateSelectLists(viewModel, viewModel.TripId);
         return View(viewModel);
     }
 
@@ -407,7 +425,13 @@ public class SpotsController : Controller
                     Rating = viewModel.Rating
                 };
 
-                await _spotService.AddAsync(spot);
+                var createdSpot = await _spotService.AddAsync(spot);
+
+                // Jeśli podano koszt, utwórz powiązany Expense
+                if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
+                {
+                    await CreateExpenseForSpot(createdSpot, viewModel);
+                }
 
                 TempData["SuccessMessage"] = "Spot added successfully!";
                 return RedirectToAction("Details", "Trips", new { id = tripId });
@@ -478,6 +502,10 @@ public class SpotsController : Controller
                 Name = d.Name!,
                 TripId = d.TripId
             }).ToList();
+
+        // Currencies dla Expense
+        var usedRates = await _exchangeRateService.GetTripExchangeRatesAsync(tripId);
+        await PopulateCurrencySelectList(viewModel, usedRates);
     }
 
     private async Task<bool> SpotExists(int id)
@@ -506,11 +534,60 @@ public class SpotsController : Controller
             viewModel.Rating = spot.Rating;
         }
 
-        await PopulateSelectLists(viewModel);
+        await PopulateSelectLists(viewModel, viewModel.TripId);
         return viewModel;
     }
 
-    private async Task PopulateSelectLists(SpotCreateEditViewModel viewModel)
+    private async Task CreateExpenseForSpot(Spot spot, SpotCreateEditViewModel viewModel)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            _logger.LogWarning("Cannot create expense for spot: User not found");
+            return;
+        }
+
+        try
+        {
+            // Pobierz lub utwórz exchange rate
+            var exchangeRateEntry = await _exchangeRateService
+                .GetOrCreateExchangeRateAsync(
+                    spot.TripId,
+                    viewModel.ExpenseCurrencyCode ?? CurrencyCode.PLN,
+                    viewModel.ExpenseExchangeRateValue ?? 1.0M);
+
+            // Utwórz Expense
+            var expense = new Expense
+            {
+                Name = $"{spot.Name} (Expense)",
+                Value = viewModel.ExpenseValue!.Value,
+                PaidById = currentUser.Id,
+                CategoryId = spot.CategoryId,
+                ExchangeRateId = exchangeRateEntry.Id,
+                TripId = spot.TripId,
+                SpotId = spot.Id,
+                IsEstimated = true
+            };
+
+            // Dodaj expense bez uczestników
+            await _expenseService.AddAsync(expense);
+
+            _logger.LogInformation("Expense created for spot {SpotId}", spot.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating expense for spot {SpotId}", spot.Id);
+        }
+    }
+
+    private async Task UpdateExpenseForSpot(Spot spot, SpotCreateEditViewModel viewModel)
+    {
+        // Tutaj można dodać logikę aktualizacji istniejącego Expense
+        // jeśli będzie potrzebna w przyszłości
+        // Na razie tworzymy tylko nowe Expense, nie aktualizujemy istniejących
+    }
+
+    private async Task PopulateSelectLists(SpotCreateEditViewModel viewModel, int tripId)
     {
         // Categories
         var categories = await _categoryService.GetAllAsync();
@@ -541,6 +618,85 @@ public class SpotsController : Controller
             Name = d.Name!,
             TripId = d.TripId
         }).ToList();
+    }
+
+    private async Task PopulateCurrencySelectList(SpotCreateEditViewModel viewModel, IReadOnlyList<ExchangeRate> usedRates)
+    {
+        var allCurrencyCodes = Enum.GetValues(typeof(CurrencyCode))
+            .Cast<CurrencyCode>()
+            .ToDictionary(code => code, code => code.GetDisplayName());
+
+        var usedCurrencies = usedRates
+            .Select(er => new CurrencySelectGroupItem
+            {
+                Key = er.CurrencyCodeKey,
+                Name = er.Name,
+                ExchangeRate = er.ExchangeRateValue,
+                IsUsed = true
+            })
+            .OrderBy(c => c.Key.ToString())
+            .ThenByDescending(c => c.ExchangeRate)
+            .ToList();
+
+        var allCurrencies = allCurrencyCodes
+            .Select(pair => new CurrencySelectGroupItem
+            {
+                Key = pair.Key,
+                Name = pair.Value,
+                ExchangeRate = 1.0M,
+                IsUsed = false
+            })
+            .OrderBy(c => c.Key.ToString())
+            .ToList();
+        
+        viewModel.CurrenciesGroups = usedCurrencies
+            .Concat(allCurrencies)
+            .ToList();
+
+        // Ustaw domyślne wartości jeśli nie ustawione
+        if (!viewModel.ExpenseCurrencyCode.HasValue && viewModel.ExpenseValue.HasValue)
+        {
+            try
+            {
+                var tripCurrency = await _tripService.GetTripCurrencyAsync(viewModel.TripId);
+
+                // Szukaj najpierw w użytych walutach
+                var defaultCurrency = usedCurrencies.FirstOrDefault(c => c.Key == tripCurrency);
+
+                // Jeśli nie znaleziono w użytych, szukaj we wszystkich
+                if (defaultCurrency == null)
+                {
+                    defaultCurrency = allCurrencies.FirstOrDefault(c => c.Key == tripCurrency);
+                }
+
+                // Jeśli nadal nie znaleziono, użyj pierwszej z użytych lub PLN
+                defaultCurrency ??= usedCurrencies.FirstOrDefault()
+                                  ?? allCurrencies.FirstOrDefault(c => c.Key == CurrencyCode.PLN)
+                                  ?? allCurrencies.FirstOrDefault();
+
+                if (defaultCurrency != null)
+                {
+                    viewModel.ExpenseCurrencyCode = defaultCurrency.Key;
+                    // Dla waluty podróży ustawiamy kurs na 1
+                    viewModel.ExpenseExchangeRateValue = 1.0M;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get trip currency for trip {TripId}, using fallback", viewModel.TripId);
+
+                // Fallback: użyj pierwszej dostępnej waluty
+                var fallbackCurrency = usedCurrencies.FirstOrDefault()
+                                     ?? allCurrencies.FirstOrDefault(c => c.Key == CurrencyCode.PLN)
+                                     ?? allCurrencies.FirstOrDefault();
+
+                if (fallbackCurrency != null)
+                {
+                    viewModel.ExpenseCurrencyCode = fallbackCurrency.Key;
+                    viewModel.ExpenseExchangeRateValue = 1.0M;
+                }
+            }
+        }
     }
 
     /// <summary>

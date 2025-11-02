@@ -43,38 +43,6 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
     public async Task<Expense> AddAsync(Expense entity, IEnumerable<ParticipantShareDto> participantShares)
     {
-        //if (participantIds != null && participantIds.Any())
-        //{
-        //    var participantsList = participantIds.ToList();
-        //    var totalParticipantsCount = participantsList.Count;
-
-        //    if (entity.Value > 0)
-        //    {
-        //        var defaultSharePercentage = Math.Round(1m / totalParticipantsCount, 3);
-        //        var actualSharePerPerson = Math.Round(entity.Value / totalParticipantsCount, 2);
-
-        //        entity.Participants = participantsList
-        //            .Select(personId => new ExpenseParticipant
-        //            {
-        //                PersonId = personId,
-        //                Share = defaultSharePercentage,
-        //                ActualShareValue = actualSharePerPerson
-        //            })
-        //            .ToList();
-        //    }
-        //    else
-        //    {
-        //        entity.Participants = participantsList
-        //            .Select(personId => new ExpenseParticipant
-        //            {
-        //                PersonId = personId,
-        //                Share = Math.Round(1m / totalParticipantsCount, 3),
-        //                ActualShareValue = 0m
-        //            })
-        //            .ToList();
-        //    }
-        //}
-
         var shares = participantShares.ToList();
 
         if (shares.Any())
@@ -95,54 +63,6 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
     public async Task UpdateAsync(Expense existingExpense, IEnumerable<ParticipantShareDto> newParticipantShares)
     {
-        //// 1. Zidentyfikuj istniejące i nowe identyfikatory
-        //var existingParticipantLinks = existingExpense.Participants ?? new List<ExpenseParticipant>();
-        //var currentParticipantIds = existingParticipantLinks.Select(ep => ep.PersonId).ToList();
-        //var newParticipantIdsList = newParticipantIds.ToList();
-
-        //// 2. Uczestnicy do usunięcia
-        //var participantsToRemove = existingParticipantLinks
-        //    .Where(ep => !newParticipantIdsList.Contains(ep.PersonId))
-        //    .ToList();
-
-        //// 3. Uczestnicy do dodania
-        //var participantsToAddIds = newParticipantIdsList
-        //    .Except(currentParticipantIds)
-        //    .ToList();
-
-        //// 4. Wykonaj faktyczne usunięcia
-        //foreach (var link in participantsToRemove)
-        //{
-        //    existingExpense.Participants?.Remove(link);
-        //}
-
-        //// 5. Ustaw logikę obliczania udziałów dla nowych i istniejących
-        //var totalParticipantsCount = newParticipantIdsList.Count;
-        //var defaultSharePercentage = totalParticipantsCount > 0 ? Math.Round(1m / totalParticipantsCount, 3) : 0m;
-        //var actualSharePerPerson = totalParticipantsCount > 0 ? Math.Round(existingExpense.Value / totalParticipantsCount, 2) : 0m;
-
-        //// 6. Dodaj nowych uczestników
-        //foreach (var personId in participantsToAddIds)
-        //{
-        //    existingExpense.Participants?.Add(new ExpenseParticipant
-        //    {
-        //        PersonId = personId,
-        //        ExpenseId = existingExpense.Id,
-        //        Share = defaultSharePercentage,
-        //        ActualShareValue = actualSharePerPerson
-        //    });
-        //}
-
-        //// 7. Aktualizuj pola Share/ActualShareValue dla wszystkich pozostałych
-        //foreach (var link in existingExpense.Participants!)
-        //{
-        //    link.Share = defaultSharePercentage;
-        //    link.ActualShareValue = actualSharePerPerson;
-        //}
-
-        //// 8. Wywołaj generyczną aktualizację
-        //await _expenseRepository.UpdateAsync(existingExpense);
-
         // 1. Zidentyfikuj istniejące i nowe identyfikatory
         var existingParticipantLinks = existingExpense.Participants?.ToList() ?? new List<ExpenseParticipant>();
         var newSharesList = newParticipantShares.ToList();
@@ -217,6 +137,12 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             }).ToList();
         }
 
+        // Wstępna walidacja inputów
+        if (!ValidateInputShares(sharesList, expenseValue))
+        {
+            throw new InvalidOperationException("Suma udziałów przekracza dostępną wartość wydatku");
+        }
+
         // Obliczanie domyślnego równego podziału
         var defaultSharePercentage = 1m / totalParticipantsCount;
         var equalShareAmount = expenseValue / totalParticipantsCount;
@@ -259,5 +185,33 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         }
 
         return newParticipants;
+    }
+
+    private bool ValidateInputShares(List<ParticipantShareDto> shares, decimal expenseValue)
+    {
+        decimal totalAmount = 0.00m;
+        decimal totalPercentage = 0.000m;
+
+        foreach (var share in shares)
+        {
+            switch (share.ShareType)
+            {
+                case 1: // Kwota
+                    totalAmount += share.InputValue;
+                    break;
+                case 2: // Procent
+                    totalPercentage += share.InputValue;
+                    break;
+            }
+        }
+
+        // const decimal tolerance = 0.01m;
+
+        // Sprawdź czy suma kwot nie przekracza expenseValue
+        bool amountsValid = totalAmount == expenseValue;
+        // Sprawdź czy suma procentów nie przekracza 1 (100%)
+        bool percentagesValid = totalPercentage == 1.0m;
+
+        return amountsValid && percentagesValid;
     }
 }

@@ -179,6 +179,17 @@ public class TripService : GenericService<Trip>, ITripService
         return newDay;
     }
 
+    public async Task<CurrencyCode> GetTripCurrencyAsync(int tripId)
+    {
+        var trip = await GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            throw new ArgumentException($"Trip with ID {tripId} not found");
+        }
+
+        return trip.CurrencyCode;
+    }
+
     // Metoda pomocnicza do automatycznego przypisywania accommodation do dnia
     private async Task AutoAssignAccommodationsToDay(Day day)
     {
