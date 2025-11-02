@@ -48,10 +48,12 @@
                             <div class="btn-group">
                                 <form method="post" action="@Url.Action("AcceptRequest")" class="d-inline">
                                     <input type="hidden" name="friendRequestId" value="@request.Id" />
+                                    @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-success btn-sm">Accept</button>
                                 </form>
                                 <form method="post" action="@Url.Action("DeclineRequest")" class="d-inline">
                                     <input type="hidden" name="friendRequestId" value="@request.Id" />
+                                    @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-danger btn-sm"
                                             onclick="return confirm('Are you sure you want to decline this request?')">
                                         Decline

@@ -253,6 +253,6 @@ public class FriendRequestService : IFriendRequestService
 
     private string GetAppBaseUrl()
     {
-        return "https://localhost:7000";
+        return "https://localhost:7181";
     }
 }
