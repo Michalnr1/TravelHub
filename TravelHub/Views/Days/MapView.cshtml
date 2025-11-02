@@ -57,7 +57,11 @@
             <button id="route-walk-btn">Find walking route</button>
             <button id="route-drive-btn">Find car route</button>
             <button id="route-transit-btn">Find route with public transportation</button>
+            <br />
             Acceptable walking time (minutes) <input type="number" value="30" id="transit-threshold"/>
+            <br />
+            Start time <input type="time" id="start-time" value="08:00" />
+
         </div>
     </div>
     <!-- Spots -->
@@ -126,6 +130,8 @@
             src="https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places&callback=initMap">
     </script>
 
+    <script src="~/lib/luxon/luxon.js"></script>
+
     <script>
         let map;
         // let points = @Json.Serialize(Model.Spots);
@@ -141,7 +147,7 @@
             const {AdvancedMarkerElement} = await google.maps.importLibrary("marker");
 
             // Initialize the map.
-            map = new google.maps.Map(document.getElementById("map"), {
+            map = new google.maps.Map(document.getElementById("map"), { 
                     center: center,
                     zoom: 12,
                     //TODO: Create map id
@@ -220,12 +226,39 @@
             transitRouteBtn.addEventListener('click', (event) => {showRoute('TRANSIT')});
         }
 
+        function clampToAllowedRange(dt) {
+            const now = luxon.DateTime.now();
+            const minDate = now.minus({ days: 7 });
+            const maxDate = now.plus({ days: 100 });
 
+            if (dt >= minDate && dt <= maxDate) {
+                return dt;
+            }
+            const targetWeekday = dt.weekday;
+            let adjusted = now;
+            while (adjusted.weekday !== targetWeekday) {
+                adjusted = adjusted.plus({ days: 1 });
+            }
+            adjusted = adjusted.set({hour: dt.hour, minute: dt.minute, second: 0});
+            return adjusted;
+        }
+
+        //TODO set time zone
+        function getStartDatetime(){
+            let [startHours, startMinutes] = document.getElementById('start-time').value.split(':');
+            let time = luxon.DateTime.local(parseInt("@Html.Raw(Model.Date.Year)"), parseInt("@Html.Raw(Model.Date.Month)"), 
+                                            parseInt("@Html.Raw(Model.Date.Day)"), parseInt(startHours), parseInt(startMinutes));
+            if (time )
+
+            return clampToAllowedRange(time);
+        }
 
         async function showRoute(travelMode){
             const {Polyline} = await google.maps.importLibrary("maps");
-            let durationMillis = 0;
             clearTravelCards();
+
+            let startTime = getStartDatetime();
+            let time = getStartDatetime();
             if (travelMode == 'WALKING' || travelMode == 'DRIVING'){
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
@@ -243,6 +276,7 @@
                         });
                         setPolylineEventBindings(polyline, div);
                         polylines.push(polyline);
+                        time = time.plus({millisecond: parseInt(leg.durationMillis)});
                     });
                 } else {
                     alert('Unable to compute route');
@@ -265,7 +299,8 @@
                         transitRoute = await getRoute({latitude: leg.startLocation.lat, longitude: leg.startLocation.lng },
                             {latitude: leg.endLocation.lat, longitude: leg.endLocation.lng },
                             intermediates=[],
-                            travelMode='TRANSIT');
+                            travelMode='TRANSIT',
+                            departureTime=time);
                         let partialDurationMillis = 0;
                         transitRoute.routes[0].legs[0].steps.forEach((step) => {
                             if (step.travelMode == 'WALKING') {
@@ -276,6 +311,7 @@
                                 polylines.push(polyline);
                                 setPolylineEventBindings(polyline, div);
                                 partialDurationMillis += step.staticDurationMillis;
+                                time = time.plus({millisecond: parseInt(step.staticDurationMillis)});
                             } else if (step.travelMode == 'TRANSIT') {
                                 let polyline = new Polyline({
                                     map: map,
@@ -284,31 +320,31 @@
                                 });
                                 polylines.push(polyline);
                                 if (partialDurationMillis > 0) {
-                                    addEntryToTravelCard(div,  "..." + durationString(partialDurationMillis) + " walking...<br>");
+                                    addEntryToTravelCard(div,  "..." + durationStringMillis(partialDurationMillis) + " walking...<br>");
                                 }
                                 partialDurationMillis = 0;
                                 addIconToTravelCard(div, step.transitDetails.transitLine.vehicle.iconURL);
                                 addTransitEntryToTravelCard(div, step);
-                                //addEntryToTravelCard(div, transitString(step));
                                 setPolylineEventBindings(polyline, div);
-                            }
+                                time = luxon.DateTime.fromJSDate(step.transitDetails.arrivalTime);
+                            }                         
                         });
                         if (partialDurationMillis > 0) {
-                                addEntryToTravelCard(div,  "..." + durationString(partialDurationMillis) + " walking...<br>");
+                                addEntryToTravelCard(div,  "..." + durationStringMillis(partialDurationMillis) + " walking...<br>");
                         }
-                        durationMillis += transitRoute.routes[0].durationMillis;
                     } else {
                         let polyline = new Polyline({
                             map: map,
                             path: leg.path,
                         });
                         polylines.push(polyline);
-                        durationMillis += leg.durationMillis;
                         locationCard = document.getElementById("spot-" + i);
                         let div = buildTravelCard(i, leg.durationMillis, 'WALKING');
                         locationCard.after(div);
                         setPolylineEventBindings(polyline, div);
+                        time = time.plus({millisecond: parseInt(leg.staticDurationMillis)});
                     }
+                    
                 }
                 } else {
                     alert('Unable to compute route');
@@ -320,12 +356,14 @@
             via_media = polylines[Math.round((polylines.length - 1) / 2)].getPath().Cg;
             pos = via_media[Math.round((via_media.length - 1) / 2)];
             routeInfoWindow.close();
-            routeInfoWindow.setContent(durationString(durationMillis));
+            alert(time);
+            let duration = time.diff(startTime, ["hours", "minutes"])
+            routeInfoWindow.setContent(durationString(duration));
             routeInfoWindow.setPosition(pos);
             routeInfoWindow.open(map);
         }
 
-        async function getRoute(origin, destination, intermediates=[], travelMode='WALKING', fields=['durationMillis', 'distanceMeters', 'path', 'legs']){
+        async function getRoute(origin, destination, intermediates=[], travelMode='WALKING', departure_time='', fields=['durationMillis', 'distanceMeters', 'path', 'legs'] ){
             const {Route} = await google.maps.importLibrary("routes");
             const request = {
                 origin: {lat:  parseFloat(origin.latitude), lng:  parseFloat(origin.longitude)},
@@ -334,6 +372,9 @@
                 fields: fields,
                 travelMode: travelMode,
             };
+            if (travelMode == 'TRANSIT' && departure_time != '') {
+                request.departureTime = departure_time.toJSDate();
+            }
             const route = await Route.computeRoutes(request);
             return route;
         }
@@ -343,7 +384,16 @@
             polylines = [];
         }
 
-        function durationString(durationMillis){
+        function durationString(duration){
+            if (duration.hours > 0) {
+                return duration.toFormat("hh 'h' mm 'm'")
+            } else {
+                return duration.toFormat("mm 'm'")
+            }
+            
+        }
+
+        function durationStringMillis(durationMillis){
             durationMinutes = Math.round(durationMillis / 60 / 1000);
             if (durationMinutes < 60) {
                 return durationMinutes + " min";
@@ -359,22 +409,22 @@
             lineNumberSpan.classList.add('transit-line');
             span.appendChild(lineNumberSpan);
             span.append(step.transitDetails.departureStop.name + " ");
-            // let depHourSpan = document.createElement("span");
-            // depHourSpan.innerHTML = step.transitDetails.departureTime.toLocaleTimeString(navigator.language, {
-            //     hour: '2-digit',
-            //     minute:'2-digit'
-            // });
-            // depHourSpan.classList.add('hour');
-            // span.appendChild(depHourSpan);
+            let depHourSpan = document.createElement("span");
+            depHourSpan.innerHTML = step.transitDetails.departureTime.toLocaleTimeString(navigator.language, {
+                hour: '2-digit',
+                minute:'2-digit'
+            });
+            depHourSpan.classList.add('hour');
+            span.appendChild(depHourSpan);
             span.append(" ---> " + step.transitDetails.arrivalStop.name + " ");
-            // let arrHourSpan = document.createElement("span");
-            // arrHourSpan.innerHTML = step.transitDetails.arrivalTime.toLocaleTimeString(navigator.language, {
-            //   hour: '2-digit',
-            //   minute:'2-digit'
-            // });
-            // arrHourSpan.classList.add('hour');
-            // span.appendChild(arrHourSpan);
-            span.append(', ' + durationString(parseInt(step.staticDurationMillis)));
+            let arrHourSpan = document.createElement("span");
+            arrHourSpan.innerHTML = step.transitDetails.arrivalTime.toLocaleTimeString(navigator.language, {
+              hour: '2-digit',
+              minute:'2-digit'
+            });
+            arrHourSpan.classList.add('hour');
+            span.appendChild(arrHourSpan);
+            span.append(', ' + durationStringMillis(parseInt(step.staticDurationMillis)));
             span.append(document.createElement("br"))
             card.appendChild(span);
         }
@@ -413,7 +463,7 @@
             div.classList.add('travel-card');
             if (durationMillis > 0) {
                 let span = document.createElement("span");
-                span.innerHTML = "..." + durationString(durationMillis) + " " + travelMode.toLowerCase() + "...";
+                span.innerHTML = "..." + durationStringMillis(durationMillis) + " " + travelMode.toLowerCase() + "...";
                 div.appendChild(span);
             }
             return div;
