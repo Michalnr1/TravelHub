@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using TravelHub.Domain.Entities;
+using TravelHub.Web.ViewModels.Expenses;
 
 namespace TravelHub.Web.ViewModels.Transports;
 
@@ -70,13 +71,27 @@ public class TransportCreateEditViewModel
     [Display(Name = "To Spot")]
     public int ToSpotId { get; set; }
 
+    // Sekcja Expense - opcjonalna
+    [Display(Name = "Estimated Cost")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Cost must be greater than 0")]
+    public decimal? ExpenseValue { get; set; }
+
+    [Display(Name = "Currency")]
+    public CurrencyCode? ExpenseCurrencyCode { get; set; } = CurrencyCode.PLN;
+
+    [Display(Name = "Exchange Rate (to Base)")]
+    [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]
+    public decimal? ExpenseExchangeRateValue { get; set; } = 1.0M;
+
     // Select lists
     public List<TripSelectItem> Trips { get; set; } = new List<TripSelectItem>();
     public List<SpotSelectItem> Spots { get; set; } = new List<SpotSelectItem>();
     public List<TransportationTypeSelectItem> TransportationTypes { get; set; } = new List<TransportationTypeSelectItem>();
-
     public IEnumerable<SelectListItem> SpotSelectList { get; set; } = new List<SelectListItem>();
     public IEnumerable<SelectListItem> TripSelectList { get; set; } = new List<SelectListItem>();
+
+    // Select lists dla Expense
+    public List<CurrencySelectGroupItem> CurrenciesGroups { get; set; } = new List<CurrencySelectGroupItem>();
 }
 
 // Select list items

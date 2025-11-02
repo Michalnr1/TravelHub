@@ -57,6 +57,17 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
             ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
+
+            [Required]
+            [EmailAddress]
+            [Display(Name = "Email")]
+            public string Email { get; set; }
+
+            [Required]
+            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
+            [Display(Name = "Username")]
+            public string UserName { get; set; }
+
             [Phone]
             [Display(Name = "Phone number")]
             public string PhoneNumber { get; set; }
@@ -81,22 +92,30 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
             [DataType(DataType.Date)]
             [MinimumAge(18, 150)]
             public DateTime Birthday { get; set; }
+
+            [Required]
+            [Display(Name = "Is account private?")]
+            public bool IsPrivate { get; set; }
         }
 
         private async Task LoadAsync(Person user)
         {
             var userName = await _userManager.GetUserNameAsync(user);
+            var email = await _userManager.GetEmailAsync(user);
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
 
             Username = userName;
 
             Input = new InputModel
             {
+                Email = email,
+                UserName = userName,
                 PhoneNumber = phoneNumber,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Nationality = user.Nationality,
-                Birthday = user.Birthday
+                Birthday = user.Birthday,
+                IsPrivate = user.IsPrivate
             };
         }
 
@@ -126,6 +145,52 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
                 return Page();
             }
 
+            var userName = await _userManager.GetUserNameAsync(user);
+            if (Input.UserName != userName)
+            {
+                var existingUserByUserName = await _userManager.FindByNameAsync(Input.UserName);
+                if (existingUserByUserName != null && existingUserByUserName.Id != user.Id)
+                {
+                    ModelState.AddModelError("Input.UserName", "This username is already taken.");
+                    await LoadAsync(user);
+                    return Page();
+                }
+
+                var setUserNameResult = await _userManager.SetUserNameAsync(user, Input.UserName);
+                if (!setUserNameResult.Succeeded)
+                {
+                    foreach (var error in setUserNameResult.Errors)
+                    {
+                        ModelState.AddModelError("Input.UserName", error.Description);
+                    }
+                    await LoadAsync(user);
+                    return Page();
+                }
+            }
+
+            var email = await _userManager.GetEmailAsync(user);
+            if (Input.Email != email)
+            {
+                var existingUserByEmail = await _userManager.FindByEmailAsync(Input.Email);
+                if (existingUserByEmail != null && existingUserByEmail.Id != user.Id)
+                {
+                    ModelState.AddModelError("Input.Email", "This email is already taken.");
+                    await LoadAsync(user);
+                    return Page();
+                }
+
+                var setEmailResult = await _userManager.SetEmailAsync(user, Input.Email);
+                if (!setEmailResult.Succeeded)
+                {
+                    foreach (var error in setEmailResult.Errors)
+                    {
+                        ModelState.AddModelError("Input.Email", error.Description);
+                    }
+                    await LoadAsync(user);
+                    return Page();
+                }
+            }
+
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
             if (Input.PhoneNumber != phoneNumber)
             {
@@ -149,7 +214,19 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
             if (Input.Birthday != user.Birthday)
                 user.Birthday = Input.Birthday;
 
-            await _userManager.UpdateAsync(user);  // ← Zapisuje zmiany w Person!
+            if (Input.IsPrivate != user.IsPrivate)
+                user.IsPrivate = Input.IsPrivate;
+
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                foreach (var error in updateResult.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                await LoadAsync(user);
+                return Page();
+            }
 
             await _signInManager.RefreshSignInAsync(user);
             StatusMessage = "Your profile has been updated";

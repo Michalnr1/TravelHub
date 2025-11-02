@@ -16,4 +16,5 @@ public interface ITripService : IGenericService<Trip>
     Task<IEnumerable<Trip>> GetAllWithUserAsync();
     Task<Day> CreateNextDayAsync(int tripId);
     Task<Country> AddCountryToTrip(int tripId, string name, string code);
+    Task<CurrencyCode> GetTripCurrencyAsync(int tripId);
 }

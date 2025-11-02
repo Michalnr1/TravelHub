@@ -1,13 +1,15 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Web.ViewModels.Expenses;
 using TravelHub.Web.ViewModels.Transports;
 
 namespace TravelHub.Web.Controllers;
@@ -18,18 +20,27 @@ public class TransportsController : Controller
     private readonly ITransportService _transportService;
     private readonly ITripService _tripService;
     private readonly ISpotService _spotService;
+    private readonly IExpenseService _expenseService;
+    private readonly IExchangeRateService _exchangeRateService;
     private readonly ILogger<TransportsController> _logger;
+    private readonly UserManager<Person> _userManager;
 
     public TransportsController(
         ITransportService transportService,
         ITripService tripService,
         ISpotService spotService,
-        ILogger<TransportsController> logger)
+        IExpenseService expenseService,
+        IExchangeRateService exchangeRateService,
+        ILogger<TransportsController> logger,
+        UserManager<Person> userManager)
     {
         _transportService = transportService;
         _tripService = tripService;
         _spotService = spotService;
+        _expenseService = expenseService;
+        _exchangeRateService = exchangeRateService;
         _logger = logger;
+        _userManager = userManager;
     }
 
     // GET: Transports
@@ -121,7 +132,14 @@ public class TransportsController : Controller
                 ToSpotId = viewModel.ToSpotId
             };
 
-            await _transportService.AddAsync(transport);
+            var createdTransport = await _transportService.AddAsync(transport);
+
+            // Jeśli podano koszt, utwórz powiązany Expense
+            if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
+            {
+                await CreateExpenseForTransport(createdTransport, viewModel);
+            }
+
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
@@ -204,6 +222,9 @@ public class TransportsController : Controller
                 existingTransport.ToSpotId = viewModel.ToSpotId;
 
                 await _transportService.UpdateAsync(existingTransport);
+
+                // Aktualizacja Expense jeśli istnieje i zmieniono dane
+                await UpdateExpenseForTransport(existingTransport, viewModel);
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -319,7 +340,13 @@ public class TransportsController : Controller
                     ToSpotId = viewModel.ToSpotId
                 };
 
-                await _transportService.AddAsync(transport);
+                var createdTransport = await _transportService.AddAsync(transport);
+
+                // Jeśli podano koszt, utwórz powiązany Expense (opcjonalnie)
+                if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
+                {
+                    await CreateExpenseForTransport(createdTransport, viewModel);
+                }
 
                 TempData["SuccessMessage"] = "Transport added successfully!";
                 return RedirectToAction("Details", "Trips", new { id = tripId });
@@ -333,6 +360,55 @@ public class TransportsController : Controller
 
         await PopulateSelectListsForTrip(viewModel, tripId);
         return View("AddToTrip", viewModel);
+    }
+
+    private async Task CreateExpenseForTransport(Transport transport, TransportCreateEditViewModel viewModel)
+    {
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            _logger.LogWarning("Cannot create expense for transport: User not found");
+            return;
+        }
+
+        try
+        {
+            // Pobierz lub utwórz exchange rate
+            var exchangeRateEntry = await _exchangeRateService
+                .GetOrCreateExchangeRateAsync(
+                    transport.TripId,
+                    viewModel.ExpenseCurrencyCode ?? CurrencyCode.PLN,
+                    viewModel.ExpenseExchangeRateValue ?? 1.0M);
+
+            // Utwórz Expense
+            var expense = new Expense
+            {
+                Name = $"{transport.Name} (Transport)",
+                Value = viewModel.ExpenseValue!.Value,
+                PaidById = currentUser.Id,
+                CategoryId = null,
+                ExchangeRateId = exchangeRateEntry.Id,
+                TripId = transport.TripId,
+                TransportId = transport.Id,
+                IsEstimated = true
+            };
+
+            // Dodaj expense bez uczestników
+            await _expenseService.AddAsync(expense);
+
+            _logger.LogInformation("Expense created for transport {TransportId}", transport.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating expense for transport {TransportId}", transport.Id);
+        }
+    }
+
+    private async Task UpdateExpenseForTransport(Transport transport, TransportCreateEditViewModel viewModel)
+    {
+        // Tutaj można dodać logikę aktualizacji istniejącego Expense
+        // jeśli będzie potrzebna w przyszłości
+        // Na razie tworzymy tylko nowe Expense, nie aktualizujemy istniejących
     }
 
     private async Task PopulateSelectListsForTrip(TransportCreateEditViewModel viewModel, int tripId)
@@ -355,6 +431,88 @@ public class TransportsController : Controller
                 Value = t,
                 Name = t.ToString()
             }).ToList();
+
+        // Currencies dla Expense
+        var usedRates = await _exchangeRateService.GetTripExchangeRatesAsync(tripId);
+        await PopulateCurrencySelectList(viewModel, usedRates);
+    }
+
+    private async Task PopulateCurrencySelectList(TransportCreateEditViewModel viewModel, IReadOnlyList<ExchangeRate> usedRates)
+    {
+        var allCurrencyCodes = Enum.GetValues(typeof(CurrencyCode))
+            .Cast<CurrencyCode>()
+            .ToDictionary(code => code, code => code.GetDisplayName());
+
+        var usedCurrencies = usedRates
+            .Select(er => new CurrencySelectGroupItem
+            {
+                Key = er.CurrencyCodeKey,
+                Name = er.Name,
+                ExchangeRate = er.ExchangeRateValue,
+                IsUsed = true
+            })
+            .OrderBy(c => c.Key.ToString())
+            .ThenByDescending(c => c.ExchangeRate)
+            .ToList();
+
+        var allCurrencies = allCurrencyCodes
+            .Select(pair => new CurrencySelectGroupItem
+            {
+                Key = pair.Key,
+                Name = pair.Value,
+                ExchangeRate = 1.0M,
+                IsUsed = false
+            })
+            .OrderBy(c => c.Key.ToString())
+            .ToList();
+
+        viewModel.CurrenciesGroups = usedCurrencies
+            .Concat(allCurrencies)
+            .ToList();
+
+        // Ustaw domyślną walutę
+        if (!viewModel.ExpenseCurrencyCode.HasValue)
+        {
+            try
+            {
+                var tripCurrency = await _tripService.GetTripCurrencyAsync(viewModel.TripId);
+
+                // Szukaj najpierw w użytych walutach
+                var defaultCurrency = usedCurrencies.FirstOrDefault(c => c.Key == tripCurrency);
+
+                // Jeśli nie znaleziono w użytych, szukaj we wszystkich
+                if (defaultCurrency == null)
+                {
+                    defaultCurrency = allCurrencies.FirstOrDefault(c => c.Key == tripCurrency);
+                }
+
+                // Jeśli nadal nie znaleziono, użyj pierwszej z użytych lub PLN
+                defaultCurrency ??= usedCurrencies.FirstOrDefault()
+                                  ?? allCurrencies.FirstOrDefault(c => c.Key == CurrencyCode.PLN)
+                                  ?? allCurrencies.FirstOrDefault();
+
+                if (defaultCurrency != null)
+                {
+                    viewModel.ExpenseCurrencyCode = defaultCurrency.Key;
+                    viewModel.ExpenseExchangeRateValue = 1.0M;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get trip currency for trip {TripId}, using fallback", viewModel.TripId);
+
+                // Fallback: użyj pierwszej dostępnej waluty
+                var fallbackCurrency = usedCurrencies.FirstOrDefault()
+                                     ?? allCurrencies.FirstOrDefault(c => c.Key == CurrencyCode.PLN)
+                                     ?? allCurrencies.FirstOrDefault();
+
+                if (fallbackCurrency != null)
+                {
+                    viewModel.ExpenseCurrencyCode = fallbackCurrency.Key;
+                    viewModel.ExpenseExchangeRateValue = 1.0M;
+                }
+            }
+        }
     }
 
     private async Task<bool> TransportExists(int id)
