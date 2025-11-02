@@ -198,6 +198,11 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         return summary.TotalExpensesInTripCurrency;
     }
 
+    public async Task<Expense?> GetExpenseByAccommodationIdAsync(int accommodationId)
+    {
+        return await _expenseRepository.GetExpenseByAccommodationIdAsync(accommodationId);
+    }
+
     private List<ExpenseParticipant> CalculateAndCreateParticipants(decimal expenseValue, int expenseId, IEnumerable<ParticipantShareDto> participantShares)
     {
         var sharesList = participantShares.ToList();

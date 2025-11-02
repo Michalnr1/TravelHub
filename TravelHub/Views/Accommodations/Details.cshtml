@@ -9,7 +9,7 @@
     <div>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit</a>
         <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
-        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+        <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">Back to Trip</a>
     </div>
 </div>
 

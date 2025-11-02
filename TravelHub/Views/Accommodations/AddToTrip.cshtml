@@ -81,15 +81,17 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label asp-for="Latitude" class="control-label"></label>
-                                <input asp-for="Latitude" class="form-control" type="number" id="lat-input" step="0.0001" />
+                                <input asp-for="Latitude" class="form-control" type="number" id="lat-input" step="0.0001" readonly />
                                 <span asp-validation-for="Latitude" class="text-danger"></span>
+                                <small class="form-text text-muted">Click on the map to set coordinates</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label asp-for="Longitude" class="control-label"></label>
-                                <input asp-for="Longitude" class="form-control" type="number" id="lon-input" step="0.0001" />
+                                <input asp-for="Longitude" class="form-control" type="number" id="lon-input" step="0.0001" readonly />
                                 <span asp-validation-for="Longitude" class="text-danger"></span>
+                                <small class="form-text text-muted">Click on the map to set coordinates</small>
                             </div>
                         </div>
                     </div>
@@ -232,6 +234,35 @@
                 var $selected = $(this).find('option:selected');
                 if ($selected.val() !== '') {
                     setExchangeRate($selected);
+                }
+            });
+
+            // Walidacja współrzędnych przed wysłaniem formularza
+            $('form').on('submit', function(e) {
+                const lat = parseFloat($('#lat-input').val());
+                const lng = parseFloat($('#lon-input').val());
+
+                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+                    e.preventDefault();
+                    alert('Please select a location on the map before submitting.');
+                    // Przewiń do mapy
+                    $('html, body').animate({
+                        scrollTop: $('#map').offset().top - 100
+                    }, 500);
+                    return false;
+                }
+
+                // Dodatkowa walidacja zakresów
+                if (lat < -90 || lat > 90) {
+                    e.preventDefault();
+                    alert('Latitude must be between -90 and 90 degrees.');
+                    return false;
+                }
+
+                if (lng < -180 || lng > 180) {
+                    e.preventDefault();
+                    alert('Longitude must be between -180 and 180 degrees.');
+                    return false;
                 }
             });
         });

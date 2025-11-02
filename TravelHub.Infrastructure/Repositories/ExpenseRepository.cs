@@ -43,6 +43,14 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
             .ToListAsync();
     }
 
+    public async Task<Expense?> GetExpenseByAccommodationIdAsync(int accommodationId)
+    {
+        return await _context.Expenses
+            .Include(e => e.ExchangeRate)
+            .Include(e => e.Participants)
+            .FirstOrDefaultAsync(e => e.SpotId == accommodationId);
+    }
+
     //public async Task<IEnumerable<Expense>> GetByTripIdWithExchangeRatesAsync(int tripId)
     //{
     //    return await _context.Expenses

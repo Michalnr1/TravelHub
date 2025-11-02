@@ -172,6 +172,23 @@ public class AccommodationsController : Controller
         }
 
         var viewModel = await CreateAccommodationCreateEditViewModel(accommodation);
+
+        // Dodaj dane potrzebne dla widoku (jak w AddToTrip)
+        var trip = await _tripService.GetByIdAsync(accommodation.TripId);
+        if (trip != null)
+        {
+            ViewData["TripName"] = trip.Name;
+            ViewData["MinDate"] = trip.StartDate.ToString("yyyy-MM-dd");
+            ViewData["MaxDate"] = trip.EndDate.ToString("yyyy-MM-dd");
+
+            (double lat, double lng) = await GetMedianCoords(trip.Id);
+            ViewData["Latitude"] = lat;
+            ViewData["Longitude"] = lng;
+        }
+
+        ViewData["ReturnUrl"] = Url.Action("Details", "Accommodations", new { id = id });
+        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
+
         return View(viewModel);
     }
 
@@ -190,6 +207,26 @@ public class AccommodationsController : Controller
             return Forbid();
         }
 
+        // Walidacja dat w zakresie podróży (jak w AddToTrip)
+        var trip = await _tripService.GetByIdAsync(viewModel.TripId);
+        if (trip != null)
+        {
+            if (viewModel.CheckIn < trip.StartDate || viewModel.CheckIn > trip.EndDate)
+            {
+                ModelState.AddModelError("CheckIn", $"Check-in date must be between {trip.StartDate:yyyy-MM-dd} and {trip.EndDate:yyyy-MM-dd}");
+            }
+
+            if (viewModel.CheckOut < trip.StartDate || viewModel.CheckOut > trip.EndDate)
+            {
+                ModelState.AddModelError("CheckOut", $"Check-out date must be between {trip.StartDate:yyyy-MM-dd} and {trip.EndDate:yyyy-MM-dd}");
+            }
+
+            if (viewModel.CheckOut <= viewModel.CheckIn)
+            {
+                ModelState.AddModelError("CheckOut", "Check-out date must be after check-in date");
+            }
+        }
+
         if (ModelState.IsValid)
         {
             try
@@ -200,22 +237,32 @@ public class AccommodationsController : Controller
                     return NotFound();
                 }
 
+                // SPRÓBUJ ZNALEŹĆ DZIEŃ DLA ACCOMMODATION (jak w AddToTrip)
+                var dayId = await TryFindDayForAccommodation(viewModel.TripId, viewModel.CheckIn, viewModel.CheckOut);
+
                 // Update properties
                 existingAccommodation.Name = viewModel.Name;
                 existingAccommodation.Description = viewModel.Description;
-                existingAccommodation.Duration = viewModel.Duration;
-                existingAccommodation.Order = viewModel.Order;
+                existingAccommodation.Duration = 0; // Duration nie jest istotne dla zakwaterowania
+                existingAccommodation.Order = 0; // Order nie jest edytowalny
                 existingAccommodation.CategoryId = viewModel.CategoryId;
-                existingAccommodation.DayId = viewModel.DayId;
+                existingAccommodation.DayId = dayId; // Przypisz tylko jeśli dzień istnieje, inaczej null
                 existingAccommodation.Longitude = viewModel.Longitude;
                 existingAccommodation.Latitude = viewModel.Latitude;
-                // existingAccommodation.Cost = viewModel.Cost;
                 existingAccommodation.CheckIn = viewModel.CheckIn;
                 existingAccommodation.CheckOut = viewModel.CheckOut;
                 existingAccommodation.CheckInTime = viewModel.CheckInTime;
                 existingAccommodation.CheckOutTime = viewModel.CheckOutTime;
 
                 await _accommodationService.UpdateAsync(existingAccommodation);
+
+                // Aktualizuj powiązany Expense (jak w AddToTrip)
+                await UpdateExpenseForAccommodation(existingAccommodation, viewModel);
+
+                TempData["SuccessMessage"] = "Accommodation updated successfully!" +
+                    (dayId == null ? " It will be automatically assigned to a day when one is created for its date range." : "");
+
+                return RedirectToAction("Details", "Accommodations", new { id = id });
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -228,10 +275,35 @@ public class AccommodationsController : Controller
                     throw;
                 }
             }
-            return RedirectToAction(nameof(Index));
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating accommodation");
+                ModelState.AddModelError("", "An error occurred while updating the accommodation.");
+            }
         }
 
+        // W przypadku błędu, ponownie wypełnij listy i dane widoku
         await PopulateSelectLists(viewModel);
+
+        var accommodationForViewData = await _accommodationService.GetByIdAsync(id);
+        if (accommodationForViewData != null)
+        {
+            var tripForViewData = await _tripService.GetByIdAsync(accommodationForViewData.TripId);
+            if (tripForViewData != null)
+            {
+                ViewData["TripName"] = tripForViewData.Name;
+                ViewData["MinDate"] = tripForViewData.StartDate.ToString("yyyy-MM-dd");
+                ViewData["MaxDate"] = tripForViewData.EndDate.ToString("yyyy-MM-dd");
+
+                (double lat, double lng) = await GetMedianCoords(tripForViewData.Id);
+                ViewData["Latitude"] = lat;
+                ViewData["Longitude"] = lng;
+            }
+        }
+
+        ViewData["ReturnUrl"] = Url.Action("Details", "Accommodations", new { id = id });
+        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
+
         return View(viewModel);
     }
 
@@ -473,6 +545,68 @@ public class AccommodationsController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating expense for accommodation {AccommodationId}", accommodation.Id);
+        }
+    }
+
+    private async Task UpdateExpenseForAccommodation(Accommodation accommodation, AccommodationCreateEditViewModel viewModel)
+    {
+        try
+        {
+            // Znajdź istniejący expense dla tego zakwaterowania
+            var existingExpense = await _expenseService.GetExpenseByAccommodationIdAsync(accommodation.Id);
+
+            if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
+            {
+                // Jeśli podano koszt, utwórz lub zaktualizuj expense
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
+                {
+                    _logger.LogWarning("Cannot update expense for accommodation: User not found");
+                    return;
+                }
+
+                // Pobierz lub utwórz exchange rate
+                var exchangeRateEntry = await _exchangeRateService
+                    .GetOrCreateExchangeRateAsync(
+                        accommodation.TripId,
+                        viewModel.ExpenseCurrencyCode ?? CurrencyCode.PLN,
+                        viewModel.ExpenseExchangeRateValue ?? 1.0M);
+
+                if (existingExpense != null)
+                {
+                    // Aktualizuj istniejący expense
+                    existingExpense.Name = $"{accommodation.Name} (Expense)";
+                    existingExpense.Value = viewModel.ExpenseValue.Value;
+                    existingExpense.PaidById = currentUser.Id;
+                    existingExpense.CategoryId = accommodation.CategoryId;
+                    existingExpense.ExchangeRateId = exchangeRateEntry.Id;
+                    existingExpense.TripId = accommodation.TripId;
+                    existingExpense.SpotId = accommodation.Id;
+                    existingExpense.IsEstimated = true;
+
+                    await _expenseService.UpdateAsync(existingExpense);
+                    _logger.LogInformation("Expense updated for accommodation {AccommodationId}", accommodation.Id);
+                }
+                else
+                {
+                    // Utwórz nowy expense
+                    await CreateExpenseForAccommodation(accommodation, viewModel);
+                }
+            }
+            else
+            {
+                // Jeśli koszt jest null lub 0, usuń istniejący expense (jeśli istnieje)
+                if (existingExpense != null)
+                {
+                    await _expenseService.DeleteAsync(existingExpense.Id);
+                    _logger.LogInformation("Expense deleted for accommodation {AccommodationId}", accommodation.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating expense for accommodation {AccommodationId}", accommodation.Id);
+            // Nie rzucaj wyjątku dalej - błąd expense nie powinien blokować aktualizacji zakwaterowania
         }
     }
 

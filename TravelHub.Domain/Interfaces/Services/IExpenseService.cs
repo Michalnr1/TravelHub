@@ -16,4 +16,5 @@ public interface IExpenseService : IGenericService<Expense>
     Task<IEnumerable<Expense>> GetByTripIdWithParticipantsAsync(int tripId);
     Task<TripExpensesSummaryDto> CalculateTripExpensesInTripCurrencyAsync(int tripId, CurrencyCode tripCurrency);
     Task<decimal> GetTotalExpensesInCurrencyAsync(int tripId, CurrencyCode targetCurrency);
+    Task<Expense?> GetExpenseByAccommodationIdAsync(int accommodationId);
 }

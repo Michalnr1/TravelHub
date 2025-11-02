@@ -2,143 +2,220 @@
 
 @{
     ViewData["Title"] = "Edit Accommodation";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? Url.Action("Details", "Accommodations", new { id = Model.Id });
+    var apiKey = ViewData["GoogleApiKey"];
+    var startLat = ViewData["Latitude"] ?? Model.Latitude;
+    var startLng = ViewData["Longitude"] ?? Model.Longitude;
+    var minDate = ViewData["MinDate"] as string;
+    var maxDate = ViewData["MaxDate"] as string;
 }
 
 <h1>Edit Accommodation</h1>
 
 <hr />
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-md-6">
         <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="Duration" />
+            <input type="hidden" asp-for="Order" />
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
+            <!-- Sekcja podstawowych danych Accommodation -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Accommodation Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
                         <label asp-for="Name" class="control-label"></label>
-                        <input asp-for="Name" class="form-control" />
+                        <input asp-for="Name" class="form-control" id="name-input" />
                         <span asp-validation-for="Name" class="text-danger"></span>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="Order" class="control-label"></label>
-                        <input asp-for="Order" class="form-control" />
-                        <span asp-validation-for="Order" class="text-danger"></span>
-                    </div>
-                </div>
-            </div>
 
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label asp-for="Duration" class="control-label"></label>
-                        <input asp-for="Duration" class="form-control" />
-                        <span asp-validation-for="Duration" class="text-danger"></span>
+                    <div class="form-group mb-3">
+                        <label asp-for="Description" class="control-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
                     </div>
-                </div>
-                <div class="col-md-4">
-                    @* <div class="form-group">
-                        <label asp-for="Cost" class="control-label"></label>
-                        <input asp-for="Cost" class="form-control" />
-                        <span asp-validation-for="Cost" class="text-danger"></span>
-                    </div> *@
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label asp-for="CategoryId" class="control-label">Category</label>
-                        <select asp-for="CategoryId" class="form-control" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="TripId" class="control-label">Trip</label>
+                                <select asp-for="TripId" class="form-control" asp-items="@(new SelectList(Model.Trips, "Id", "Name"))">
+                                    <option value="">-- Select Trip --</option>
+                                </select>
+                                <span asp-validation-for="TripId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="DayId" class="control-label">Day</label>
+                                <select asp-for="DayId" class="form-control" asp-items="@(new SelectList(Model.Days, "Id", "DisplayName"))">
+                                    <option value="">-- Select Day --</option>
+                                </select>
+                                <span asp-validation-for="DayId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="CheckIn" class="control-label"></label>
+                                <input asp-for="CheckIn" class="form-control" type="date"
+                                       min="@minDate" max="@maxDate" />
+                                <span asp-validation-for="CheckIn" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="CheckOut" class="control-label"></label>
+                                <input asp-for="CheckOut" class="form-control" type="date"
+                                       min="@minDate" max="@maxDate" />
+                                <span asp-validation-for="CheckOut" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="CheckInTime" class="control-label"></label>
+                                <input asp-for="CheckInTime" class="form-control" type="number" step="0.5" min="0" max="23.5" />
+                                <span asp-validation-for="CheckInTime" class="text-danger"></span>
+                                <small class="form-text text-muted">Check-in time (e.g., 14.0 for 14:00)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="CheckOutTime" class="control-label"></label>
+                                <input asp-for="CheckOutTime" class="form-control" type="number" step="0.5" min="0" max="23.5" />
+                                <span asp-validation-for="CheckOutTime" class="text-danger"></span>
+                                <small class="form-text text-muted">Check-out time (e.g., 10.0 for 10:00)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Latitude" class="control-label"></label>
+                                <input asp-for="Latitude" class="form-control" type="number" id="lat-input" step="0.0001" readonly />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                                <small class="form-text text-muted">Click on the map to set coordinates</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Longitude" class="control-label"></label>
+                                <input asp-for="Longitude" class="form-control" type="number" id="lon-input" step="0.0001" readonly />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                                <small class="form-text text-muted">Click on the map to set coordinates</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="CategoryId" class="control-label"></label>
+                        <select asp-for="CategoryId" class="form-control">
                             <option value="">-- Select Category --</option>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
                         </select>
                         <span asp-validation-for="CategoryId" class="text-danger"></span>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="TripId" class="control-label">Trip</label>
-                        <select asp-for="TripId" class="form-control" asp-items="@(new SelectList(Model.Trips, "Id", "Name"))">
-                            <option value="">-- Select Trip --</option>
-                        </select>
-                        <span asp-validation-for="TripId" class="text-danger"></span>
-                    </div>
+            <!-- Sekcja Expense -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Estimated Accommodation Cost (Optional)</h5>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="DayId" class="control-label">Day</label>
-                        <select asp-for="DayId" class="form-control" asp-items="@(new SelectList(Model.Days, "Id", "DisplayName"))">
-                            <option value="">-- Select Day --</option>
-                        </select>
-                        <span asp-validation-for="DayId" class="text-danger"></span>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> This is an estimated cost for planning purposes. You can skip this section if you don't know the cost yet.
                     </div>
-                </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="CheckIn" class="control-label"></label>
-                        <input asp-for="CheckIn" class="form-control" type="date" />
-                        <span asp-validation-for="CheckIn" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="CheckOut" class="control-label"></label>
-                        <input asp-for="CheckOut" class="form-control" type="date" />
-                        <span asp-validation-for="CheckOut" class="text-danger"></span>
-                    </div>
-                </div>
-            </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ExpenseValue" class="form-label">Estimated Cost</label>
+                                <input asp-for="ExpenseValue" class="form-control" type="number" step="0.01" />
+                                <span asp-validation-for="ExpenseValue" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ExpenseCurrencyCode" class="form-label">Currency</label>
+                                <select asp-for="ExpenseCurrencyCode" class="form-control" id="currencySelect">
+                                    <option value="">-- Select Currency --</option>
+                                    @{
+                                        var usedCurrencies = Model.CurrenciesGroups.Where(c => c.IsUsed).ToList();
+                                        var allCurrencies = Model.CurrenciesGroups.Where(c => !c.IsUsed).ToList();
+                                    }
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="CheckInTime" class="control-label"></label>
-                        <input asp-for="CheckInTime" class="form-control" />
-                        <span asp-validation-for="CheckInTime" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="CheckOutTime" class="control-label"></label>
-                        <input asp-for="CheckOutTime" class="form-control" />
-                        <span asp-validation-for="CheckOutTime" class="text-danger"></span>
-                    </div>
-                </div>
-            </div>
+                                    @if (usedCurrencies.Any())
+                                    {
+                                        <optgroup label="-- Used Currency (Currency, Rate) --">
+                                            @foreach (var currency in usedCurrencies)
+                                            {
+                                                bool isSelected = (Model.ExpenseCurrencyCode == currency.Key && Model.ExpenseExchangeRateValue == currency.ExchangeRate);
+                                                <option value="@currency.Key"
+                                                        data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                        selected="@isSelected">
+                                                    @currency.DropdownText
+                                                </option>
+                                            }
+                                        </optgroup>
+                                    }
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="Latitude" class="control-label"></label>
-                        <input asp-for="Latitude" class="form-control" />
-                        <span asp-validation-for="Latitude" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="Longitude" class="control-label"></label>
-                        <input asp-for="Longitude" class="form-control" />
-                        <span asp-validation-for="Longitude" class="text-danger"></span>
+                                    <optgroup label="-- All currencies --">
+                                        @foreach (var currency in allCurrencies)
+                                        {
+                                            <option value="@currency.Key"
+                                                    data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                    selected="@(Model.ExpenseCurrencyCode == currency.Key && Model.ExpenseExchangeRateValue == 1.0M)">
+                                                @currency.DropdownText
+                                            </option>
+                                        }
+                                    </optgroup>
+                                </select>
+                                <span asp-validation-for="ExpenseCurrencyCode" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ExpenseExchangeRateValue" class="form-label">Exchange Rate (to Base)</label>
+                                <input asp-for="ExpenseExchangeRateValue" class="form-control" type="number" step="0.000001" />
+                                <span asp-validation-for="ExpenseExchangeRateValue" class="text-danger"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="form-group mt-3">
-                <input type="submit" value="Save" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                <input type="submit" value="Save Changes" class="btn btn-primary" />
+                <a href="@returnUrl" class="btn btn-secondary">Back to Accommodation</a>
             </div>
         </form>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Map</h5>
+            </div>
+            <div class="card-body">
+                <div class="place-autocomplete-card" id="card"></div>
+                <div id="map" style="height:500px;width:100%;margin-top:10px;"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -146,4 +223,202 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script async
+            src="https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places&callback=initMap">
+    </script>
+
+    <script>
+        $(document).ready(function () {
+            var $currencySelect = $('#currencySelect');
+            var $exchangeRateInput = $('#ExpenseExchangeRateValue');
+
+            function setExchangeRate(selectedOption) {
+                var rate = selectedOption.data('rate');
+                if (rate) {
+                    $exchangeRateInput.val(parseFloat(rate).toFixed(6));
+                } else {
+                    $exchangeRateInput.val('1.000000');
+                }
+            }
+
+            // Ustaw domyślny kurs po załadowaniu strony tylko jeśli waluta jest wybrana
+            var $initialSelectedOption = $currencySelect.find('option:selected');
+            if ($initialSelectedOption.length > 0 && $initialSelectedOption.val() !== '') {
+                if ($exchangeRateInput.val() === '' || $exchangeRateInput.val() === '0') {
+                    setExchangeRate($initialSelectedOption);
+                }
+            }
+
+            // Obsługa zmiany waluty
+            $currencySelect.on('change', function () {
+                var $selected = $(this).find('option:selected');
+                if ($selected.val() !== '') {
+                    setExchangeRate($selected);
+                }
+            });
+
+            // Automatyczne ustawienie minimalnej daty check-out na dzień po check-in
+            document.getElementById("CheckIn").addEventListener("change", function() {
+                const checkInDate = new Date(this.value);
+                const checkOutInput = document.getElementById("CheckOut");
+                const minCheckOutDate = new Date(checkInDate);
+                minCheckOutDate.setDate(minCheckOutDate.getDate() + 1);
+
+                checkOutInput.min = minCheckOutDate.toISOString().split('T')[0];
+
+                // Jeśli obecna data check-out jest przed nową minimalną datą, zaktualizuj ją
+                const currentCheckOut = new Date(checkOutInput.value);
+                if (currentCheckOut <= checkInDate) {
+                    checkOutInput.value = minCheckOutDate.toISOString().split('T')[0];
+                }
+            });
+
+            // Walidacja współrzędnych przed wysłaniem formularza
+            $('form').on('submit', function(e) {
+                const lat = parseFloat($('#lat-input').val());
+                const lng = parseFloat($('#lon-input').val());
+
+                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+                    e.preventDefault();
+                    alert('Please select a location on the map before submitting.');
+                    // Przewiń do mapy
+                    $('html, body').animate({
+                        scrollTop: $('#map').offset().top - 100
+                    }, 500);
+                    return false;
+                }
+
+                // Dodatkowa walidacja zakresów
+                if (lat < -90 || lat > 90) {
+                    e.preventDefault();
+                    alert('Latitude must be between -90 and 90 degrees.');
+                    return false;
+                }
+
+                if (lng < -180 || lng > 180) {
+                    e.preventDefault();
+                    alert('Longitude must be between -180 and 180 degrees.');
+                    return false;
+                }
+            });
+        });
+
+        let map;
+        let infoWindow;
+
+        let center = {
+            lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')),
+            lng: parseFloat("@Html.Raw(startLng)".replace(',', '.'))
+        };
+
+        async function initMap() {
+            const [{ Map }, { Place }] = await Promise.all([
+                google.maps.importLibrary("maps"),
+                google.maps.importLibrary("places"),
+            ]);
+
+            // Initialize the map.
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: center,
+                zoom: 12,
+            });
+
+            // Place Autocomplete
+            const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement();
+            placeAutocomplete.id = "start";
+            placeAutocomplete.locationBias = { center: center, radius: 5000 };
+
+            const card = document.getElementById("card");
+            card.appendChild(placeAutocomplete);
+            map.controls[google.maps.ControlPosition.TOP_LEFT].push(card);
+
+            infoWindow = new google.maps.InfoWindow({});
+
+            placeAutocomplete.addEventListener("gmp-select", async ({ placePrediction }) => {
+                const place = placePrediction.toPlace();
+                await place.fetchFields({
+                    fields: ["displayName", "formattedAddress", "location"],
+                });
+
+                if (place.viewport) {
+                    map.fitBounds(place.viewport);
+                } else {
+                    map.setCenter(place.location);
+                    map.setZoom(13);
+                }
+
+                let content =
+                    '<div id="infowindow-content">' +
+                    '<span id="place-displayname" class="title">' +
+                    place.displayName +
+                    '</span><br />' +
+                    '<span id="place-address">' +
+                    place.formattedAddress +
+                    '</span><br />' +
+                    '<span id="place-coords">' +
+                    place.location.lat() + ' ' + place.location.lng() +
+                    '</span>' +
+                    '</div>';
+
+                updateInfoWindow(content, place.location);
+
+                document.getElementById("name-input").value = place.displayName;
+                document.getElementById("lat-input").value = Math.round(place.location.lat() * 10000) / 10000;
+                document.getElementById("lon-input").value = Math.round(place.location.lng() * 10000) / 10000;
+            });
+
+            map.addListener("click", async (mapsMouseEvent) => {
+                if (mapsMouseEvent.placeId) {
+                    let place = new Place({
+                        id: mapsMouseEvent.placeId
+                    });
+                    await place.fetchFields({ fields: ['displayName'] });
+                    document.getElementById("name-input").value = place.displayName;
+                } else {
+                    let content =
+                        '<span id="place-coords">' +
+                        JSON.stringify(mapsMouseEvent.latLng.toJSON().lat, null, 2) +
+                        ", " +
+                        JSON.stringify(mapsMouseEvent.latLng.toJSON().lng, null, 2) +
+                        '</span>' +
+                        '</div>';
+                    updateInfoWindow(content, mapsMouseEvent.latLng);
+                }
+
+                document.getElementById("lat-input").value = Math.round(mapsMouseEvent.latLng.toJSON().lat * 10000) / 10000;
+                document.getElementById("lon-input").value = Math.round(mapsMouseEvent.latLng.toJSON().lng * 10000) / 10000;
+            });
+
+            // Jeśli istnieją współrzędne, ustaw marker na mapie
+            if (center.lat && center.lng) {
+                const marker = new google.maps.Marker({
+                    position: center,
+                    map: map,
+                    title: "@Model.Name"
+                });
+
+                let content =
+                    '<div id="infowindow-content">' +
+                    '<span id="place-displayname" class="title">' +
+                    "@Model.Name" +
+                    '</span><br />' +
+                    '<span id="place-coords">' +
+                    center.lat + ' ' + center.lng +
+                    '</span>' +
+                    '</div>';
+
+                updateInfoWindow(content, center);
+            }
+        }
+
+        function updateInfoWindow(content, center) {
+            infoWindow.setContent(content);
+            infoWindow.setPosition(center);
+            infoWindow.open({
+                map,
+                shouldFocus: false,
+            });
+        }
+    </script>
 }
