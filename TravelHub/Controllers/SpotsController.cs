@@ -370,23 +370,7 @@ public class SpotsController : Controller
 
         await PopulateSelectListsForTrip(viewModel, tripId);
 
-        ViewData["TripName"] = trip.Name;
-        ViewData["DayName"] = dayId.HasValue ?
-            trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
-        if (dayId != null)
-        {
-            ViewData["ReturnUrl"] = Url.Action("Details", "Days", new { id = dayId });
-        }
-        else
-        {
-            ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
-        }
-        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
-
-        (double lat, double lng) = await _tripService.GetMedianCoords(tripId);
-
-        ViewData["Latitude"] = lat;
-        ViewData["Longitude"] = lng;
+        await SetAddToDayViewData(trip, dayId);
 
         return View("AddToTrip", viewModel);
     }
@@ -401,7 +385,13 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!await _tripService.UserOwnsTripAsync(tripId, GetCurrentUserId()))
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!UserOwnsTrip(trip))
         {
             return Forbid();
         }
@@ -453,7 +443,29 @@ public class SpotsController : Controller
         }
 
         await PopulateSelectListsForTrip(viewModel, tripId);
+        await SetAddToDayViewData(trip, viewModel.DayId);
         return View("AddToTrip", viewModel);
+    }
+
+    private async Task SetAddToDayViewData(Trip trip, int? dayId)
+    {
+        ViewData["TripName"] = trip.Name;
+        ViewData["DayName"] = dayId.HasValue ?
+            trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
+        if (dayId != null)
+        {
+            ViewData["ReturnUrl"] = Url.Action("Details", "Days", new { id = dayId });
+        }
+        else
+        {
+            ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = trip.Id });
+        }
+        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
+
+        (double lat, double lng) = await _tripService.GetMedianCoords(trip.Id);
+
+        ViewData["Latitude"] = lat;
+        ViewData["Longitude"] = lng;
     }
 
     // GET: Spots/Export/5
