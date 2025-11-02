@@ -14,4 +14,6 @@ public interface IExpenseService : IGenericService<Expense>
     // Metody specyficzne dla Expense
     Task<IReadOnlyList<Expense>> GetUserExpensesAsync(string userId);
     Task<IEnumerable<Expense>> GetByTripIdWithParticipantsAsync(int tripId);
+    Task<TripExpensesSummaryDto> CalculateTripExpensesInTripCurrencyAsync(int tripId, CurrencyCode tripCurrency);
+    Task<decimal> GetTotalExpensesInCurrencyAsync(int tripId, CurrencyCode targetCurrency);
 }

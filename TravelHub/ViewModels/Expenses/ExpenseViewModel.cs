@@ -11,6 +11,15 @@ public class ExpenseViewModel
     public required string PaidByName { get; set; }
     public string? CategoryName { get; set; }
     public required string CurrencyName { get; set; }
+
+    public CurrencyCode CurrencyCode { get; set; }
+    public decimal ExchangeRateValue { get; set; }
+
+    // Obliczona wartość w walucie podróży
+    public decimal ConvertedValue { get; set; }
+
+    // Formatowane wartości
+    public string FormattedConvertedValue => $"{ConvertedValue:N2}";
 }
 
 public class ExpenseDetailsViewModel

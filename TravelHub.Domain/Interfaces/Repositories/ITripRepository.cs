@@ -10,4 +10,5 @@ public interface ITripRepository : IGenericRepository<Trip>
     Task<IEnumerable<Trip>> GetByUserIdAsync(string userId);
     Task<bool> ExistsAsync(int id);
     Task<IReadOnlyList<Trip>> GetAllWithUserAsync();
+    Task AddCountryToTrip(int id, Country country);
 }

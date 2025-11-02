@@ -144,6 +144,11 @@ public class FakeTripService : ITripService
     public Task<IEnumerable<Trip>> GetAllWithUserAsync() => Task.FromResult((IEnumerable<Trip>)_trips.ToList());
 
     public Task<Day> CreateNextDayAsync(int tripId) => throw new NotImplementedException();
+
+    public Task<CurrencyCode> GetTripCurrencyAsync(int tripId)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 // Minimalny fake Day service

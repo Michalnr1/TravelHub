@@ -9,11 +9,13 @@ namespace TravelHub.Infrastructure.Services;
 public class ExpenseService : GenericService<Expense>, IExpenseService
 {
     private readonly IExpenseRepository _expenseRepository; // Specyficzne repozytorium do metod customowych
+    private readonly IExchangeRateService _exchangeRateService;
 
-    public ExpenseService(IExpenseRepository expenseRepository)
+    public ExpenseService(IExpenseRepository expenseRepository, IExchangeRateService exchangeRateService)
         : base(expenseRepository) // Przekazujemy repozytorium do serwisu generycznego
     {
         _expenseRepository = expenseRepository;
+        _exchangeRateService = exchangeRateService;
     }
 
     public new async Task<Expense> GetByIdAsync(object id)
@@ -118,6 +120,82 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
     public async Task<IEnumerable<Expense>> GetByTripIdWithParticipantsAsync(int tripId)
     {
         return await _expenseRepository.GetByTripIdWithParticipantsAsync(tripId);
+    }
+
+    public async Task<TripExpensesSummaryDto> CalculateTripExpensesInTripCurrencyAsync(int tripId, CurrencyCode tripCurrency)
+    {
+        //var expenses = await _expenseRepository.GetByTripIdWithExchangeRatesAsync(tripId);
+        var expenses = await _expenseRepository.GetByTripIdWithParticipantsAsync(tripId);
+        var tripExchangeRates = await _exchangeRateService.GetTripExchangeRatesAsync(tripId);
+
+        var tripBaseRate = tripExchangeRates.FirstOrDefault(er => er.CurrencyCodeKey == tripCurrency);
+
+        var summary = new TripExpensesSummaryDto
+        {
+            TripCurrency = tripCurrency
+        };
+
+        foreach (var expense in expenses)
+        {
+            var expenseCurrency = expense.ExchangeRate?.CurrencyCodeKey ?? tripCurrency;
+
+            if (expenseCurrency == tripCurrency)
+            {
+                // Ta sama waluta - bez konwersji
+                summary.TotalExpensesInTripCurrency += expense.Value;
+                summary.ExpenseCalculations.Add(new ExpenseCalculationDto
+                {
+                    ExpenseId = expense.Id,
+                    OriginalValue = expense.Value,
+                    OriginalCurrency = expenseCurrency,
+                    TargetCurrency = tripCurrency,
+                    ExchangeRate = 1m,
+                    ConvertedValue = expense.Value
+                });
+                continue;
+            }
+
+            // Konwersja waluty
+            var expenseRate = expense.ExchangeRate;
+            if (expenseRate == null || tripBaseRate == null)
+            {
+                // Brak kursów - traktujemy jako 1:1
+                summary.TotalExpensesInTripCurrency += expense.Value;
+                summary.ExpenseCalculations.Add(new ExpenseCalculationDto
+                {
+                    ExpenseId = expense.Id,
+                    OriginalValue = expense.Value,
+                    OriginalCurrency = expenseCurrency,
+                    TargetCurrency = tripCurrency,
+                    ExchangeRate = 1m,
+                    ConvertedValue = expense.Value
+                });
+                continue;
+            }
+
+            // Oblicz przelicznik: waluta_podróży = waluta_wydatku * (kurs_wydatku / kurs_podróży)
+            var conversionRate = expenseRate.ExchangeRateValue / tripBaseRate.ExchangeRateValue;
+            var convertedValue = expense.Value * conversionRate;
+
+            summary.TotalExpensesInTripCurrency += convertedValue;
+            summary.ExpenseCalculations.Add(new ExpenseCalculationDto
+            {
+                ExpenseId = expense.Id,
+                OriginalValue = expense.Value,
+                OriginalCurrency = expenseCurrency,
+                TargetCurrency = tripCurrency,
+                ExchangeRate = conversionRate,
+                ConvertedValue = convertedValue
+            });
+        }
+
+        return summary;
+    }
+
+    public async Task<decimal> GetTotalExpensesInCurrencyAsync(int tripId, CurrencyCode targetCurrency)
+    {
+        var summary = await CalculateTripExpensesInTripCurrencyAsync(tripId, targetCurrency);
+        return summary.TotalExpensesInTripCurrency;
     }
 
     private List<ExpenseParticipant> CalculateAndCreateParticipants(decimal expenseValue, int expenseId, IEnumerable<ParticipantShareDto> participantShares)

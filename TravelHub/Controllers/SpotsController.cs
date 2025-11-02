@@ -22,8 +22,12 @@ public class SpotsController : Controller
     private readonly ITripService _tripService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
+<<<<<<< HEAD
+    private readonly IReverseGeocodingService _reverseGeocodingService;
+=======
     private readonly IExpenseService _expenseService;
     private readonly IExchangeRateService _exchangeRateService;
+>>>>>>> 5ebf1fedb4a51c0949cc106eb1cfe608c8200373
     private readonly ILogger<SpotsController> _logger;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
@@ -35,8 +39,12 @@ public class SpotsController : Controller
         ITripService tripService,
         IGenericService<Day> dayService,
         IPhotoService photoService,
+<<<<<<< HEAD
+        IReverseGeocodingService reverseGeocodingService,
+=======
         IExpenseService expenseService,
         IExchangeRateService exchangeRateService,
+>>>>>>> 5ebf1fedb4a51c0949cc106eb1cfe608c8200373
         ILogger<SpotsController> logger,
         IConfiguration configuration,
         UserManager<Person> userManager)
@@ -47,8 +55,12 @@ public class SpotsController : Controller
         _tripService = tripService;
         _dayService = dayService;
         _photoService = photoService;
+<<<<<<< HEAD
+        _reverseGeocodingService = reverseGeocodingService;
+=======
         _expenseService = expenseService;
         _exchangeRateService = exchangeRateService;
+>>>>>>> 5ebf1fedb4a51c0949cc106eb1cfe608c8200373
         _logger = logger;
         _configuration = configuration;
         _userManager = userManager;
@@ -431,6 +443,12 @@ public class SpotsController : Controller
                 if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
                 {
                     await CreateExpenseForSpot(createdSpot, viewModel);
+                }
+
+                (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(spot.Latitude, spot.Longitude);
+                if (countryName != null && countryCode != null)
+                {
+                    await _tripService.AddCountryToTrip(tripId, countryName, countryCode);
                 }
 
                 TempData["SuccessMessage"] = "Spot added successfully!";

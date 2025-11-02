@@ -39,6 +39,7 @@ public class TripDetailViewModel
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public bool IsPrivate { get; set; } = true;
+    public CurrencyCode CurrencyCode { get; set; }
 
     // Collections
     public List<DayViewModel> Days { get; set; } = new();
@@ -54,13 +55,16 @@ public class TripDetailViewModel
     public int TransportsCount => Transports.Count;
     public int AccommodationsCount => Accommodations.Count;
     public int ExpensesCount => Expenses.Count;
-    public decimal TotalExpenses => Expenses.Sum(e => e.Value);
+    public decimal TotalExpenses { get; set; }
 
     // Helper properties
     public int Duration => (EndDate - StartDate).Days + 1;
     public string DateRange => $"{StartDate:MMM dd, yyyy} - {EndDate:MMM dd, yyyy}";
     public int NormalDaysCount => Days.Count(d => !d.IsGroup);
     public int GroupsCount => Days.Count(d => d.IsGroup);
+
+    // Formatowana wartość z walutą
+    public string FormattedTotalExpenses => $"{TotalExpenses:N2} {CurrencyCode}";
 }
 
 public class CreateTripViewModel
