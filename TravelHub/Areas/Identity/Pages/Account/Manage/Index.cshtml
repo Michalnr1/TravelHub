@@ -45,6 +45,22 @@
                 <label asp-for="Input.PhoneNumber" class="form-label"></label>
                 <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
             </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.IsPrivate" class="form-label"></label>
+                <div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" asp-for="Input.IsPrivate" value="false" id="isPrivateNo">
+                        <label class="form-check-label" for="isPrivateNo">No</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" asp-for="Input.IsPrivate" value="true" id="isPrivateYes">
+                        <label class="form-check-label" for="isPrivateYes">Yes</label>
+                    </div>
+                </div>
+                <span asp-validation-for="Input.IsPrivate" class="text-danger"></span>
+            </div>
+
             <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
         </form>
     </div>

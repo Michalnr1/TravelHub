@@ -9,6 +9,7 @@ public class Person : IdentityUser
     public required string LastName { get; set; }
     public required string Nationality { get; set; }
     public DateTime Birthday { get; set; }
+    public required bool IsPrivate { get; set; } = true;
 
     // Navigation Properties
 

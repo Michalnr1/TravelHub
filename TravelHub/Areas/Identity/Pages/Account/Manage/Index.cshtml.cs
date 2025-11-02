@@ -81,6 +81,10 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
             [DataType(DataType.Date)]
             [MinimumAge(18, 150)]
             public DateTime Birthday { get; set; }
+
+            [Required]
+            [Display(Name = "Is account private?")]
+            public bool IsPrivate { get; set; }
         }
 
         private async Task LoadAsync(Person user)
@@ -96,7 +100,8 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Nationality = user.Nationality,
-                Birthday = user.Birthday
+                Birthday = user.Birthday,
+                IsPrivate = user.IsPrivate
             };
         }
 
@@ -148,6 +153,9 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
 
             if (Input.Birthday != user.Birthday)
                 user.Birthday = Input.Birthday;
+
+            if (Input.IsPrivate != user.IsPrivate)
+                user.IsPrivate = Input.IsPrivate;
 
             await _userManager.UpdateAsync(user);  // ← Zapisuje zmiany w Person!
 
