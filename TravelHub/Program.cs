@@ -23,6 +23,9 @@ var connectionString = builder.Configuration.GetConnectionString("LocalConnectio
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+// HTTP client for API calls
+builder.Services.AddHttpClient();
+
 // Hangfire Configuration
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
@@ -45,6 +48,9 @@ builder.Services.AddHangfireServer();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, EmailSender>();
+
+// API configuration
+builder.Services.AddScoped<IReverseGeocodingService, ReverseGeocodingService>();
 
 // Identity
 builder.Services.AddIdentity<Person, IdentityRole>(options =>  // ← Person!
