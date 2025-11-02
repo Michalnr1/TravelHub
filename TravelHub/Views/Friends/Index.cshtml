@@ -1,0 +1,57 @@
+﻿@model IReadOnlyList<TravelHub.Domain.Entities.Person>
+@{
+    ViewData["Title"] = "My Friends";
+    var friendsCount = ViewBag.FriendsCount as int? ?? Model.Count;
+}
+
+<div class="container">
+    <h2>My Friends (@friendsCount)</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="mb-3">
+        <a href="@Url.Action("AddFriend")" class="btn btn-primary">Add Friend</a>
+        <a href="@Url.Action("Pending")" class="btn btn-outline-secondary">Pending Requests</a>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="row">
+            @foreach (var friend in Model)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">@friend.FirstName @friend.LastName</h5>
+                            <p class="card-text">
+                                <strong>Username:</strong> @friend.UserName<br />
+                                <strong>Nationality:</strong> @friend.Nationality<br />
+                                <strong>Email:</strong> @friend.Email
+                            </p>
+                            <form method="post" action="@Url.Action("RemoveFriend")" class="d-inline">
+                                <input type="hidden" name="friendId" value="@friend.Id" />
+                                <button type="submit" class="btn btn-danger btn-sm"
+                                        onclick="return confirm('Are you sure you want to remove this friend?')">
+                                    Remove Friend
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <p>You don't have any friends yet. <a href="@Url.Action("AddFriend")">Add some friends</a> to get started!</p>
+        </div>
+    }
+</div>

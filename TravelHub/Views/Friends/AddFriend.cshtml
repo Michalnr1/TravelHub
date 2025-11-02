@@ -1,0 +1,79 @@
+﻿@model TravelHub.Domain.DTOs.FriendRequestDto
+@{
+    ViewData["Title"] = "Add Friend";
+    var publicUsers = ViewBag.PublicUsers as List<TravelHub.Domain.DTOs.UserDto> ?? new List<TravelHub.Domain.DTOs.UserDto>();
+}
+
+<div class="container">
+    <h2>Add Friend</h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <form method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Select from Public Users</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (publicUsers.Any())
+                        {
+                            <div class="form-group mb-3">
+                                <label class="form-label">Choose a public user:</label>
+                                <select name="SelectedUserId" class="form-select">
+                                    <option value="">-- Select a user --</option>
+                                    @foreach (var user in publicUsers)
+                                    {
+                                        <option value="@user.Id">@user.FirstName @user.LastName (@user.UserName) - @user.Nationality</option>
+                                    }
+                                </select>
+                            </div>
+                            <p class="text-muted text-center mt-2">- OR -</p>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                No public users available. You can invite private users by entering their username or email below.
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Invite by Username or Email</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="UserIdentifier" class="form-label">Username or Email:</label>
+                            <input type="text" class="form-control" id="UserIdentifier" name="UserIdentifier"
+                                   placeholder="Enter username or email address" />
+                            <small class="form-text text-muted">
+                                Use this to invite private users. They will receive an email notification.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Optional Message</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label for="Message" class="form-label">Message (optional):</label>
+                            <textarea class="form-control" id="Message" name="Message" rows="3"
+                                      placeholder="Add a personal message to your friend request..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Send Friend Request</button>
+                    <a href="@Url.Action("Index")" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

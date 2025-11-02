@@ -14,8 +14,8 @@ public class Person : IdentityUser
     // Navigation Properties
 
     // A person can have many friends, and be a friend to many others (M:N self-referencing)
-    public ICollection<Person> Friends { get; set; } = new List<Person>();
-    public ICollection<Person> FriendOf { get; set; } = new List<Person>();
+    public ICollection<PersonFriends> Friends { get; set; } = new List<PersonFriends>();
+    public ICollection<PersonFriends> FriendOf { get; set; } = new List<PersonFriends>();
 
     // A person can organize many trips (1:N)
     public ICollection<Trip> Trips { get; set; } = new List<Trip>();

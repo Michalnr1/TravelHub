@@ -26,6 +26,8 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<Country> Countries { get; set; }
     public DbSet<ExpenseParticipant> ExpenseParticipants { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<PersonFriends> PersonFriends { get; set; }
+    public DbSet<FriendRequest> FriendRequests { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -45,23 +47,86 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(p => p.Nationality).HasMaxLength(100);
             entity.Property(p => p.Birthday).HasColumnType("date");
 
-            // M:N self-referencing relationship for Friends
+            // ZMIANA: Konfiguracja relacji M:N przez encję PersonFriends
             entity.HasMany(p => p.Friends)
-                  .WithMany(p => p.FriendOf)
-                  .UsingEntity<Dictionary<string, object>>(
-                          "PersonFriends",
-                          j => j.HasOne<Person>().WithMany().HasForeignKey("FriendId"),
-                          j => j.HasOne<Person>().WithMany().HasForeignKey("UserId"),
-                          j =>
-                          {
-                              j.HasKey("UserId", "FriendId");
-                              j.ToTable("PersonFriends");
-                          });
+                  .WithOne(pf => pf.User)
+                  .HasForeignKey(pf => pf.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
 
-            // M:N relationship with Expense
-            // entity.HasMany(p => p.ExpensesToCover)
-            //       .WithMany(e => e.Participants)
-            //       .UsingEntity(j => j.ToTable("ExpenseParticipants"));
+            entity.HasMany(p => p.FriendOf)
+                  .WithOne(pf => pf.Friend)
+                  .HasForeignKey(pf => pf.FriendId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // --- PersonFriends Configuration ---
+        builder.Entity<PersonFriends>(entity =>
+        {
+            entity.HasKey(pf => new { pf.UserId, pf.FriendId });
+
+            entity.Property(pf => pf.CreatedAt)
+                  .IsRequired();
+
+            // Relacja do User
+            entity.HasOne(pf => pf.User)
+                  .WithMany(p => p.Friends)
+                  .HasForeignKey(pf => pf.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Relacja do Friend
+            entity.HasOne(pf => pf.Friend)
+                  .WithMany(p => p.FriendOf)
+                  .HasForeignKey(pf => pf.FriendId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // --- FriendRequest Configuration ---
+        builder.Entity<FriendRequest>(entity =>
+        {
+            entity.HasKey(fr => fr.Id);
+
+            entity.Property(fr => fr.Id)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(fr => fr.RequesterId)
+                .IsRequired()
+                .HasMaxLength(450);
+
+            entity.Property(fr => fr.AddresseeId)
+                .IsRequired()
+                .HasMaxLength(450);
+
+            entity.Property(fr => fr.Status)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.Property(fr => fr.RequestedAt)
+                .IsRequired();
+
+            entity.Property(fr => fr.RespondedAt)
+                .IsRequired(false);
+
+            entity.Property(fr => fr.Message)
+                .HasMaxLength(500)
+                .IsRequired(false);
+
+            // Relacja do Requester (Person)
+            entity.HasOne(fr => fr.Requester)
+                .WithMany()
+                .HasForeignKey(fr => fr.RequesterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Relacja do Addressee (Person)
+            entity.HasOne(fr => fr.Addressee)
+                .WithMany()
+                .HasForeignKey(fr => fr.AddresseeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Index dla lepszej wydajności zapytań
+            entity.HasIndex(fr => new { fr.AddresseeId, fr.Status });
+            entity.HasIndex(fr => new { fr.RequesterId, fr.Status });
+            entity.HasIndex(fr => fr.RequestedAt);
         });
 
         // --- Trip Configuration ---

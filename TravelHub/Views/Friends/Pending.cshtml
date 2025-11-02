@@ -1,0 +1,111 @@
+﻿@model IReadOnlyList<TravelHub.Domain.Entities.FriendRequest>
+@{
+    ViewData["Title"] = "Friend Requests";
+    var sentRequests = ViewBag.SentRequests as IReadOnlyList<TravelHub.Domain.Entities.FriendRequest> ?? new List<TravelHub.Domain.Entities.FriendRequest>();
+}
+
+<div class="container">
+    <h2>Friend Requests</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="mb-3">
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">Back to Friends</a>
+        <a href="@Url.Action("AddFriend")" class="btn btn-primary">Add Friend</a>
+    </div>
+
+    <div class="row">
+        <!-- Incoming Requests -->
+        <div class="col-md-6">
+            <h4>Incoming Requests</h4>
+            @if (Model.Any())
+            {
+                foreach (var request in Model)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">@request.Requester.FirstName @request.Requester.LastName</h5>
+                            <p class="card-text">
+                                <strong>Username:</strong> @request.Requester.UserName<br />
+                                <strong>Requested:</strong>
+                                <span title="@request.RequestedAt.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")">
+                                    @request.RequestedAt.LocalDateTime.ToString("g")
+                                </span>
+                                <br />
+                                @if (!string.IsNullOrEmpty(request.Message))
+                                {
+                                    <strong>Message:</strong> 
+                                    @request.Message
+                                }
+                            </p>
+                            <div class="btn-group">
+                                <form method="post" action="@Url.Action("AcceptRequest")" class="d-inline">
+                                    <input type="hidden" name="friendRequestId" value="@request.Id" />
+                                    <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                                </form>
+                                <form method="post" action="@Url.Action("DeclineRequest")" class="d-inline">
+                                    <input type="hidden" name="friendRequestId" value="@request.Id" />
+                                    <button type="submit" class="btn btn-danger btn-sm"
+                                            onclick="return confirm('Are you sure you want to decline this request?')">
+                                        Decline
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <p>You don't have any incoming friend requests.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Sent Requests -->
+        <div class="col-md-6">
+            <h4>Sent Requests</h4>
+            @if (sentRequests.Any())
+            {
+                foreach (var request in sentRequests)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">@request.Addressee.FirstName @request.Addressee.LastName</h5>
+                            <p class="card-text">
+                                <strong>Username:</strong> @request.Addressee.UserName<br />
+                                <strong>Sent:</strong>
+                                <span title="@request.RequestedAt.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")">
+                                    @request.RequestedAt.LocalDateTime.ToString("g")
+                                </span>
+                                <br />
+                                Status: <span class="badge bg-warning">Pending</span>
+                            </p>
+                            <form method="post" action="@Url.Action("CancelRequest")">
+                                <input type="hidden" name="friendRequestId" value="@request.Id" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm"
+                                        onclick="return confirm('Are you sure you want to cancel this request?')">
+                                    Cancel Request
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <p>You haven't sent any friend requests.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
