@@ -75,7 +75,7 @@ public class DaysController : Controller
             Activities = day.Activities
                             .Where(a => a is not Spot)
                             .OrderBy(a => a.Order)
-                            .Select(a => new ActivityViewModel
+                            .Select(a => new ActivityDetailsViewModel
                             {
                                 Id = a.Id,
                                 Name = a.Name,
@@ -85,6 +85,8 @@ public class DaysController : Controller
                                 Order = a.Order,
                                 CategoryName = a.Category?.Name,
                                 TripName = a.Trip?.Name ?? string.Empty,
+                                TripId = a.TripId,
+                                Type = "Activity",
                                 DayName = a.Day?.Name
                             }).ToList(),
             Spots = day.Activities
@@ -101,6 +103,7 @@ public class DaysController : Controller
                                 Order = s.Order,
                                 CategoryName = s.Category?.Name,
                                 TripName = s.Trip?.Name ?? string.Empty,
+                                Type = "Spot",
                                 DayName = s.Day?.Name,
                                 Longitude = s.Longitude,
                                 Latitude = s.Latitude,

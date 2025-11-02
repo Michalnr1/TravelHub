@@ -179,7 +179,7 @@ public class DayDetailViewModel
     public string? Name { get; set; }
     public DateTime Date { get; set; }
     public TripViewModel? Trip { get; set; }
-    public List<ActivityViewModel> Activities { get; set; } = new();
+    public List<ActivityDetailsViewModel> Activities { get; set; } = new();
     public List<SpotDetailsViewModel> Spots { get; set; } = new();
     public bool IsGroup => Number == null && !string.IsNullOrWhiteSpace(Name);
     public string DisplayName => IsGroup

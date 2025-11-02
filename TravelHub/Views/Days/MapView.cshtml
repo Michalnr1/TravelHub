@@ -1,4 +1,5 @@
 ﻿@using TravelHub.Domain.Entities
+@using TravelHub.Web.ViewModels.Activities
 @model TravelHub.Web.ViewModels.Trips.DayDetailViewModel
 @{
     bool isGroup = Model.Number == null;
@@ -6,6 +7,10 @@
     var apiKey = ViewData["GoogleApiKey"];
     var startLat = ViewData["Latitude"];
     var startLng = ViewData["Longitude"];
+    var allActivities = new List<ActivityDetailsViewModel>();
+    allActivities.AddRange(Model.Spots); 
+    allActivities.AddRange(Model.Activities);
+    allActivities.Sort((a1, a2) => a1.Order.CompareTo(a2.Order));
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -72,49 +77,64 @@
                 <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
             </div>
             <div class="card-body">
-                @if (Model.Spots.Any())
+                @if (allActivities.Any())
                 {
                     <div class="list-group">
                         @{
                             int i = 0;
+                            int j = 0;
                         }
-                        @foreach (var spot in Model.Spots)
+                        @foreach (var activity in allActivities)
                         {
-                            <div class="list-group-item" id="spot-@i">
+                            string id;
+                            @if (activity is SpotDetailsViewModel)
+                            {
+                                id = "spot-" + i;
+                                i++;
+                            } else
+                            {
+                                id = "activity-" + j;
+                                j++;
+                            }
+                            <div class="list-group-item" id=@(id)>
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
-                                        <h6 class="mb-1">@spot.Name</h6>
-                                        <p class="mb-1 small text-muted">@spot.Description</p>
+                                        <h6 class="mb-1">@activity.Name</h6>
+                                        <p class="mb-1 small text-muted">@activity.Description</p>
                                         <div class="small">
-                                            <span class="badge bg-light text-dark">@spot.Duration h</span>
+                                            <span class="badge bg-light text-dark">@activity.Duration h</span>
                                             @* <span class="badge bg-warning">$@spot.Cost</span> *@
-                                            @if (spot.CategoryName != null)
+                                            @if (activity.CategoryName != null)
                                             {
-                                                <span class="badge bg-secondary">@spot.CategoryName</span>
+                                                <span class="badge bg-secondary">@activity.CategoryName</span>
                                             }
                                             <br>
-                                            <small class="text-muted">
-                                                📍 @spot.Latitude.ToString("F4"), @spot.Longitude.ToString("F4")
-                                            </small>
+                                            @if (activity is SpotDetailsViewModel)
+                                            {
+                                                <small class="text-muted">
+                                                    📍 @((activity as SpotDetailsViewModel).Latitude.ToString("F4")), @((activity as SpotDetailsViewModel).Longitude.ToString("F4"))
+                                                </small>
+                                            }
+                                            
                                         </div>
                                     </div>
                                     <div class="btn-group ms-2 flex-shrink-0">
-                                        <a asp-controller="Spots" asp-action="Details" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a asp-controller="Spots" asp-action="Edit" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <form asp-controller="Spots" asp-action="Delete" asp-route-id="@spot.Id" method="post" class="d-inline">
+                                        <a asp-controller="Spots" asp-action="Details" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a asp-controller="Spots" asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <form asp-controller="Spots" asp-action="Delete" asp-route-id="@activity.Id" method="post" class="d-inline">
                                             <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this spot?')">Delete</button>
                                         </form>
                                     </div>
                                 </div>
                             </div>
-                            i++;
+                            
                         }
                     </div>
                 }
                 else
                 {
                     <p class="text-muted">No spots added to this trip yet.</p>
-                    <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
+                    <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
                 }
             </div>
         </div>
@@ -134,9 +154,8 @@
 
     <script>
         let map;
-        // let points = @Json.Serialize(Model.Spots);
-        let pointsJson = '@Json.Serialize(Model.Spots)';
-        let points = JSON.parse(pointsJson);
+        let points = JSON.parse('@Json.Serialize(Model.Spots)');
+        let activities = JSON.parse('@Json.Serialize(allActivities)');
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let polylines = [];
         let routeInfoWindow;
@@ -248,39 +267,43 @@
             let [startHours, startMinutes] = document.getElementById('start-time').value.split(':');
             let time = luxon.DateTime.local(parseInt("@Html.Raw(Model.Date.Year)"), parseInt("@Html.Raw(Model.Date.Month)"), 
                                             parseInt("@Html.Raw(Model.Date.Day)"), parseInt(startHours), parseInt(startMinutes));
-            if (time )
-
             return clampToAllowedRange(time);
         }
 
         async function showRoute(travelMode){
+            if (points.length < 2) return;
+
             const {Polyline} = await google.maps.importLibrary("maps");
             clearTravelCards();
 
             let startTime = getStartDatetime();
             let time = getStartDatetime();
-            time = time.plus({hour: Math.floor(parseFloat(points[0].duration)), minute: Math.round(60 * (parseFloat(points[0].duration) % 1))});
             if (travelMode == 'WALKING' || travelMode == 'DRIVING'){
                 route = await getRoute(points[0], points[points.length - 1],
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
                     travelMode=travelMode);
                 if (route.routes.length > 0){
                     clearPolylines();
-                    durationMillis = route.routes[0].durationMillis;
-                    route.routes[0].legs.forEach((leg, i) => {
-                        locationCard = document.getElementById("spot-" + i);
-                        let div = buildTravelCard(i, leg.durationMillis, travelMode);
-                        locationCard.after(div);
-                        const polyline = new Polyline({
-                            map: map,
-                            path: leg.path,
-                        });
-                        setPolylineEventBindings(polyline, div);
-                        polylines.push(polyline);
-                        time = time.plus({millisecond: parseInt(leg.durationMillis)});
-                        //alert(JSON.stringify({hour: Math.floor(parseFloat(points[i].duration)), minute: Math.round(60 * (parseFloat(points[i].duration) % 1))}));
-                        time = time.plus({hour: Math.floor(parseFloat(points[i+1].duration)), minute: Math.round(60 * (parseFloat(points[i+1].duration) % 1))});
-                    }); 
+                    let spotNum = 0;
+                    for (let i = 0; i < activities.length; i++){
+                        time = time.plus({hour: Math.floor(parseFloat(activities[i].duration)), minute: Math.round(60 * (parseFloat(activities[i].duration) % 1))});
+                        if (activities[i].type == 'Spot') {
+                            if (spotNum > 0) {
+                                let leg = route.routes[0].legs[spotNum-1];
+                                let locationCard = document.getElementById("spot-" + spotNum);
+                                let div = buildTravelCard(spotNum-1, leg.durationMillis, travelMode);
+                                locationCard.before(div);
+                                const polyline = new Polyline({
+                                    map: map,
+                                    path: leg.path,
+                                });
+                                setPolylineEventBindings(polyline, div);
+                                polylines.push(polyline);
+                                time = time.plus({millisecond: parseInt(leg.durationMillis)});
+                            }                      
+                            spotNum++;
+                        }
+                    }
                 } else {
                     alert('Unable to compute route');
                     return;
@@ -291,64 +314,71 @@
                     intermediates=points.slice(1,-1).map((point) => { return {lat:  parseFloat(point.latitude), lng:  parseFloat(point.longitude)} }),
                     travelMode='WALKING');
                 if (route.routes.length > 0){
+                    let spotNum = 0;
                     clearPolylines();
-                let threshold = parseInt(document.getElementById('transit-threshold').value) * 60 * 1000;
-                for (let i = 0; i < route.routes[0].legs.length; i++) {
-                    let leg = route.routes[0].legs[i];
-                    if (leg.durationMillis > threshold){
-                        let div = buildTravelCard(i);
-                        locationCard = document.getElementById("spot-" + i);
-                        locationCard.after(div);
-                        transitRoute = await getRoute({latitude: leg.startLocation.lat, longitude: leg.startLocation.lng },
-                            {latitude: leg.endLocation.lat, longitude: leg.endLocation.lng },
-                            intermediates=[],
-                            travelMode='TRANSIT',
-                            departureTime=time);
-                        let partialDurationMillis = 0;
-                        transitRoute.routes[0].legs[0].steps.forEach((step) => {
-                            if (step.travelMode == 'WALKING') {
-                                let polyline = new Polyline({
-                                    map: map,
-                                    path: step.path,
-                                });
-                                polylines.push(polyline);
-                                setPolylineEventBindings(polyline, div);
-                                partialDurationMillis += step.staticDurationMillis;
-                                time = time.plus({millisecond: parseInt(step.staticDurationMillis)});
-                            } else if (step.travelMode == 'TRANSIT') {
-                                let polyline = new Polyline({
-                                    map: map,
-                                    path: step.path,
-                                    strokeColor: 'red',
-                                });
-                                polylines.push(polyline);
-                                if (partialDurationMillis > 0) {
-                                    addEntryToTravelCard(div,  "..." + durationStringMillis(partialDurationMillis) + " walking...<br>");
+                    let threshold = parseInt(document.getElementById('transit-threshold').value) * 60 * 1000;
+                    for (let i = 0; i < activities.length; i++){
+                        console.debug(time.hour + ":" + time.minute);
+                        if (activities[i].type == 'Spot') {
+                            if (spotNum > 0) {
+                                let leg = route.routes[0].legs[spotNum-1];
+                                if (leg.durationMillis > threshold){
+                                    let div = buildTravelCard(spotNum-1);
+                                    locationCard = document.getElementById("spot-" + spotNum);
+                                    locationCard.before(div);
+                                    transitRoute = await getRoute({latitude: leg.startLocation.lat, longitude: leg.startLocation.lng },
+                                        {latitude: leg.endLocation.lat, longitude: leg.endLocation.lng },
+                                        intermediates=[],
+                                        travelMode='TRANSIT',
+                                        departureTime=time);
+                                    let partialDurationMillis = 0;
+                                    transitRoute.routes[0].legs[0].steps.forEach((step) => {
+                                        if (step.travelMode == 'WALKING') {
+                                            let polyline = new Polyline({
+                                                map: map,
+                                                path: step.path,
+                                            });
+                                            polylines.push(polyline);
+                                            setPolylineEventBindings(polyline, div);
+                                            partialDurationMillis += step.staticDurationMillis;
+                                            time = time.plus({millisecond: parseInt(step.staticDurationMillis)});
+                                        } else if (step.travelMode == 'TRANSIT') {
+                                            let polyline = new Polyline({
+                                                map: map,
+                                                path: step.path,
+                                                strokeColor: 'red',
+                                            });
+                                            polylines.push(polyline);
+                                            if (partialDurationMillis > 0) {
+                                                addEntryToTravelCard(div,  "..." + durationStringMillis(partialDurationMillis) + " walking...<br>");
+                                            }
+                                            partialDurationMillis = 0;
+                                            addIconToTravelCard(div, step.transitDetails.transitLine.vehicle.iconURL);
+                                            addTransitEntryToTravelCard(div, step);
+                                            setPolylineEventBindings(polyline, div);
+                                            time = luxon.DateTime.fromJSDate(step.transitDetails.arrivalTime);
+                                        }
+                                    });
+                                    if (partialDurationMillis > 0) {
+                                            addEntryToTravelCard(div,  "..." + durationStringMillis(partialDurationMillis) + " walking...<br>");
+                                    }
+                                } else {
+                                    let polyline = new Polyline({
+                                        map: map,
+                                        path: leg.path,
+                                    });
+                                    polylines.push(polyline);
+                                    locationCard = document.getElementById("spot-" + spotNum);
+                                    let div = buildTravelCard(spotNum-1, leg.durationMillis, 'WALKING');
+                                    locationCard.before(div);
+                                    setPolylineEventBindings(polyline, div);
+                                    time = time.plus({millisecond: parseInt(leg.staticDurationMillis)});
                                 }
-                                partialDurationMillis = 0;
-                                addIconToTravelCard(div, step.transitDetails.transitLine.vehicle.iconURL);
-                                addTransitEntryToTravelCard(div, step);
-                                setPolylineEventBindings(polyline, div);
-                                time = luxon.DateTime.fromJSDate(step.transitDetails.arrivalTime);
-                            }                         
-                        });
-                        if (partialDurationMillis > 0) {
-                                addEntryToTravelCard(div,  "..." + durationStringMillis(partialDurationMillis) + " walking...<br>");
+                            }
+                            spotNum++;
                         }
-                    } else {
-                        let polyline = new Polyline({
-                            map: map,
-                            path: leg.path,
-                        });
-                        polylines.push(polyline);
-                        locationCard = document.getElementById("spot-" + i);
-                        let div = buildTravelCard(i, leg.durationMillis, 'WALKING');
-                        locationCard.after(div);
-                        setPolylineEventBindings(polyline, div);
-                        time = time.plus({millisecond: parseInt(leg.staticDurationMillis)});
+                        time = time.plus({hour: Math.floor(parseFloat(activities[i].duration)), minute: Math.round(60 * (parseFloat(activities[i].duration) % 1))});
                     }
-                    time = time.plus({hour: Math.floor(parseFloat(points[i+1].duration)), minute: Math.round(60 * (parseFloat(points[i+1].duration) % 1))});
-                }
                 } else {
                     alert('Unable to compute route');
                     return;
