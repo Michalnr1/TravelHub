@@ -17,6 +17,10 @@ public class TripViewModel
     public bool IsPrivate { get; set; } = true;
     public int DaysCount { get; set; }
     public int GroupsCount { get; set; }
+    public int ParticipantsCount { get; set; }
+    public bool IsOwner { get; set; }
+    public TripParticipantStatus? UserParticipantStatus { get; set; }
+    public int? ParticipantId { get; set; }
 }
 
 public class TripWithUserViewModel
@@ -29,6 +33,7 @@ public class TripWithUserViewModel
     public bool IsPrivate { get; set; } = true;
     public int DaysCount { get; set; }
     public required Person Person { get; set; }
+    public int ParticipantsCount { get; set; }
 }
 
 public class TripDetailViewModel
@@ -40,6 +45,8 @@ public class TripDetailViewModel
     public DateTime EndDate { get; set; }
     public bool IsPrivate { get; set; } = true;
     public CurrencyCode CurrencyCode { get; set; }
+    public string OwnerId { get; set; } = string.Empty;
+    public string OwnerName { get; set; } = string.Empty;
 
     // Collections
     public List<DayViewModel> Days { get; set; } = new();
@@ -48,6 +55,8 @@ public class TripDetailViewModel
     public List<TransportViewModel> Transports { get; set; } = new();
     public List<AccommodationViewModel> Accommodations { get; set; } = new();
     public List<ExpenseViewModel> Expenses { get; set; } = new();
+    public List<TripParticipantViewModel> Participants { get; set; } = new();
+    public List<FriendViewModel> AvailableFriends { get; set; } = new();
 
     // Counts for display
     public int ActivitiesCount => Activities.Count;
@@ -55,6 +64,8 @@ public class TripDetailViewModel
     public int TransportsCount => Transports.Count;
     public int AccommodationsCount => Accommodations.Count;
     public int ExpensesCount => Expenses.Count;
+    public int ParticipantsCount => Participants.Count(p => p.Status == TripParticipantStatus.Accepted);
+    public int PendingInvitationsCount => Participants.Count(p => p.Status == TripParticipantStatus.Pending);
     public decimal TotalExpenses { get; set; }
 
     // Helper properties
@@ -62,6 +73,11 @@ public class TripDetailViewModel
     public string DateRange => $"{StartDate:MMM dd, yyyy} - {EndDate:MMM dd, yyyy}";
     public int NormalDaysCount => Days.Count(d => !d.IsGroup);
     public int GroupsCount => Days.Count(d => d.IsGroup);
+
+    // Uprawnienia
+    public bool IsCurrentUserOwner { get; set; }
+    public bool CanEdit => IsCurrentUserOwner;
+    public bool CanManageParticipants => IsCurrentUserOwner;
 
     // Formatowana wartość z walutą
     public string FormattedTotalExpenses => $"{TotalExpenses:N2} {CurrencyCode}";

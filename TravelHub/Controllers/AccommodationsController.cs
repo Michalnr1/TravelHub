@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
-using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Expenses;
 using CategorySelectItem = TravelHub.Web.ViewModels.Accommodations.CategorySelectItem;
@@ -17,6 +16,7 @@ public class AccommodationsController : Controller
     private readonly IAccommodationService _accommodationService;
     private readonly ICategoryService _categoryService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly IDayService _dayService;
     private readonly ISpotService _spotService;
     private readonly IExchangeRateService _exchangeRateService;
@@ -29,6 +29,7 @@ public class AccommodationsController : Controller
         IAccommodationService accommodationService,
         ICategoryService categoryService,
         ITripService tripService,
+        ITripParticipantService tripParticipantService,
         IDayService dayService,
         ISpotService spotService,
         IExchangeRateService exchangeRateService,
@@ -40,6 +41,7 @@ public class AccommodationsController : Controller
         _accommodationService = accommodationService;
         _categoryService = categoryService;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _dayService = dayService;
         _spotService = spotService;
         _exchangeRateService = exchangeRateService;
@@ -80,6 +82,11 @@ public class AccommodationsController : Controller
         if (accommodation == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new AccommodationDetailsViewModel
@@ -159,6 +166,11 @@ public class AccommodationsController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = await CreateAccommodationCreateEditViewModel(accommodation);
         return View(viewModel);
     }
@@ -171,6 +183,11 @@ public class AccommodationsController : Controller
         if (id != viewModel.Id)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         if (ModelState.IsValid)
@@ -232,6 +249,11 @@ public class AccommodationsController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new AccommodationDetailsViewModel
         {
             Id = accommodation.Id,
@@ -250,6 +272,11 @@ public class AccommodationsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
+        var accommodation = await _accommodationService.GetByIdAsync(id);
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
         await _accommodationService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
     }
@@ -261,6 +288,11 @@ public class AccommodationsController : Controller
         if (trip == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new AccommodationCreateEditViewModel
@@ -311,6 +343,11 @@ public class AccommodationsController : Controller
         if (trip == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         // Walidacja dat w zakresie podróży
@@ -636,5 +673,10 @@ public class AccommodationsController : Controller
                 DisplayName = d.Name!
             })
             .ToList();
+    }
+
+    private string GetCurrentUserId()
+    {
+        return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 }

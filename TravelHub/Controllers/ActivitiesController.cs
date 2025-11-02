@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +16,7 @@ public class ActivitiesController : Controller
     private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly IGenericService<Day> _dayService;
     private readonly UserManager<Person> _userManager;
     private readonly ILogger<ActivitiesController> _logger;
@@ -25,6 +25,7 @@ public class ActivitiesController : Controller
         IActivityService activityService,
         IGenericService<Category> categoryService,
         ITripService tripService,
+        ITripParticipantService tripParticipantService,
         IGenericService<Day> dayService,
         ILogger<ActivitiesController> logger,
          UserManager<Person> userManager)
@@ -32,6 +33,7 @@ public class ActivitiesController : Controller
         _activityService = activityService;
         _categoryService = categoryService;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _dayService = dayService;
         _logger = logger;
         _userManager = userManager;
@@ -71,7 +73,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -140,15 +142,15 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
-        {
-            return Forbid();
-        }
-
         var activity = await _activityService.GetByIdAsync(id.Value);
         if (activity == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = await CreateActivityCreateEditViewModel(activity);
@@ -166,7 +168,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _activityService.UserOwnsActivityAsync(id, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -240,7 +242,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -269,7 +271,7 @@ public class ActivitiesController : Controller
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         var activity = await _activityService.GetByIdAsync(id);
-        if (!await _activityService.UserOwnsActivityAsync(id, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -298,7 +300,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!UserOwnsTrip(trip))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -333,7 +335,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!UserOwnsTrip(trip))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
         {
             return Forbid();
         }

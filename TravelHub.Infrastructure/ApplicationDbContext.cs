@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<PersonFriends> PersonFriends { get; set; }
     public DbSet<FriendRequest> FriendRequests { get; set; }
+    public DbSet<TripParticipant> TripParticipants { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -133,25 +134,137 @@ public class ApplicationDbContext : IdentityDbContext<Person>
         builder.Entity<Trip>(entity =>
         {
             entity.HasKey(t => t.Id);
-            entity.Property(t => t.Name).IsRequired().HasMaxLength(200);
-            entity.Property(t => t.StartDate).HasColumnType("date");
-            entity.Property(t => t.EndDate).HasColumnType("date");
-            entity.Property(t => t.IsPrivate).IsRequired();
 
+            entity.Property(t => t.Id)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(t => t.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(t => t.StartDate)
+                .HasColumnType("date");
+
+            entity.Property(t => t.EndDate)
+                .HasColumnType("date");
+
+            entity.Property(t => t.IsPrivate)
+                .IsRequired();
+
+            entity.Property(t => t.PersonId)
+                .IsRequired()
+                .HasMaxLength(450);
+
+            // Konwersja enum Status
+            var statusConverter = new EnumToStringConverter<Status>();
+            entity.Property(t => t.Status)
+                .HasConversion(statusConverter)
+                .HasMaxLength(20);
+
+            // Konwersja enum CurrencyCode
             var currencyCodeConverter = new EnumToStringConverter<CurrencyCode>();
             entity.Property(t => t.CurrencyCode)
-                  .HasConversion(currencyCodeConverter)
-                  .HasMaxLength(3);
+                .HasConversion(currencyCodeConverter)
+                .HasMaxLength(3);
 
             // 1:N relationship with Person (Trip organizer)
             entity.HasOne(t => t.Person)
-                  .WithMany(p => p.Trips)
-                  .HasForeignKey(t => t.PersonId)
-                  .OnDelete(DeleteBehavior.Cascade); // If a person is deleted, their trips are deleted.
+                .WithMany(p => p.Trips)
+                .HasForeignKey(t => t.PersonId)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            // 1:N relationship with Days
+            entity.HasMany(t => t.Days)
+                .WithOne(d => d.Trip)
+                .HasForeignKey(d => d.TripId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 1:N relationship with Activities
+            entity.HasMany(t => t.Activities)
+                .WithOne(a => a.Trip)
+                .HasForeignKey(a => a.TripId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 1:N relationship with Transports
+            entity.HasMany(t => t.Transports)
+                .WithOne(tr => tr.Trip)
+                .HasForeignKey(tr => tr.TripId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 1:N relationship with Expenses
+            entity.HasMany(t => t.Expenses)
+                .WithOne(e => e.Trip)
+                .HasForeignKey(e => e.TripId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 1:N relationship with ExchangeRates
+            entity.HasMany(t => t.ExchangeRates)
+                .WithOne(er => er.Trip)
+                .HasForeignKey(er => er.TripId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // M:N relationship with Countries
             entity.HasMany(t => t.Countries)
-                  .WithMany(c => c.Trips)
-                  .UsingEntity(j => j.ToTable("TripCountries"));
+                .WithMany(c => c.Trips)
+                .UsingEntity(j => j.ToTable("TripCountries"));
+
+            // 1:N relationship with TripParticipants
+            entity.HasMany(t => t.Participants)
+                .WithOne(tp => tp.Trip)
+                .HasForeignKey(tp => tp.TripId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexy dla lepszej wydajności
+            entity.HasIndex(t => t.PersonId);
+            entity.HasIndex(t => t.StartDate);
+            entity.HasIndex(t => t.EndDate);
+            entity.HasIndex(t => t.Status);
+            entity.HasIndex(t => t.IsPrivate);
+        });
+
+        // --- TripParticipant Configuration ---
+        builder.Entity<TripParticipant>(entity =>
+        {
+            entity.HasKey(tp => tp.Id);
+
+            entity.Property(tp => tp.Id)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(tp => tp.TripId)
+                .IsRequired();
+
+            entity.Property(tp => tp.PersonId)
+                .IsRequired()
+                .HasMaxLength(450);
+
+            entity.Property(tp => tp.JoinedAt)
+                .IsRequired();
+
+            entity.Property(tp => tp.Status)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            // Relacja do Trip
+            entity.HasOne(tp => tp.Trip)
+                .WithMany(t => t.Participants)
+                .HasForeignKey(tp => tp.TripId)
+                .OnDelete(DeleteBehavior.Cascade); // Jeśli wycieczka jest usuwana, uczestnicy też są usuwani
+
+            // Relacja do Person
+            entity.HasOne(tp => tp.Person)
+                .WithMany() // Person nie ma bezpośredniej kolekcji TripParticipant
+                .HasForeignKey(tp => tp.PersonId)
+                .OnDelete(DeleteBehavior.Cascade); // Jeśli użytkownik jest usuwany, jego uczestnictwo też jest usuwane
+
+            // Unikalna para TripId + PersonId (jeden użytkownik może być uczestnikiem danej wycieczki tylko raz)
+            entity.HasIndex(tp => new { tp.TripId, tp.PersonId })
+                .IsUnique();
+
+            // Indexy dla lepszej wydajności zapytań
+            entity.HasIndex(tp => tp.PersonId);
+            entity.HasIndex(tp => tp.Status);
+            entity.HasIndex(tp => tp.JoinedAt);
         });
 
         // --- Day Configuration ---

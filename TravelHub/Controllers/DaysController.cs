@@ -14,6 +14,7 @@ public class DaysController : Controller
 {
     private readonly IDayService _dayService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly IActivityService _activityService;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
@@ -21,6 +22,7 @@ public class DaysController : Controller
 
     public DaysController(IDayService dayService,
         ITripService tripService,
+        ITripParticipantService tripParticipantService,
         ILogger<DaysController> logger,
         UserManager<Person> userManager,
         IConfiguration configuration,
@@ -28,6 +30,7 @@ public class DaysController : Controller
     {
         _dayService = dayService;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _logger = logger;
         _userManager = userManager;
         _configuration = configuration;
@@ -53,6 +56,11 @@ public class DaysController : Controller
         if (day == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new DayDetailViewModel
@@ -135,6 +143,11 @@ public class DaysController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new DayViewModel
         {
             Id = day.Id,
@@ -156,6 +169,17 @@ public class DaysController : Controller
             return NotFound();
         }
 
+        var day = await _dayService.GetByIdAsync(id);
+        if (day == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         if (!ModelState.IsValid)
         {
             return View(viewModel);
@@ -163,12 +187,6 @@ public class DaysController : Controller
 
         try
         {
-            var day = await _dayService.GetByIdAsync(id);
-            if (day == null)
-            {
-                return NotFound();
-            }
-
             day.Number = viewModel.Number;
             day.Name = viewModel.Name;
             day.Date = viewModel.Date;
@@ -201,6 +219,11 @@ public class DaysController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         return View(day);
     }
 
@@ -209,11 +232,22 @@ public class DaysController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
+        var day = await _dayService.GetDayByIdAsync(id);
+        if (day == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         try
         {
             await _dayService.DeleteAsync(id);
             TempData["SuccessMessage"] = "Day deleted successfully!";
-            return RedirectToAction("Index", "Trips"); // or redirect back to trip details if preferred
+            return RedirectToAction("Details", "Trips"); // or redirect back to trip details if preferred
         }
         catch (Exception ex)
         {
@@ -231,6 +265,11 @@ public class DaysController : Controller
         if (day == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         // Sprawdź czy dzień jest grupą
@@ -273,6 +312,11 @@ public class DaysController : Controller
         if (id != viewModel.Id)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         // Ustaw IsGroup na true i upewnij się, że Number jest null

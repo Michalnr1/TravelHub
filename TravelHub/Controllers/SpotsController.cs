@@ -1,14 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
-using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Expenses;
-using System.Text;
-using System.Globalization;
 using CategorySelectItem = TravelHub.Web.ViewModels.Activities.CategorySelectItem;
 
 namespace TravelHub.Web.Controllers;
@@ -20,6 +18,7 @@ public class SpotsController : Controller
     private readonly IActivityService _activityService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
     private readonly IReverseGeocodingService _reverseGeocodingService;
@@ -34,6 +33,7 @@ public class SpotsController : Controller
         IActivityService activityService,
         IGenericService<Category> categoryService,
         ITripService tripService,
+        ITripParticipantService tripParticipantService,
         IGenericService<Day> dayService,
         IPhotoService photoService,
         IReverseGeocodingService reverseGeocodingService,
@@ -47,6 +47,7 @@ public class SpotsController : Controller
         _activityService = activityService;
         _categoryService = categoryService;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
         _dayService = dayService;
         _photoService = photoService;
         _reverseGeocodingService = reverseGeocodingService;
@@ -98,7 +99,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!await _spotService.UserOwnsSpotAsync(id.Value, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(spot!.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -199,7 +200,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!await _spotService.UserOwnsSpotAsync(id.Value, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(spot.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -219,8 +220,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-
-        if (!await _spotService.UserOwnsSpotAsync(id, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -294,15 +294,15 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!await _spotService.UserOwnsSpotAsync(id.Value, GetCurrentUserId()))
-        {
-            return Forbid();
-        }
-
         var spot = await _spotService.GetByIdAsync(id.Value);
         if (spot == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(spot.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new SpotDetailsViewModel
@@ -331,6 +331,10 @@ public class SpotsController : Controller
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         var spot = await _spotService.GetByIdAsync(id);
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(spot.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
         if (spot != null)
         {
             var dayId = spot.DayId;
@@ -356,7 +360,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!UserOwnsTrip(trip))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -391,7 +395,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!UserOwnsTrip(trip))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
         {
             return Forbid();
         }

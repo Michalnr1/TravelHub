@@ -15,6 +15,9 @@ public class Trip
     // Navigation Property for the person who owns the trip (1:N)
     public Person? Person { get; set; }
 
+    // A trip can have many participants (M:N through TripParticipant)
+    public ICollection<TripParticipant> Participants { get; set; } = new List<TripParticipant>();
+
     // A trip consists of multiple days (1:N)
     public ICollection<Day> Days { get; set; } = new List<Day>();
 
