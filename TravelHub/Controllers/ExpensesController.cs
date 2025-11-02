@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Expenses;
 
 namespace TravelHub.Web.Controllers;
@@ -16,6 +17,7 @@ public class ExpensesController : Controller
     private readonly IExchangeRateService _exchangeRateService;
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly UserManager<Person> _userManager;
 
     public ExpensesController(
@@ -23,13 +25,15 @@ public class ExpensesController : Controller
         IExchangeRateService exchangeRateService,
         IGenericService<Category> categoryService,
         UserManager<Person> userManager,
-        ITripService tripService)
+        ITripService tripService,
+        ITripParticipantService tripParticipantService)
     {
         _expenseService = expenseService;
         _exchangeRateService = exchangeRateService;
         _categoryService = categoryService;
         _userManager = userManager;
         _tripService = tripService;
+        _tripParticipantService = tripParticipantService;
     }
 
     // GET: Expenses
@@ -61,6 +65,11 @@ public class ExpensesController : Controller
         if (expense == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(expense.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new ExpenseDetailsViewModel
@@ -145,6 +154,11 @@ public class ExpensesController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(expense.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = await CreateExpenseCreateEditViewModel(expense);
         await PopulateSelectLists(viewModel);
         return View(viewModel);
@@ -158,6 +172,11 @@ public class ExpensesController : Controller
         if (id != viewModel.Id)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         // Tymczasowo wyłącz walidację dla ParticipantsShares
@@ -234,6 +253,11 @@ public class ExpensesController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(expense.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new ExpenseDetailsViewModel
         {
             Id = expense.Id,
@@ -252,6 +276,11 @@ public class ExpensesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
+        var expense = await _expenseService.GetByIdAsync(id);
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(expense.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
         await _expenseService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
     }
@@ -263,6 +292,11 @@ public class ExpensesController : Controller
         if (trip == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = await CreateExpenseCreateEditViewModel();
@@ -282,6 +316,11 @@ public class ExpensesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddToTrip(ExpenseCreateEditViewModel viewModel)
     {
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         if (ModelState.IsValid)
         {
             var exchangeRateEntry = await _exchangeRateService
@@ -348,6 +387,11 @@ public class ExpensesController : Controller
     {
         var expense = await _expenseService.GetByIdAsync(id);
         return expense != null;
+    }
+
+    private string GetCurrentUserId()
+    {
+        return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 
     private Task<ExpenseCreateEditViewModel> CreateExpenseCreateEditViewModel(Expense? expense = null)

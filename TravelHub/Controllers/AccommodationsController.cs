@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
-using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Expenses;
 using CategorySelectItem = TravelHub.Web.ViewModels.Accommodations.CategorySelectItem;
@@ -85,6 +84,11 @@ public class AccommodationsController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new AccommodationDetailsViewModel
         {
             Id = accommodation.Id,
@@ -162,6 +166,11 @@ public class AccommodationsController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = await CreateAccommodationCreateEditViewModel(accommodation);
         return View(viewModel);
     }
@@ -174,6 +183,11 @@ public class AccommodationsController : Controller
         if (id != viewModel.Id)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         if (ModelState.IsValid)
@@ -235,6 +249,11 @@ public class AccommodationsController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new AccommodationDetailsViewModel
         {
             Id = accommodation.Id,
@@ -253,6 +272,11 @@ public class AccommodationsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
+        var accommodation = await _accommodationService.GetByIdAsync(id);
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
         await _accommodationService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
     }
@@ -264,6 +288,11 @@ public class AccommodationsController : Controller
         if (trip == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new AccommodationCreateEditViewModel
@@ -310,15 +339,15 @@ public class AccommodationsController : Controller
             return NotFound();
         }
 
-        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
-        {
-            return Forbid();
-        }
-
         var trip = await _tripService.GetByIdAsync(tripId);
         if (trip == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         // Walidacja dat w zakresie podróży

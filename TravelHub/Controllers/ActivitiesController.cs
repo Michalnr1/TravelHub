@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Text;
+﻿using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Extensions;
 using TravelHub.Domain.Interfaces.Services;
-using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
 
 namespace TravelHub.Web.Controllers;
@@ -75,7 +73,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -144,15 +142,15 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
-        {
-            return Forbid();
-        }
-
         var activity = await _activityService.GetByIdAsync(id.Value);
         if (activity == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = await CreateActivityCreateEditViewModel(activity);
@@ -170,7 +168,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _activityService.UserOwnsActivityAsync(id, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -244,7 +242,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _activityService.UserOwnsActivityAsync(id.Value, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -273,7 +271,7 @@ public class ActivitiesController : Controller
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         var activity = await _activityService.GetByIdAsync(id);
-        if (!await _activityService.UserOwnsActivityAsync(id, GetCurrentUserId()))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -337,7 +335,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!UserOwnsTrip(trip))
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
         {
             return Forbid();
         }

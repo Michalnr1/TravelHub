@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -79,6 +75,11 @@ public class TransportsController : Controller
         if (transport == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(transport.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new TransportDetailsViewModel
@@ -165,6 +166,11 @@ public class TransportsController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(transport.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = await CreateTransportCreateEditViewModel(transport);
 
         var spots = await _spotService.GetAllAsync();
@@ -195,6 +201,11 @@ public class TransportsController : Controller
         if (id != viewModel.Id)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         if (ModelState.IsValid)
@@ -262,6 +273,11 @@ public class TransportsController : Controller
             return NotFound();
         }
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(transport.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var viewModel = new TransportDetailsViewModel
         {
             Id = transport.Id,
@@ -285,6 +301,10 @@ public class TransportsController : Controller
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         var transport = await _transportService.GetByIdAsync(id);
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(transport.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
         await _transportService.DeleteAsync(id);
         return RedirectToAction("Details", "Trips", new { id = transport.TripId });
     }
@@ -296,6 +316,11 @@ public class TransportsController : Controller
         if (trip == null)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         var viewModel = new TransportCreateEditViewModel
@@ -316,14 +341,14 @@ public class TransportsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddToTrip(int tripId, TransportCreateEditViewModel viewModel)
     {
-        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
-        {
-            return Forbid();
-        }
-
         if (tripId != viewModel.TripId)
         {
             return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
         }
 
         if (ModelState.IsValid)
