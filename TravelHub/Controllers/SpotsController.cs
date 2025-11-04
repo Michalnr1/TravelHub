@@ -431,10 +431,10 @@ public class SpotsController : Controller
                 }
 
                 (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(spot.Latitude, spot.Longitude);
-                if (countryName != null && countryCode != null)
-                {
-                    await _tripService.AddCountryToTrip(tripId, countryName, countryCode);
-                }
+                //if (countryName != null && countryCode != null)
+                //{
+                //    await _tripService.AddCountryToTrip(tripId, countryName, countryCode);
+                //}
 
                 TempData["SuccessMessage"] = "Spot added successfully!";
                 return RedirectToAction("Details", "Trips", new { id = tripId });

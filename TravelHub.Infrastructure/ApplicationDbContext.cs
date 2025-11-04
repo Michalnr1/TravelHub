@@ -203,11 +203,6 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                 .HasForeignKey(er => er.TripId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // M:N relationship with Countries
-            entity.HasMany(t => t.Countries)
-                .WithMany(c => c.Trips)
-                .UsingEntity(j => j.ToTable("TripCountries"));
-
             // 1:N relationship with TripParticipants
             entity.HasMany(t => t.Participants)
                 .WithOne(tp => tp.Trip)
@@ -314,6 +309,11 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // entity.HasKey(s => s.Id);
             // entity.Property(s => s.Cost).HasPrecision(18, 2);
             entity.Property(s => s.Rating);
+
+            // M:N relationship with Countries
+            entity.HasMany(t => t.Countries)
+                .WithMany(c => c.Spots)
+                .UsingEntity(j => j.ToTable("SpotCountries"));
         });
 
         // --- Accommodation Configuration ---

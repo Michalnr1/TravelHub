@@ -9,5 +9,5 @@ public class Country
     [Key]
     public required string Name { get; set; }
 
-    public ICollection<Trip> Trips { get; set; } = new List<Trip>();
+    public ICollection<Spot> Spots { get; set; } = new List<Spot>();
 }

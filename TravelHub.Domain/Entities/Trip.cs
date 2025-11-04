@@ -32,7 +32,4 @@ public class Trip
 
     // A trip can have many exchange rates (1:N)
     public ICollection<ExchangeRate> ExchangeRates { get; set; } = new List<ExchangeRate>();
-
-    // A trip can have many countries (1:N)
-    public ICollection<Country> Countries { get; set; } = new List<Country>();
 }

@@ -24,4 +24,7 @@ public class Spot : Activity
     // A spot can be the destination for many transports
     [InverseProperty("ToSpot")]
     public ICollection<Transport> TransportsTo { get; set; } = new List<Transport>();
+
+    // A spot can have many countries (M:N)
+    public ICollection<Country> Countries { get; set; } = new List<Country>();
 }
