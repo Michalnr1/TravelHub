@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Transports;
 using TravelHub.Web.ViewModels.Trips;
 
 namespace TravelHub.Web.Controllers;
@@ -118,7 +119,13 @@ public class DaysController : Controller
                                 // Cost = s.Cost,
                                 PhotoCount = s.Photos?.Count ?? 0,
                                 TransportsFromCount = s.TransportsFrom?.Count ?? 0,
-                                TransportsToCount = s.TransportsTo?.Count ?? 0
+                                TransportsToCount = s.TransportsTo?.Count ?? 0,
+                                TransportsFrom = s.TransportsFrom?.Select(t => new TransportBasicViewModel { 
+                                    Name = t.Name,
+                                    Duration = t.Duration,
+                                    FromSpotId = t.FromSpotId,
+                                    ToSpotId = t.ToSpotId,
+                                }).ToList(),
                             }).ToList(),
 
 

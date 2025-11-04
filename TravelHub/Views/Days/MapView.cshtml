@@ -49,7 +49,7 @@
 {
     <div class="alert alert-success alert-dismissible fade show mt-4" role="alert">
         <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert  " aria-label="Close"></button>
     </div>
 }
 
@@ -155,6 +155,21 @@
     <script>
         let map;
         let points = JSON.parse('@Json.Serialize(Model.Spots)');
+        
+        //Get user defined route durations
+        points.forEach((point, i) => {
+            if (i < points.length - 1){
+                for (let j = 0; j < point.transportsFrom.length; j++){
+                    if (point.transportsFrom[j].toSpotId == points[i+1].id) {
+                        point.fixedDurationFrom = parseFloat(point.transportsFrom[j].duration);
+                        break;
+                    }
+                }
+            }    
+        });
+
+        alert(JSON.stringify(points));
+
         let activities = JSON.parse('@Json.Serialize(allActivities)');
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let polylines = [];
@@ -289,9 +304,17 @@
                         time = time.plus({hour: Math.floor(parseFloat(activities[i].duration)), minute: Math.round(60 * (parseFloat(activities[i].duration) % 1))});
                         if (activities[i].type == 'Spot') {
                             if (spotNum > 0) {
+                                let duration = 0;
                                 let leg = route.routes[0].legs[spotNum-1];
+                                if (Object.hasOwn(points[spotNum-1], 'fixedDurationFrom')) {
+                                    duration = points[spotNum-1].fixedDurationFrom * 3600 * 1000;
+                                } else {
+                                    duration = leg.durationMillis;
+                                }
+
+                                
                                 let locationCard = document.getElementById("spot-" + spotNum);
-                                let div = buildTravelCard(spotNum-1, leg.durationMillis, travelMode);
+                                let div = buildTravelCard(spotNum-1, duration, travelMode);
                                 locationCard.before(div);
                                 const polyline = new Polyline({
                                     map: map,
@@ -299,7 +322,7 @@
                                 });
                                 setPolylineEventBindings(polyline, div);
                                 polylines.push(polyline);
-                                time = time.plus({millisecond: parseInt(leg.durationMillis)});
+                                time = time.plus({millisecond: parseInt(duration)});
                             }                      
                             spotNum++;
                         }
@@ -322,7 +345,7 @@
                         if (activities[i].type == 'Spot') {
                             if (spotNum > 0) {
                                 let leg = route.routes[0].legs[spotNum-1];
-                                if (leg.durationMillis > threshold){
+                                if (!Object.hasOwn(points[spotNum-1], 'fixedDurationFrom') && leg.durationMillis > threshold){
                                     let div = buildTravelCard(spotNum-1);
                                     locationCard = document.getElementById("spot-" + spotNum);
                                     locationCard.before(div);
@@ -363,16 +386,22 @@
                                             addEntryToTravelCard(div,  "..." + durationStringMillis(partialDurationMillis) + " walking...<br>");
                                     }
                                 } else {
+                                    let duration = 0;
+                                    if (Object.hasOwn(points[spotNum-1], 'fixedDurationFrom')) {
+                                        duration = points[spotNum-1].fixedDurationFrom * 3600 * 1000;
+                                    } else {
+                                        duration = leg.durationMillis;
+                                    }
                                     let polyline = new Polyline({
                                         map: map,
                                         path: leg.path,
                                     });
                                     polylines.push(polyline);
                                     locationCard = document.getElementById("spot-" + spotNum);
-                                    let div = buildTravelCard(spotNum-1, leg.durationMillis, 'WALKING');
+                                    let div = buildTravelCard(spotNum-1, duration, 'WALKING');
                                     locationCard.before(div);
                                     setPolylineEventBindings(polyline, div);
-                                    time = time.plus({millisecond: parseInt(leg.staticDurationMillis)});
+                                    time = time.plus({millisecond: parseInt(duration)});
                                 }
                             }
                             spotNum++;

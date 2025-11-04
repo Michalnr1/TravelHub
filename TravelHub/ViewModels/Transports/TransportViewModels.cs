@@ -7,6 +7,14 @@ using TravelHub.Web.ViewModels.Expenses;
 
 namespace TravelHub.Web.ViewModels.Transports;
 
+public class TransportBasicViewModel
+{
+    public decimal Duration { get; set; }
+    public string? Name { get; set; }
+    public required int FromSpotId { get; set; }
+    public required int ToSpotId { get; set; }
+}
+
 public class TransportViewModel
 {
     public int Id { get; set; }

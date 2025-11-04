@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using TravelHub.Domain.Entities;
 using TravelHub.Web.ViewModels.Expenses;
+using TravelHub.Web.ViewModels.Transports;
 
 namespace TravelHub.Web.ViewModels.Activities;
 
@@ -119,6 +120,7 @@ public class SpotDetailsViewModel : ActivityDetailsViewModel
     public int PhotoCount { get; set; }
     public int TransportsFromCount { get; set; }
     public int TransportsToCount { get; set; }
+    public List<TransportBasicViewModel>? TransportsFrom { get; set; }
 }
 
 // Select list items
