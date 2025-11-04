@@ -585,7 +585,7 @@ public class SpotsController : Controller
             var expense = new Expense
             {
                 Name = $"{spot.Name} (Expense)",
-                Value = viewModel.ExpenseValue!.Value,
+                EstimatedValue = viewModel.ExpenseValue!.Value,
                 PaidById = currentUser.Id,
                 CategoryId = spot.CategoryId,
                 ExchangeRateId = exchangeRateEntry.Id,

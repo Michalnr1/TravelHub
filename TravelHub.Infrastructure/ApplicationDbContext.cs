@@ -377,6 +377,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Value).HasPrecision(18, 2);
+            entity.Property(e => e.EstimatedValue).HasPrecision(18, 2);
             entity.Property(e => e.IsEstimated).IsRequired();
 
             // 1:N relationship for the person who paid
