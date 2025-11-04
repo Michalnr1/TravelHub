@@ -555,7 +555,8 @@ public class TripsController : Controller
                     IsPrivate = viewModel.IsPrivate
                 };
 
-                await _tripService.AddAsync(trip);
+                var newTrip = await _tripService.AddAsync(trip);
+                await _tripParticipantService.AddOwnerAsync(newTrip.Id, GetCurrentUserId());
 
                 TempData["SuccessMessage"] = "Trip created successfully!";
                 return RedirectToAction(nameof(MyTrips));

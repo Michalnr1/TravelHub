@@ -14,12 +14,14 @@ public class TripService : GenericService<Trip>, ITripService
     private readonly IDayRepository _dayRepository;
     private readonly IGenericRepository<Country> _countryRepostory;
     private readonly IAccommodationService _accommodationService;
+    private readonly ITripParticipantRepository _tripParticipantRepository;
     private readonly ILogger<TripService> _logger;
 
     public TripService(ITripRepository tripRepository,
         IDayRepository dayRepository,
         IGenericRepository<Country> countryRepository,
         IAccommodationService accommodationService,
+        ITripParticipantRepository tripParticipantRepository,
         ILogger<TripService> logger)
         : base(tripRepository)
     {
@@ -27,6 +29,7 @@ public class TripService : GenericService<Trip>, ITripService
         _dayRepository = dayRepository;
         _countryRepostory = countryRepository;
         _accommodationService = accommodationService;
+        _tripParticipantRepository = tripParticipantRepository;
         _logger = logger;
     }
 
@@ -244,5 +247,10 @@ public class TripService : GenericService<Trip>, ITripService
         }    
         await _tripRepository.AddCountryToTrip(tripId, country);
         return country;
+    }
+
+    public async Task<IEnumerable<Person>> GetAllTripParticipantsAsync(int tripId)
+    {
+        return await _tripParticipantRepository.GetAllTripParticipantsAsync(tripId);
     }
 }

@@ -14,4 +14,5 @@ public interface ITripParticipantService : IGenericService<TripParticipant>
     Task<IEnumerable<TripParticipant>> GetUserParticipatingTripsAsync(string userId);
     Task<IEnumerable<TripParticipant>> GetPendingInvitationsAsync(string userId);
     Task<int> GetParticipantCountAsync(int tripId);
+    Task<TripParticipant> AddOwnerAsync(int tripId, string personId);
 }

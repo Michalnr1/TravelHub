@@ -495,7 +495,8 @@ public class ExpensesController : Controller
         }).ToList();
 
         // People - using UserManager to get all users
-        var people = await _userManager.Users.ToListAsync();
+        // var people = await _userManager.Users.ToListAsync();
+        var people = await _tripService.GetAllTripParticipantsAsync(viewModel.TripId);
         viewModel.People = people.Select(p => new PersonSelectItem
         {
             Id = p.Id,

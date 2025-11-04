@@ -15,10 +15,3 @@ public class TripParticipant
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     public TripParticipantStatus Status { get; set; } = TripParticipantStatus.Pending;
 }
-
-public enum TripParticipantStatus
-{
-    Pending,
-    Accepted,
-    Declined
-}
