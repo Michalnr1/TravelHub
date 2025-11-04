@@ -18,7 +18,7 @@ public class FakeUserManager : UserManager<Person>
                new PasswordHasher<Person>(),
                Array.Empty<IUserValidator<Person>>(),
                Array.Empty<IPasswordValidator<Person>>(),
-               new SimpleLookupNormalizer(),
+               new TestLookupNormalizer(),
                new IdentityErrorDescriber(),
                null,
                NullLogger<UserManager<Person>>.Instance)

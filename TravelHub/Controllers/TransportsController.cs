@@ -423,7 +423,7 @@ public class TransportsController : Controller
             var expense = new Expense
             {
                 Name = $"{transport.Name} (Transport)",
-                Value = viewModel.ExpenseValue!.Value,
+                EstimatedValue = viewModel.ExpenseValue!.Value,
                 PaidById = currentUser.Id,
                 CategoryId = null,
                 ExchangeRateId = exchangeRateEntry.Id,
