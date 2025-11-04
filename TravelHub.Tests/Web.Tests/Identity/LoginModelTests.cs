@@ -6,7 +6,7 @@ using TravelHub.Tests.TestUtilities;
 using TravelHub.Web.Areas.Identity.Pages.Account;
 using Xunit;
 
-namespace TravelHub.Tests.Identity;
+namespace TravelHub.Tests.Web.Tests.Identity;
 
 public class LoginModelTests
 {

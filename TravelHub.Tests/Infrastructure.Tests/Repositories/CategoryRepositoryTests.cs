@@ -6,7 +6,7 @@ using TravelHub.Infrastructure.Repositories;
 using TravelHub.Domain.Entities;
 using Xunit;
 
-namespace TravelHub.Tests.Repositories
+namespace TravelHub.Tests.Infrastructure.Tests.Repositories
 {
     public class CategoryRepositoryTests
     {
