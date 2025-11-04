@@ -207,6 +207,7 @@ public class TripsController : Controller
                 Name = t.Name,
                 Type = t.Type,
                 Duration = t.Duration,
+                DurationString = ConvertDecimalToTimeString(t.Duration),
                 // Cost = t.Cost,
                 TripName = t.Trip?.Name ?? string.Empty,
                 FromSpotName = t.FromSpot?.Name ?? string.Empty,

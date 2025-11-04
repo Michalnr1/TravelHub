@@ -174,7 +174,7 @@ public class TransportsController : Controller
         var viewModel = await CreateTransportCreateEditViewModel(transport);
 
         var spots = await _spotService.GetAllAsync();
-        var trips = await _tripService.GetAllAsync();
+        //var trips = await _tripService.GetAllAsync();
 
         viewModel.SpotSelectList = spots.Select(s => new SelectListItem
         {
@@ -182,11 +182,11 @@ public class TransportsController : Controller
             Text = $"{s.Name} ({s.Latitude}, {s.Longitude})"
         });
 
-        viewModel.TripSelectList = trips.Select(t => new SelectListItem
-        {
-            Value = t.Id.ToString(),
-            Text = t.Name
-        });
+        //viewModel.TripSelectList = trips.Select(t => new SelectListItem
+        //{
+        //    Value = t.Id.ToString(),
+        //    Text = t.Name
+        //});
 
 
         viewModel.DurationString = ConvertDecimalToTimeString(transport.Duration);
@@ -363,6 +363,8 @@ public class TransportsController : Controller
 
             try
             {
+                viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
+
                 var transport = new Transport
                 {
                     Name = viewModel.Name,

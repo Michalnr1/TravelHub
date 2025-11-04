@@ -43,13 +43,13 @@
                 <span asp-validation-for="Cost" class="text-danger"></span>
             </div> *@
 
-            <div class="form-group">
+            @* <div class="form-group">
                 <label asp-for="TripId" class="control-label"></label>
                 <select asp-for="TripId" asp-items="Model.TripSelectList" class="form-control">
                     <option value="">-- Select Trip --</option>
                 </select>
                 <span asp-validation-for="TripId" class="text-danger"></span>
-            </div>
+            </div> *@
 
             <div class="row">
                 <div class="col-md-6">
@@ -85,45 +85,4 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-    <script>
-                $(document).ready(function () {
-            function filterSpots() {
-                var tripId = $('#TripId').val();
-                var selectedFromSpot = $('#FromSpotId').data('selected'); // zapamiętaj z modelu
-                var selectedToSpot = $('#ToSpotId').data('selected');
-
-                if (tripId) {
-                    $.getJSON('@Url.Action("GetSpotsByTrip", "Transports")', { tripId: tripId }, function (data) {
-                        var fromSpotSelect = $('#FromSpotId');
-                        var toSpotSelect = $('#ToSpotId');
-
-                        fromSpotSelect.empty().append($('<option>').val('').text('-- Select From Spot --'));
-                        toSpotSelect.empty().append($('<option>').val('').text('-- Select To Spot --'));
-
-                        $.each(data, function (index, spot) {
-                            var fromOption = $('<option>').val(spot.id).text(spot.name + ' (' + spot.coordinates + ')');
-                            var toOption = $('<option>').val(spot.id).text(spot.name + ' (' + spot.coordinates + ')');
-
-                            // Ustaw selected, jeśli pasuje do Model.FromSpotId / ToSpotId
-                            if (spot.id == selectedFromSpot) fromOption.attr('selected', 'selected');
-                            if (spot.id == selectedToSpot) toOption.attr('selected', 'selected');
-
-                            fromSpotSelect.append(fromOption);
-                            toSpotSelect.append(toOption);
-                        });
-                    });
-                } else {
-                    $('#FromSpotId').empty().append($('<option>').val('').text('-- Select From Spot --'));
-                    $('#ToSpotId').empty().append($('<option>').val('').text('-- Select To Spot --'));
-                }
-            }
-
-            // Przechowaj wartości w data-selected (renderowane z modelu)
-            $('#FromSpotId').data('selected', '@Model.FromSpotId');
-            $('#ToSpotId').data('selected', '@Model.ToSpotId');
-
-            $('#TripId').change(filterSpots);
-            filterSpots(); // Initial filter on page load
-        });
-    </script>
 }
