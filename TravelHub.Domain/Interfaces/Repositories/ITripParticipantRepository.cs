@@ -13,4 +13,5 @@ public interface ITripParticipantRepository : IGenericRepository<TripParticipant
     Task<IEnumerable<TripParticipant>> GetUserParticipatingTripsAsync(string userId);
     Task<bool> HasAcceptedParticipantAsync(int tripId, string userId);
     Task<bool> IsUserTripOwnerAsync(int tripId, string userId);
+    Task<IEnumerable<Person>> GetAllTripParticipantsAsync(int tripId);
 }

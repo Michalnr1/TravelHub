@@ -30,6 +30,14 @@ public enum Rating
     Five = 5
 }
 
+public enum TripParticipantStatus
+{
+    Pending,
+    Accepted,
+    Declined,
+    Owner
+}
+
 public enum CurrencyCode
 {
     // Europe

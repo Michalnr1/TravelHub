@@ -86,4 +86,13 @@ public class TripParticipantRepository : GenericRepository<TripParticipant>, ITr
 
         return trip;
     }
+
+    public async Task<IEnumerable<Person>> GetAllTripParticipantsAsync(int tripId)
+    {
+        return await _context.TripParticipants
+            .Include(tp => tp.Person)
+            .Where(tp => tp.TripId == tripId)
+            .Select(t => t.Person)
+            .ToListAsync();
+    }
 }

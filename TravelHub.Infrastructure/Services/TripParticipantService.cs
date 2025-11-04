@@ -156,6 +156,22 @@ public class TripParticipantService : GenericService<TripParticipant>, ITripPart
         return await _tripParticipantRepository.GetAcceptedParticipantsCountAsync(tripId);
     }
 
+    public async Task<TripParticipant> AddOwnerAsync(int tripId, string personId)
+    {
+        var tripParticipant = new TripParticipant
+        {
+            TripId = tripId,
+            PersonId = personId,
+            Status = TripParticipantStatus.Owner,
+            JoinedAt = DateTime.UtcNow
+        };
+
+        var result = await _tripParticipantRepository.AddAsync(tripParticipant);
+
+        return result;
+    }
+
+
     private async Task SendTripInvitationEmail(TripParticipant participant)
     {
         try
