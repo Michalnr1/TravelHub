@@ -528,7 +528,7 @@ public class AccommodationsController : Controller
             var expense = new Expense
             {
                 Name = $"{accommodation.Name} (Expense)",
-                Value = viewModel.ExpenseValue!.Value,
+                EstimatedValue = viewModel.ExpenseValue!.Value,
                 PaidById = currentUser.Id,
                 CategoryId = accommodation.CategoryId,
                 ExchangeRateId = exchangeRateEntry.Id,

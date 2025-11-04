@@ -4,6 +4,7 @@ public class Expense
 {
     public int Id { get; set; }
     public decimal Value { get; set; }
+    public decimal EstimatedValue { get; set; }
     public required string Name { get; set; }
     public bool IsEstimated { get; set; }
 
