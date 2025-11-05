@@ -104,7 +104,9 @@ public class AccommodationsController : Controller
             CheckIn = accommodation.CheckIn,
             CheckOut = accommodation.CheckOut,
             CheckInTime = accommodation.CheckInTime,
+            CheckInTimeString = ConvertDecimalToTimeString(accommodation.CheckInTime),
             CheckOutTime = accommodation.CheckOutTime,
+            CheckOutTimeString = ConvertDecimalToTimeString(accommodation.CheckOutTime),
             TripId = accommodation.TripId,
             TripName = accommodation.Trip?.Name
         };
@@ -126,6 +128,9 @@ public class AccommodationsController : Controller
     {
         if (ModelState.IsValid)
         {
+            viewModel.CheckInTime = ConvertTimeStringToDecimal(viewModel.CheckInTimeString);
+            viewModel.CheckOutTime = ConvertTimeStringToDecimal(viewModel.CheckOutTimeString);
+
             var accommodation = new Accommodation
             {
                 Name = viewModel.Name,
@@ -172,6 +177,10 @@ public class AccommodationsController : Controller
         }
 
         var viewModel = await CreateAccommodationCreateEditViewModel(accommodation);
+        viewModel.CheckInTimeString = ConvertDecimalToTimeString(accommodation.CheckInTime);
+        viewModel.CheckOutTimeString = ConvertDecimalToTimeString(accommodation.CheckOutTime);
+
+        await PopulateSelectListsForTrip(viewModel, accommodation.TripId);
 
         // Dodaj dane potrzebne dla widoku (jak w AddToTrip)
         var trip = await _tripService.GetByIdAsync(accommodation.TripId);
@@ -231,6 +240,9 @@ public class AccommodationsController : Controller
         {
             try
             {
+                viewModel.CheckInTime = ConvertTimeStringToDecimal(viewModel.CheckInTimeString);
+                viewModel.CheckOutTime = ConvertTimeStringToDecimal(viewModel.CheckOutTimeString);
+
                 var existingAccommodation = await _accommodationService.GetByIdAsync(id);
                 if (existingAccommodation == null)
                 {
@@ -238,7 +250,7 @@ public class AccommodationsController : Controller
                 }
 
                 // SPRÓBUJ ZNALEŹĆ DZIEŃ DLA ACCOMMODATION (jak w AddToTrip)
-                var dayId = await TryFindDayForAccommodation(viewModel.TripId, viewModel.CheckIn, viewModel.CheckOut);
+                var days = await TryFindDaysForAccommodation(viewModel.TripId, viewModel.CheckIn, viewModel.CheckOut);
 
                 // Update properties
                 existingAccommodation.Name = viewModel.Name;
@@ -246,7 +258,7 @@ public class AccommodationsController : Controller
                 existingAccommodation.Duration = 0; // Duration nie jest istotne dla zakwaterowania
                 existingAccommodation.Order = 0; // Order nie jest edytowalny
                 existingAccommodation.CategoryId = viewModel.CategoryId;
-                existingAccommodation.DayId = dayId; // Przypisz tylko jeśli dzień istnieje, inaczej null
+                existingAccommodation.Days = days?.ToList()!;
                 existingAccommodation.Longitude = viewModel.Longitude;
                 existingAccommodation.Latitude = viewModel.Latitude;
                 existingAccommodation.CheckIn = viewModel.CheckIn;
@@ -259,8 +271,10 @@ public class AccommodationsController : Controller
                 // Aktualizuj powiązany Expense (jak w AddToTrip)
                 await UpdateExpenseForAccommodation(existingAccommodation, viewModel);
 
+                await AddAccommodationToDays(existingAccommodation.Days, existingAccommodation.Id);
+
                 TempData["SuccessMessage"] = "Accommodation updated successfully!" +
-                    (dayId == null ? " It will be automatically assigned to a day when one is created for its date range." : "");
+                    (days == null ? " It will be automatically assigned to a day when one is created for its date range." : "");
 
                 return RedirectToAction("Details", "Accommodations", new { id = id });
             }
@@ -375,7 +389,9 @@ public class AccommodationsController : Controller
             CheckIn = trip.StartDate,
             CheckOut = trip.StartDate.AddDays(1),
             CheckInTime = 14.0m,
-            CheckOutTime = 10.0m
+            CheckOutTime = 10.0m,
+            CheckInTimeString = "14:00",
+            CheckOutTimeString = "10:00",
         };
 
         await PopulateSelectListsForTrip(viewModel, tripId);
@@ -442,8 +458,11 @@ public class AccommodationsController : Controller
         {
             try
             {
+                viewModel.CheckInTime = ConvertTimeStringToDecimal(viewModel.CheckInTimeString);
+                viewModel.CheckOutTime = ConvertTimeStringToDecimal(viewModel.CheckOutTimeString);
+
                 // SPRÓBUJ ZNALEŹĆ DZIEŃ DLA ACCOMMODATION (tylko jeśli istnieje)
-                var dayId = await TryFindDayForAccommodation(tripId, viewModel.CheckIn, viewModel.CheckOut);
+                var days = await TryFindDaysForAccommodation(tripId, viewModel.CheckIn, viewModel.CheckOut);
 
                 var accommodation = new Accommodation
                 {
@@ -453,7 +472,7 @@ public class AccommodationsController : Controller
                     Order = 0, // Order nie jest edytowalny
                     CategoryId = viewModel.CategoryId,
                     TripId = viewModel.TripId,
-                    DayId = dayId, // Przypisz tylko jeśli dzień istnieje, inaczej null
+                    Days = days?.ToList()!,
                     Longitude = viewModel.Longitude,
                     Latitude = viewModel.Latitude,
                     // Cost = viewModel.Cost,
@@ -472,8 +491,10 @@ public class AccommodationsController : Controller
                     await CreateExpenseForAccommodation(createdAccommodation, viewModel);
                 }
 
+                await AddAccommodationToDays(createdAccommodation.Days, createdAccommodation.Id);
+
                 TempData["SuccessMessage"] = "Accommodation added successfully!" +
-                    (dayId == null ? " It will be automatically assigned to a day when one is created for its date range." : "");
+                    (days == null ? " It will be automatically assigned to a day when one is created for its date range." : "");
 
                 return RedirectToAction("Details", "Trips", new { id = tripId });
             }
@@ -495,15 +516,21 @@ public class AccommodationsController : Controller
     }
 
     // Metoda pomocnicza do znalezienia dnia dla accommodation (tylko istniejące dni)
-    private async Task<int?> TryFindDayForAccommodation(int tripId, DateTime checkIn, DateTime checkOut)
+    private async Task<IEnumerable<Day>?> TryFindDaysForAccommodation(int tripId, DateTime checkIn, DateTime checkOut)
     {
         var days = await _dayService.GetDaysByTripIdAsync(tripId);
 
-        // Znajdź dzień, którego data pasuje do zakresu check-in - check-out
-        var matchingDay = days.FirstOrDefault(d =>
-            d.Date.Date >= checkIn.Date && d.Date.Date < checkOut.Date);
+        var allMatchingDays = days.Where(d => d.Date.Date >= checkIn.Date && d.Date.Date < checkOut.Date);
 
-        return matchingDay?.Id;
+        return allMatchingDays;
+    }
+
+    private async Task AddAccommodationToDays(IEnumerable<Day> days, int accommodationId)
+    {
+        foreach (Day day in days)
+        {
+            await _dayService.AddAccommodationToDay(day.Id, accommodationId);
+        }
     }
 
     private async Task CreateExpenseForAccommodation(Accommodation accommodation, AccommodationCreateEditViewModel viewModel)
@@ -807,6 +834,36 @@ public class AccommodationsController : Controller
                 DisplayName = d.Name!
             })
             .ToList();
+    }
+
+    /// <summary>
+    /// Konwertuje czas w formacie string (HH:MM) na decimal (godziny)
+    /// </summary>
+    private decimal ConvertTimeStringToDecimal(string timeString)
+    {
+        if (string.IsNullOrEmpty(timeString))
+            return 0;
+
+        var parts = timeString.Split(':');
+        if (parts.Length != 2)
+            return 0;
+
+        if (int.TryParse(parts[0], out int hours) && int.TryParse(parts[1], out int minutes))
+        {
+            return hours + (minutes / 60.0m);
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Konwertuje decimal (godziny) na string w formacie HH:MM
+    /// </summary>
+    private string ConvertDecimalToTimeString(decimal time)
+    {
+        int hours = (int)time;
+        int minutes = (int)((time - hours) * 60);
+        return $"{hours:D2}:{minutes:D2}";
     }
 
     private string GetCurrentUserId()

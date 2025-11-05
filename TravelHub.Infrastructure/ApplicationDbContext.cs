@@ -273,6 +273,12 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .WithMany(t => t.Days)
                   .HasForeignKey(d => d.TripId)
                   .OnDelete(DeleteBehavior.Restrict); // If a trip is deleted, its days are deleted.
+
+            // 1:N relationship with Trip
+            entity.HasOne(d => d.Accommodation)
+                  .WithMany(t => t.Days)
+                  .HasForeignKey(d => d.AccommodationId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Activity Configuration ---

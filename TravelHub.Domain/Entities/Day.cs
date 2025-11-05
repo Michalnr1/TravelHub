@@ -12,6 +12,10 @@ public class Day
     // Navigation Property back to the trip (1:N)
     public Trip? Trip { get; set; }
 
+    // Foreign Key for Accommodation
+    public int? AccommodationId { get; set; }
+    public Accommodation? Accommodation { get; set; }
+
     // A day can have multiple activities (1:N)
     public ICollection<Activity> Activities { get; set; } = new List<Activity>();
 }

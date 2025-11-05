@@ -1,6 +1,7 @@
 ﻿using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Migrations;
 
 namespace TravelHub.Infrastructure.Services;
 
@@ -49,6 +50,14 @@ public class DayService : GenericService<Day>, IDayService
     public async Task<IEnumerable<Day>> GetDaysByTripIdAsync(int tripId)
     {
         return await _dayRepository.GetByTripIdAsync(tripId);
+    }
+
+    public async Task AddAccommodationToDay(int dayId, int accommodationId)
+    {
+        var day = await _dayRepository.GetByIdAsync(dayId);
+        day!.AccommodationId = accommodationId;
+
+        await _dayRepository.UpdateAsync(day);
     }
 
     public async Task<(double medianLatitude, double medianLongitude)> GetMedianCoords(int id)

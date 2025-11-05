@@ -12,6 +12,7 @@ public class AccommodationViewModel
     // public decimal Cost { get; set; }
     public string? CategoryName { get; set; }
     public string? DayName { get; set; }
+    public ICollection<Day> Days { get; set; } = new List<Day>();
     public DateTime CheckIn { get; set; }
     public DateTime CheckOut { get; set; }
     public double Latitude { get; set; }
@@ -28,13 +29,16 @@ public class AccommodationDetailsViewModel
     public int Order { get; set; }
     public string? CategoryName { get; set; }
     public string? DayName { get; set; }
+    public ICollection<Day> Days { get; set; } = new List<Day>();
     public double Longitude { get; set; }
     public double Latitude { get; set; }
     // public decimal Cost { get; set; }
     public DateTime CheckIn { get; set; }
     public DateTime CheckOut { get; set; }
     public decimal CheckInTime { get; set; }
+    public string CheckInTimeString { get; set; } = "00:00";
     public decimal CheckOutTime { get; set; }
+    public string CheckOutTimeString { get; set; } = "00:00";
     public string DurationString => $"{(CheckOut - CheckIn).Days} nights";
     public int TripId { get; set; }
     public string? TripName { get; set; }
@@ -64,6 +68,7 @@ public class AccommodationCreateEditViewModel
 
     // DayId jest ustawiane automatycznie, nie jest edytowalne przez użytkownika
     public int? DayId { get; set; }
+    public ICollection<Day> DaysForAccommodation { get; set; } = new List<Day>();
 
     [Required(ErrorMessage = "Longitude is required")]
     [Range(-180, 180, ErrorMessage = "Longitude must be between -180 and 180")]
@@ -78,34 +83,38 @@ public class AccommodationCreateEditViewModel
     //public decimal Cost { get; set; }
 
     [Required(ErrorMessage = "Check-in date is required")]
-    [Display(Name = "Check-in Date")]
+    [Display(Name = "Check-in date")]
     [DataType(DataType.Date)]
     public DateTime CheckIn { get; set; } = DateTime.Today;
 
     [Required(ErrorMessage = "Check-out date is required")]
-    [Display(Name = "Check-out Date")]
+    [Display(Name = "Check-out date")]
     [DataType(DataType.Date)]
     public DateTime CheckOut { get; set; } = DateTime.Today.AddDays(1);
 
-    [Required(ErrorMessage = "Check-in time is required")]
-    [Range(0, 23.5, ErrorMessage = "Check-in time must be between 0 and 23.5")]
-    [Display(Name = "Check-in Time")]
     public decimal CheckInTime { get; set; } = 14.0m;
 
-    [Required(ErrorMessage = "Check-out time is required")]
-    [Range(0, 23.5, ErrorMessage = "Check-out time must be between 0 and 23.5")]
-    [Display(Name = "Check-out Time")]
+    [Required(ErrorMessage = "Check-in time is required")]
+    [Display(Name = "Check-in time")]
+    [RegularExpression(@"^([0-9]{1,2}):([0-5][0-9])$", ErrorMessage = "Please enter Check-in time in format HH:MM")]
+    public string CheckInTimeString { get; set; } = "00:00";
+
     public decimal CheckOutTime { get; set; } = 10.0m;
 
+    [Required(ErrorMessage = "Check-out time is required")]
+    [Display(Name = "Check-out time")]
+    [RegularExpression(@"^([0-9]{1,2}):([0-5][0-9])$", ErrorMessage = "Please enter check-out time in format HH:MM")]
+    public string CheckOutTimeString { get; set; } = "00:00";
+
     // Sekcja Expense
-    [Display(Name = "Estimated Cost")]
+    [Display(Name = "Estimated cost")]
     [Range(0.01, double.MaxValue, ErrorMessage = "Cost must be greater than 0")]
     public decimal? ExpenseValue { get; set; }
 
     [Display(Name = "Currency")]
     public CurrencyCode? ExpenseCurrencyCode { get; set; } = CurrencyCode.PLN;
 
-    [Display(Name = "Exchange Rate (to Base)")]
+    [Display(Name = "Exchange rate (to base)")]
     [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]
     public decimal? ExpenseExchangeRateValue { get; set; } = 1.0M;
 

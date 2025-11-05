@@ -9,6 +9,7 @@ public interface IDayService : IGenericService<Day>
     Task<bool> UserOwnsDayAsync(int dayId, string userId);
     Task<bool> IsDayAGroupAsync(int dayId);
     Task<bool> ValidateDateRangeAsync(int tripId, DateTime date);
+    Task AddAccommodationToDay(int dayId, int accommodationId);
     Task<IEnumerable<Day>> GetDaysByTripIdAsync(int tripId);
     Task<(double medianLatitude, double medianLongitude)> GetMedianCoords(int id);
 }
