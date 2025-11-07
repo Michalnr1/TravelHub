@@ -287,6 +287,8 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             .Where(d => d.Amount > 0.01m)
             .ToList();
 
+        var optimizedDebts = OptimizeDebts(aggregatedDebts);
+
         var participantBalances = participants.Select(p => new ParticipantBalanceDto
         {
             PersonId = p.Id,
@@ -302,7 +304,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             TripName = trip.Name,
             TripCurrency = tripCurrency,
             ParticipantBalances = participantBalances,
-            DebtDetails = aggregatedDebts
+            DebtDetails = optimizedDebts
         };
     }
 
@@ -407,5 +409,77 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             return Task.FromResult(amount);
 
         return Task.FromResult(amount * expenseRate.ExchangeRateValue);
+    }
+
+    private List<DebtDetailDto> OptimizeDebts(List<DebtDetailDto> debts)
+    {
+        // Tworzymy macierz długów między wszystkimi uczestnikami
+        var allPersonIds = debts.Select(d => d.FromPersonId)
+            .Concat(debts.Select(d => d.ToPersonId))
+            .Distinct()
+            .ToList();
+
+        var debtMatrix = new Dictionary<string, Dictionary<string, decimal>>();
+
+        // Inicjalizacja macierzy
+        foreach (var fromId in allPersonIds)
+        {
+            debtMatrix[fromId] = new Dictionary<string, decimal>();
+            foreach (var toId in allPersonIds)
+            {
+                debtMatrix[fromId][toId] = 0;
+            }
+        }
+
+        // Wypełniamy macierz długami
+        foreach (var debt in debts)
+        {
+            debtMatrix[debt.FromPersonId][debt.ToPersonId] += debt.Amount;
+        }
+
+        // Optymalizacja: redukujemy wzajemne długi
+        foreach (var personA in allPersonIds)
+        {
+            foreach (var personB in allPersonIds)
+            {
+                if (personA == personB) continue;
+
+                var debtAB = debtMatrix[personA][personB];
+                var debtBA = debtMatrix[personB][personA];
+
+                if (debtAB > 0 && debtBA > 0)
+                {
+                    var minDebt = Math.Min(debtAB, debtBA);
+                    debtMatrix[personA][personB] -= minDebt;
+                    debtMatrix[personB][personA] -= minDebt;
+                }
+            }
+        }
+
+        // Konwertujemy macierz z powrotem na listę długów
+        var optimized = new List<DebtDetailDto>();
+        foreach (var fromId in allPersonIds)
+        {
+            foreach (var toId in allPersonIds)
+            {
+                var amount = debtMatrix[fromId][toId];
+                if (amount > 0.01m)
+                {
+                    var fromName = debts.First(d => d.FromPersonId == fromId).FromPersonName;
+                    var toName = debts.First(d => d.ToPersonId == toId).ToPersonName;
+
+                    optimized.Add(new DebtDetailDto
+                    {
+                        FromPersonId = fromId,
+                        FromPersonName = fromName,
+                        ToPersonId = toId,
+                        ToPersonName = toName,
+                        Amount = amount
+                    });
+                }
+            }
+        }
+
+        return optimized;
     }
 }
