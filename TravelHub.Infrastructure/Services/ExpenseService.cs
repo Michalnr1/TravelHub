@@ -272,29 +272,28 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
     private bool ValidateInputShares(List<ParticipantShareDto> shares, decimal expenseValue)
     {
-        decimal totalAmount = 0.00m;
-        decimal totalPercentage = 0.000m;
+        if (expenseValue == 0.00m)
+        {
+            return shares.All(share => share.InputValue == 0.00m);
+        }
+
+        decimal totalShareValueInAmount = 0.00m;
 
         foreach (var share in shares)
         {
             switch (share.ShareType)
             {
                 case 1: // Kwota
-                    totalAmount += share.InputValue;
+                    totalShareValueInAmount += share.InputValue;
                     break;
                 case 2: // Procent
-                    totalPercentage += share.InputValue;
+                    totalShareValueInAmount += share.InputValue * expenseValue;
                     break;
             }
         }
 
-        // const decimal tolerance = 0.01m;
+        const decimal tolerance = 0.01m;
 
-        // Sprawdź czy suma kwot nie przekracza expenseValue
-        bool amountsValid = totalAmount == expenseValue;
-        // Sprawdź czy suma procentów nie przekracza 1 (100%)
-        bool percentagesValid = totalPercentage == 1.0m;
-
-        return amountsValid && percentagesValid;
+        return Math.Abs(totalShareValueInAmount - expenseValue) <= tolerance;
     }
 }

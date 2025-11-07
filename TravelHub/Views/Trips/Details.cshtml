@@ -263,7 +263,10 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Expenses (@Model.ExpensesCount)</h5>
-                <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Expense</a>
+                <div class="btn-group">
+                    <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Expense</a>
+                    <a asp-controller="Expenses" asp-action="AddTransferToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-info">Add Transfer</a>
+                </div>
             </div>
             <div class="card-body">
                 @if (Model.Expenses.Any())
@@ -279,6 +282,10 @@
                                             <span class="badge bg-success">@expense.Value @expense.CurrencyName</span>
                                             <span class="badge bg-secondary">@expense.CategoryName</span>
                                             <span class="badge bg-info">Paid by: @expense.PaidByName</span>
+                                            @if (!string.IsNullOrEmpty(expense.TransferredToName))
+                                            {
+                                                <span class="badge bg-info">Transfer to: @expense.TransferredToName</span>
+                                            }
                                         </div>
                                     </div>
                                     <div class="btn-group ms-2 flex-shrink-0">

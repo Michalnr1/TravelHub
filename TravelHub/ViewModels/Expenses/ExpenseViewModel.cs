@@ -9,6 +9,7 @@ public class ExpenseViewModel
     public required string Name { get; set; }
     public decimal Value { get; set; }
     public required string PaidByName { get; set; }
+    public string? TransferredToName { get; set; }
     public string? CategoryName { get; set; }
     public required string CurrencyName { get; set; }
 
@@ -28,6 +29,7 @@ public class ExpenseDetailsViewModel
     public required string Name { get; set; }
     public decimal Value { get; set; }
     public required string PaidByName { get; set; }
+    public string? TransferredToName { get; set; }
     public string? CategoryName { get; set; }
     public required string CurrencyName { get; set; }
     public CurrencyCode? CurrencyKey { get; set; }
@@ -59,6 +61,9 @@ public class ExpenseCreateEditViewModel
     [Display(Name = "Paid By")]
     public string PaidById { get; set; } = string.Empty;
 
+    [Display(Name = "Transfer To")]
+    public string? TransferredToId { get; set; }
+
     [Display(Name = "Category")]
     public int? CategoryId { get; set; }
 
@@ -74,6 +79,9 @@ public class ExpenseCreateEditViewModel
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]
     public int TripId { get; set; }
+
+    // Helper flag
+    public bool IsTransfer => !string.IsNullOrEmpty(TransferredToId);
 
     [Display(Name = "Participants")]
     public List<string> SelectedParticipants { get; set; } = new List<string>();
