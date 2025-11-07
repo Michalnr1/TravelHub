@@ -21,6 +21,7 @@
             <i class="fas fa-calculator"></i> Display participants' balances
         </a>
 
+        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#countriesModal">View Countries</button>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
         <a asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary">View on Map</a>
         <a asp-action="MyTrips" class="btn btn-outline-secondary">Back to List</a>
@@ -469,3 +470,98 @@
         </div>
     </div>
 </div>
+
+<!-- Modal dla krajów -->
+<div class="modal fade" id="countriesModal" tabindex="-1" aria-labelledby="countriesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="countriesModalLabel">Countries Visited in This Trip</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="countriesLoading" class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading countries...</p>
+                </div>
+                <div id="countriesContent" style="display: none;">
+                    <div id="countriesList" class="list-group"></div>
+                    <div id="noCountriesMessage" class="text-muted text-center" style="display: none;">
+                        <p>No countries added to this trip yet.</p>
+                        <p>Add spots with location information to see countries here.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const countriesModal = document.getElementById('countriesModal');
+
+            countriesModal.addEventListener('show.bs.modal', function() {
+                loadCountries();
+            });
+
+            function loadCountries() {
+                const loadingElement = document.getElementById('countriesLoading');
+                const contentElement = document.getElementById('countriesContent');
+                const countriesList = document.getElementById('countriesList');
+                const noCountriesMessage = document.getElementById('noCountriesMessage');
+
+                // Show loading, hide content
+                loadingElement.style.display = 'block';
+                contentElement.style.display = 'none';
+                noCountriesMessage.style.display = 'none';
+                countriesList.innerHTML = '';
+
+                fetch(`@Url.Action("GetTripCountries", "Trips")/${@Model.Id}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(countries => {
+                        // Hide loading
+                        loadingElement.style.display = 'none';
+                        contentElement.style.display = 'block';
+
+                        if (countries && countries.length > 0) {
+                            // Sort countries by name
+                            countries.sort((a, b) => a.name.localeCompare(b.name));
+
+                            // Populate countries list
+                            countries.forEach(country => {
+                                const countryElement = document.createElement('div');
+                                countryElement.className = 'list-group-item d-flex justify-content-between align-items-center';
+                                countryElement.innerHTML = `
+                                    <div>
+                                        <strong>${country.name}</strong>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">${country.spotsCount} spots</span>
+                                `;
+                                countriesList.appendChild(countryElement);
+                            });
+                        } else {
+                            noCountriesMessage.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading countries:', error);
+                        loadingElement.style.display = 'none';
+                        contentElement.style.display = 'block';
+                        noCountriesMessage.innerHTML = '<p class="text-danger">Error loading countries. Please try again.</p>';
+                        noCountriesMessage.style.display = 'block';
+                    });
+            }
+        });
+    </script>
+}
