@@ -6,73 +6,242 @@
 }
 
 <h3>@ViewData["Title"]</h3>
-<partial name="_StatusMessage" for="StatusMessage" />
+
 <div class="row">
+    <!-- Lewa kolumna - Informacje o użytkowniku -->
     <div class="col-md-6">
-        <form id="profile-form" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.UserName" class="form-control" placeholder="Please choose your username." />
-                <label asp-for="Input.UserName" class="form-label"></label>
-                <span asp-validation-for="Input.UserName" class="text-danger"></span>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Personal Information</h5>
             </div>
-
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" placeholder="Please enter your email." />
-                <label asp-for="Input.Email" class="form-label"></label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
-            </div>
-
-            <div class="form-floating mb-3">
-                <input asp-for="Input.FirstName" class="form-control" />
-                <label asp-for="Input.FirstName" class="form-label"></label>
-                <span asp-validation-for="Input.FirstName" class="text-danger"></span>
-            </div>
-
-            <div class="form-floating mb-3">
-                <input asp-for="Input.LastName" class="form-control" />
-                <label asp-for="Input.LastName" class="form-label"></label>
-                <span asp-validation-for="Input.LastName" class="text-danger"></span>
-            </div>
-
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Nationality" class="form-control" />
-                <label asp-for="Input.Nationality" class="form-label"></label>
-                <span asp-validation-for="Input.Nationality" class="text-danger"></span>
-            </div>
-
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Birthday" class="form-control" type="date" />
-                <label asp-for="Input.Birthday" class="form-label"></label>
-                <span asp-validation-for="Input.Birthday" class="text-danger"></span>
-            </div>
-
-            <div class="form-floating mb-3">
-                <input asp-for="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number."/>
-                <label asp-for="Input.PhoneNumber" class="form-label"></label>
-                <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Input.IsPrivate" class="form-label"></label>
-                <div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" asp-for="Input.IsPrivate" value="false" id="isPrivateNo">
-                        <label class="form-check-label" for="isPrivateNo">No</label>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Username:</strong>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" asp-for="Input.IsPrivate" value="true" id="isPrivateYes">
-                        <label class="form-check-label" for="isPrivateYes">Yes</label>
+                    <div class="col-sm-8">
+                        @Model.Username
                     </div>
                 </div>
-                <span asp-validation-for="Input.IsPrivate" class="text-danger"></span>
-            </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Email:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        @Model.Email
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Name:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        @Model.FirstName @Model.LastName
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Nationality:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        @Model.Nationality
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Birthday:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        @Model.Birthday.ToString("MMMM dd, yyyy")
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Phone:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        @(string.IsNullOrEmpty(Model.PhoneNumber) ? "Not set" : Model.PhoneNumber)
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Account Type:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        <span class="badge @(Model.IsPrivate ? "bg-secondary" : "bg-success")">
+                            @(Model.IsPrivate ? "Private" : "Public")
+                        </span>
+                    </div>
+                </div>
 
-            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
-        </form>
+                <div class="mt-4">
+                    <a asp-page="./Edit" class="btn btn-primary">Edit Profile</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prawa kolumna - Statystyki -->
+    <div class="col-md-6">
+        <!-- Najczęściej odwiedzane kraje -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Top Visited Countries</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.TopCountries.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var country in Model.TopCountries)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@country.Name</strong>
+                                    <small class="text-muted d-block">@country.Code</small>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">@country.VisitCount visits</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No countries visited yet.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Ostatnie podróże -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Trips</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentTrips.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var trip in Model.RecentTrips)
+                        {
+                            <a href="@Url.Action("Details", "Trips", new { id = trip.Id })"
+                               class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@trip.Name</h6>
+                                    <small>@trip.StartDate.ToString("MMM yyyy")</small>
+                                </div>
+                                <p class="mb-1">
+                                    <small class="text-muted">
+                                        @trip.DaysCount days • @trip.CountriesCount countries
+                                    </small>
+                                </p>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No trips yet.</p>
+                    <a href="@Url.Action("Create", "Trips")" class="btn btn-success btn-sm">Create Your First Trip</a>
+                }
+            </div>
+        </div>
     </div>
 </div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+<!-- Zamiast wykresu timeline dodaj statystyki podsumowujące -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Travel Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-primary">@Model.TotalTrips</h4>
+                            <p class="mb-0 text-muted">Completed Trips</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-success">@Model.TotalDays</h4>
+                            <p class="mb-0 text-muted">Total Travel Days</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-info">@Model.VisitedCountries</h4>
+                            <p class="mb-0 text-muted">Countries Visited</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-warning">@(Model.TotalDays > 0 ? (Model.TotalDays / Model.TotalTrips).ToString("F1") : "0")</h4>
+                            <p class="mb-0 text-muted">Avg Days per Trip</p>
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.RecentTrips.Any())
+                {
+                    <div class="mt-4">
+                        <h6>Recent Completed Trips</h6>
+                        <div class="list-group">
+                            @foreach (var trip in Model.RecentTrips)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>@trip.Name</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                @trip.StartDate.ToString("MMM dd, yyyy") - @trip.EndDate.ToString("MMM dd, yyyy")
+                                                • @trip.DaysCount days • @trip.CountriesCount countries
+                                            </small>
+                                        </div>
+                                        <a href="@Url.Action("Details", "Trips", new { id = trip.Id })"
+                                           class="btn btn-sm btn-outline-primary">View</a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .simple-timeline {
+        position: relative;
+    }
+
+        .simple-timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+
+    .timeline-item {
+        position: relative;
+        padding-left: 40px;
+    }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 10px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #0d6efd;
+            border: 3px solid white;
+            z-index: 1;
+        }
+</style>

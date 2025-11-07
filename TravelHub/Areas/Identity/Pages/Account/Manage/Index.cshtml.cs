@@ -1,122 +1,65 @@
-ï»¿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using TravelHub.Domain.Entities;
-using TravelHub.Web.Validation;
+using TravelHub.Domain.Interfaces.Services;
 
 namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
 {
     public class IndexModel : PageModel
     {
         private readonly UserManager<Person> _userManager;
-        private readonly SignInManager<Person> _signInManager;
+        private readonly ITripService _tripService;
+        private readonly ITripParticipantService _tripParticipantService;
+        private readonly ISpotService _spotService;
 
         public IndexModel(
             UserManager<Person> userManager,
-            SignInManager<Person> signInManager)
+            ITripService tripService,
+            ITripParticipantService tripParticipantService,
+            ISpotService spotService)
         {
             _userManager = userManager;
-            _signInManager = signInManager;
+            _tripService = tripService;
+            _tripParticipantService = tripParticipantService;
+            _spotService = spotService;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public string Username { get; set; }
+        public string Email { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Nationality { get; set; }
+        public DateTime Birthday { get; set; }
+        public string PhoneNumber { get; set; }
+        public bool IsPrivate { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [TempData]
-        public string StatusMessage { get; set; }
+        // Statystyki
+        public int TotalTrips { get; set; }
+        public int TotalDays { get; set; }
+        public int VisitedCountries { get; set; }
+        public List<CountryStat> TopCountries { get; set; } = new();
+        public List<TripStat> RecentTrips { get; set; } = new();
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [BindProperty]
-        public InputModel Input { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        public class InputModel
+        public class CountryStat
         {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
-
-            [Required]
-            [EmailAddress]
-            [Display(Name = "Email")]
-            public string Email { get; set; }
-
-            [Required]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
-            [Display(Name = "Username")]
-            public string UserName { get; set; }
-
-            [Phone]
-            [Display(Name = "Phone number")]
-            public string PhoneNumber { get; set; }
-
-            [Required]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
-            [Display(Name = "First Name")]
-            public string FirstName { get; set; }
-
-            [Required]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
-            [Display(Name = "Last Name")]
-            public string LastName { get; set; }
-
-            [Required]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 1)]
-            [Display(Name = "Nationality")]
-            public string Nationality { get; set; }
-
-            [Required]
-            [Display(Name = "Birthday")]
-            [DataType(DataType.Date)]
-            [MinimumAge(18, 150)]
-            public DateTime Birthday { get; set; }
-
-            [Required]
-            [Display(Name = "Is account private?")]
-            public bool IsPrivate { get; set; }
+            public string Name { get; set; }
+            public string Code { get; set; }
+            public int VisitCount { get; set; }
         }
 
-        private async Task LoadAsync(Person user)
+        public class TripStat
         {
-            var userName = await _userManager.GetUserNameAsync(user);
-            var email = await _userManager.GetEmailAsync(user);
-            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
-
-            Username = userName;
-
-            Input = new InputModel
-            {
-                Email = email,
-                UserName = userName,
-                PhoneNumber = phoneNumber,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Nationality = user.Nationality,
-                Birthday = user.Birthday,
-                IsPrivate = user.IsPrivate
-            };
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public DateTime StartDate { get; set; }
+            public DateTime EndDate { get; set; }
+            public int DaysCount { get; set; }
+            public int CountriesCount { get; set; }
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -127,110 +70,91 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
 
-            await LoadAsync(user);
+            await LoadUserDataAsync(user);
+            await LoadStatisticsAsync(user.Id);
+
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        private async Task LoadUserDataAsync(Person user)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            Username = await _userManager.GetUserNameAsync(user);
+            Email = await _userManager.GetEmailAsync(user);
+            PhoneNumber = await _userManager.GetPhoneNumberAsync(user);
+            FirstName = user.FirstName;
+            LastName = user.LastName;
+            Nationality = user.Nationality;
+            Birthday = user.Birthday;
+            IsPrivate = user.IsPrivate;
+        }
+
+        private async Task LoadStatisticsAsync(string userId)
+        {
+            // Pobierz wszystkie podró¿e u¿ytkownika
+            var userTrips = await _tripParticipantService.GetUserParticipatingTripsAsync(userId);
+
+            // Filtruj tylko ukoñczone podró¿e
+            var finishedTrips = userTrips
+                .Where(ut => ut.Trip.Status == Status.Finished)
+                .ToList();
+
+            var tripIds = finishedTrips.Select(ut => ut.TripId).ToList();
+
+            TotalTrips = tripIds.Count;
+
+            // Zbierz dane sekwencyjnie
+            var tripsStats = new List<TripStat>();
+            var allCountries = new List<Country>();
+
+            foreach (var tripId in tripIds)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                var trip = await _tripService.GetTripWithDetailsAsync(tripId);
+                var countries = await _spotService.GetCountriesByTripAsync(tripId);
+
+                // Oblicz liczbê dni w podró¿y (ró¿nica miêdzy StartDate a EndDate)
+                var daysInTrip = (trip.EndDate - trip.StartDate).Days + 1; // +1 bo wliczamy dzieñ startowy
+
+                var tripStat = new TripStat
+                {
+                    Id = tripId,
+                    Name = trip.Name,
+                    StartDate = trip.StartDate,
+                    EndDate = trip.EndDate,
+                    DaysCount = daysInTrip,
+                    CountriesCount = countries.Count()
+                };
+
+                tripsStats.Add(tripStat);
+                allCountries.AddRange(countries);
             }
 
-            if (!ModelState.IsValid)
-            {
-                await LoadAsync(user);
-                return Page();
-            }
+            // Posortuj i weŸ ostatnie 5 podró¿y
+            RecentTrips = tripsStats
+                .OrderByDescending(t => t.StartDate)
+                .Take(5)
+                .ToList();
 
-            var userName = await _userManager.GetUserNameAsync(user);
-            if (Input.UserName != userName)
-            {
-                var existingUserByUserName = await _userManager.FindByNameAsync(Input.UserName);
-                if (existingUserByUserName != null && existingUserByUserName.Id != user.Id)
+            // Oblicz ca³kowit¹ liczbê dni (suma dni ze wszystkich ukoñczonych podró¿y)
+            TotalDays = tripsStats.Sum(t => t.DaysCount);
+
+            // Oblicz odwiedzone kraje (unikalne kody krajów)
+            VisitedCountries = allCountries
+                .Select(c => c.Code)
+                .Distinct()
+                .Count();
+
+            // Top kraje - grupujemy po kodzie i nazwie
+            TopCountries = allCountries
+                .GroupBy(c => new { c.Code, c.Name })
+                .Select(g => new CountryStat
                 {
-                    ModelState.AddModelError("Input.UserName", "This username is already taken.");
-                    await LoadAsync(user);
-                    return Page();
-                }
-
-                var setUserNameResult = await _userManager.SetUserNameAsync(user, Input.UserName);
-                if (!setUserNameResult.Succeeded)
-                {
-                    foreach (var error in setUserNameResult.Errors)
-                    {
-                        ModelState.AddModelError("Input.UserName", error.Description);
-                    }
-                    await LoadAsync(user);
-                    return Page();
-                }
-            }
-
-            var email = await _userManager.GetEmailAsync(user);
-            if (Input.Email != email)
-            {
-                var existingUserByEmail = await _userManager.FindByEmailAsync(Input.Email);
-                if (existingUserByEmail != null && existingUserByEmail.Id != user.Id)
-                {
-                    ModelState.AddModelError("Input.Email", "This email is already taken.");
-                    await LoadAsync(user);
-                    return Page();
-                }
-
-                var setEmailResult = await _userManager.SetEmailAsync(user, Input.Email);
-                if (!setEmailResult.Succeeded)
-                {
-                    foreach (var error in setEmailResult.Errors)
-                    {
-                        ModelState.AddModelError("Input.Email", error.Description);
-                    }
-                    await LoadAsync(user);
-                    return Page();
-                }
-            }
-
-            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
-            if (Input.PhoneNumber != phoneNumber)
-            {
-                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
-                if (!setPhoneResult.Succeeded)
-                {
-                    StatusMessage = "Unexpected error when trying to set phone number.";
-                    return RedirectToPage();
-                }
-            }
-
-            if (Input.FirstName != user.FirstName)
-                user.FirstName = Input.FirstName;
-
-            if (Input.LastName != user.LastName)
-                user.LastName = Input.LastName;
-
-            if (Input.Nationality != user.Nationality)
-                user.Nationality = Input.Nationality;
-
-            if (Input.Birthday != user.Birthday)
-                user.Birthday = Input.Birthday;
-
-            if (Input.IsPrivate != user.IsPrivate)
-                user.IsPrivate = Input.IsPrivate;
-
-            var updateResult = await _userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
-            {
-                foreach (var error in updateResult.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
-                await LoadAsync(user);
-                return Page();
-            }
-
-            await _signInManager.RefreshSignInAsync(user);
-            StatusMessage = "Your profile has been updated";
-            return RedirectToPage();
+                    Code = g.Key.Code,
+                    Name = g.Key.Name,
+                    VisitCount = g.Count()
+                })
+                .OrderByDescending(c => c.VisitCount)
+                .Take(5)
+                .ToList();
         }
     }
 }
