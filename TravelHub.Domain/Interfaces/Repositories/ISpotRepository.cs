@@ -18,4 +18,6 @@ public interface ISpotRepository : IGenericRepository<Spot>
     Task<IReadOnlyList<Spot>> GetAllWithDetailsAsync();
 
     Task<IReadOnlyList<Spot>> GetTripSpotsWithDetailsAsync(int tripId);
+
+    Task<IReadOnlyList<Country>> GetCountriesByTripAsync(int tripId);
 }

@@ -210,3 +210,10 @@ public class BasicActivityViewModel
     public decimal Duration { get; set; }
     public string? CategoryName { get; set; }
 }
+
+public class CountryViewModel
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int SpotsCount { get; set; }
+}

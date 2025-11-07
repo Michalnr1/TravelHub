@@ -65,7 +65,7 @@ public class TripParticipantService : GenericService<TripParticipant>, ITripPart
             foreach (var friendId in friendIds)
             {
                 var friend = await _userManager.FindByIdAsync(friendId);
-                if (friend != null && !friend.IsPrivate)
+                if (friend != null)
                 {
                     friends.Add(friend);
                 }

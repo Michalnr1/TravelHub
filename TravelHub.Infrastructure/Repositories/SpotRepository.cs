@@ -45,6 +45,7 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
         return await _context.Set<Spot>()
             .Where(s => s.TripId == tripId)
             .Include(s => s.Category)
+            .Include(s => s.Country)
             .Include(s => s.Day)
             .Include(s => s.Trip)
             .Include(s => s.Photos)
@@ -57,6 +58,7 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
     {
         return await _context.Set<Spot>()
             .Include(s => s.Category)
+            .Include(s => s.Country)
             .Include(s => s.Day)
             .Include(s => s.Trip)
             .Include(s => s.Photos)
@@ -69,6 +71,7 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
     {
         return await _context.Set<Spot>()
             .Include(s => s.Category)
+            .Include(s => s.Country)
             .Include(s => s.Day)
             .Include(s => s.Trip)
             .Include(s => s.Photos)
@@ -79,4 +82,18 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
 
     // Implementacja metody FindNearbySpotsAsync byłaby zbyt skomplikowana w standardowym LINQ
     // i wymagałaby użycia zewnętrznego API. Pominięta, by utrzymać czystość kodu.
+
+    public async Task<IReadOnlyList<Country>> GetCountriesByTripAsync(int tripId)
+    {
+        var countries = await _context.Set<Spot>()
+            .Include(s => s.Country)
+                .ThenInclude(c => c!.Spots)
+            .Where(s => s.TripId == tripId && s.Country != null)
+            .Select(s => s.Country!)
+            .GroupBy(c => c.Name)
+            .Select(g => g.First())
+            .ToListAsync();
+
+        return countries;
+    }
 }

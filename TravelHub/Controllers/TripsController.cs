@@ -911,6 +911,25 @@ public class TripsController : Controller
         return View(viewModel);
     }
 
+    // GET: Trips/GetTripCountries/5
+    public async Task<IActionResult> GetTripCountries(int id)
+    {
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        var countries = await _spotService.GetCountriesByTripAsync(id);
+        var countryViewModels = countries.Select(c => new CountryViewModel
+        {
+            Code = c.Code,
+            Name = c.Name,
+            SpotsCount = c.Spots?.Count ?? 0
+        }).ToList();
+
+        return Ok(countryViewModels);
+    }
+
     private string GetCurrentUserId()
     {
         return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
