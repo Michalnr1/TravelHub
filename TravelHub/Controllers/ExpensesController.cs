@@ -265,7 +265,7 @@ public class ExpensesController : Controller
                 await _expenseService.UpdateAsync(existingExpense, participantSharesDto);
 
                 TempData["SuccessMessage"] = viewModel.IsTransfer ? "Transfer updated successfully!" : "Expense updated successfully!";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -327,7 +327,7 @@ public class ExpensesController : Controller
             return Forbid();
         }
         await _expenseService.DeleteAsync(id);
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction("Details", "Trips", new { id = expense.TripId });
     }
 
     // GET: Expenses/AddToTrip
