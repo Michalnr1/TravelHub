@@ -481,6 +481,26 @@ public class ExpensesController : Controller
         return View("AddTransferToTrip", viewModel);
     }
 
+    // GET: Expenses/Balances
+    public async Task<IActionResult> Balances(int tripId)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        var balanceDto = await _expenseService.CalculateBalancesAsync(tripId);
+        var viewModel = BalanceViewModel.FromDto(balanceDto);
+
+        return View(viewModel);
+    }
+
     private async Task<List<PersonSelectItem>> GetPeopleFromTrip(int tripId)
     {
         // This is a placeholder - you'll need to implement this based on your data model

@@ -111,7 +111,7 @@ public class TripsController : Controller
                 Name = e.Name,
                 Value = e.Value,
                 PaidByName = e.PaidBy != null ? $"{e.PaidBy.FirstName} {e.PaidBy.LastName}" : "Unknown",
-                TransferredToName = e.TransferredTo?.FirstName + " " + e.TransferredTo?.LastName,
+                TransferredToName = e.TransferredTo == null ? null : e.TransferredTo.FirstName + " " + e.TransferredTo.LastName,
                 CategoryName = e.Category?.Name,
                 CurrencyName = e.ExchangeRate?.Name ?? trip.CurrencyCode.GetDisplayName(),
                 CurrencyCode = e.ExchangeRate?.CurrencyCodeKey ?? trip.CurrencyCode,
