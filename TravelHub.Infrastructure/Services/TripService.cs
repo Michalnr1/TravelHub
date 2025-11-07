@@ -12,14 +12,12 @@ public class TripService : GenericService<Trip>, ITripService
 {
     private readonly ITripRepository _tripRepository;
     private readonly IDayRepository _dayRepository;
-    private readonly IGenericRepository<Country> _countryRepostory;
     private readonly IAccommodationService _accommodationService;
     private readonly ITripParticipantRepository _tripParticipantRepository;
     private readonly ILogger<TripService> _logger;
 
     public TripService(ITripRepository tripRepository,
         IDayRepository dayRepository,
-        IGenericRepository<Country> countryRepository,
         IAccommodationService accommodationService,
         ITripParticipantRepository tripParticipantRepository,
         ILogger<TripService> logger)
@@ -27,7 +25,6 @@ public class TripService : GenericService<Trip>, ITripService
     {
         _tripRepository = tripRepository;
         _dayRepository = dayRepository;
-        _countryRepostory = countryRepository;
         _accommodationService = accommodationService;
         _tripParticipantRepository = tripParticipantRepository;
         _logger = logger;
@@ -229,24 +226,6 @@ public class TripService : GenericService<Trip>, ITripService
             _logger.LogInformation("Automatically assigned {Count} accommodations to newly created day {DayId}",
                 assignedCount, day.Id);
         }
-    }
-
-    public async Task<Country> AddCountryToTrip(int tripId, string name, string code)
-    {
-
-        var trip = await GetByIdAsync(tripId);
-        if (trip == null)
-        {
-            throw new ArgumentException($"Trip with ID {tripId} not found");
-        }
-
-        var country = (await _countryRepostory.GetAllAsync()).FirstOrDefault(country => country.Name == name && country.Code == code);
-        if (country == null)
-        {
-            country = await _countryRepostory.AddAsync(new Country { Code = code, Name = name });
-        }    
-        await _tripRepository.AddCountryToTrip(tripId, country);
-        return country;
     }
 
     public async Task<IEnumerable<Person>> GetAllTripParticipantsAsync(int tripId)

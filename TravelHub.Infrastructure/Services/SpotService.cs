@@ -1,6 +1,7 @@
 ﻿using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Repositories;
 
 namespace TravelHub.Infrastructure.Services;
 
@@ -8,12 +9,14 @@ public class SpotService : GenericService<Spot>, ISpotService
 {
     private readonly ISpotRepository _spotRepository;
     private readonly IActivityRepository _activityRepository;
+    private readonly IGenericRepository<Country> _countryRepository;
 
-    public SpotService(ISpotRepository spotRepository, IActivityRepository activityRepository)
+    public SpotService(ISpotRepository spotRepository, IActivityRepository activityRepository, IGenericRepository<Country> countryRepository)
         : base(spotRepository)
     {
         _spotRepository = spotRepository;
         _activityRepository = activityRepository;
+        _countryRepository = countryRepository;
     }
 
     public async Task<Spot?> GetSpotDetailsAsync(int id)
@@ -91,6 +94,25 @@ public class SpotService : GenericService<Spot>, ISpotService
         }
 
         return nearbySpots;
+    }
+
+    public async Task<Country> AddCountry(int spotId, string name, string code)
+    {
+
+        var spot = await _spotRepository.GetByIdWithDetailsAsync(spotId);
+        if (spot == null)
+        {
+            throw new ArgumentException($"Spot with ID {spotId} not found");
+        }
+
+        var country = (await _countryRepository.GetAllAsync()).FirstOrDefault(country => country.Name == name && country.Code == code);
+        if (country == null)
+        {
+            country = await _countryRepository.AddAsync(new Country { Code = code, Name = name });
+        }
+        //spot.Country = country;
+        await _spotRepository.UpdateAsync(spot);
+        return country;
     }
 
     // Pomocnicza funkcja do konwersji stopni na radiany

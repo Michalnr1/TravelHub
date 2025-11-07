@@ -419,22 +419,20 @@ public class SpotsController : Controller
                     Longitude = viewModel.Longitude,
                     Latitude = viewModel.Latitude,
                     // Cost = viewModel.Cost,
-                    Rating = viewModel.Rating
+                    Rating = viewModel.Rating,
                 };
 
                 var createdSpot = await _spotService.AddAsync(spot);
-
+                (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(viewModel.Latitude, viewModel.Longitude);
+                if (countryName != null && countryCode != null) {
+                    await _spotService.AddCountry(spot.Id, countryName, countryCode);
+                }
+                
                 // Jeśli podano koszt, utwórz powiązany Expense
                 if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
                 {
                     await CreateExpenseForSpot(createdSpot, viewModel);
                 }
-
-                (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(spot.Latitude, spot.Longitude);
-                //if (countryName != null && countryCode != null)
-                //{
-                //    await _tripService.AddCountryToTrip(tripId, countryName, countryCode);
-                //}
 
                 TempData["SuccessMessage"] = "Spot added successfully!";
                 return RedirectToAction("Details", "Trips", new { id = tripId });

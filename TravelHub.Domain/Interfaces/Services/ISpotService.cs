@@ -23,4 +23,5 @@ public interface ISpotService : IGenericService<Spot>
     Task<IEnumerable<Spot>> GetTripSpotsWithDetailsAsync(int tripId);
 
     Task<bool> UserOwnsSpotAsync(int spotId, string userId);
+    Task<Country> AddCountry(int spotId, string name, string code);
 }
