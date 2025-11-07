@@ -862,8 +862,12 @@ public class TripsController : Controller
         // Pobierz wycieczki gdzie użytkownik jest uczestnikiem
         var participatingTrips = await _tripParticipantService.GetUserParticipatingTripsAsync(userId);
 
+        // Odfiltruj wycieczki, których użytkownik jest właścicielem
+        var ownedTripIds = ownedTrips.Select(t => t.Id).ToHashSet();
+        var filteredParticipatingTrips = participatingTrips.Where(tp => !ownedTripIds.Contains(tp.Trip.Id));
+
         var participatingTripsViewModel = new List<TripViewModel>();
-        foreach (var tp in participatingTrips)
+        foreach (var tp in filteredParticipatingTrips)
         {
             participatingTripsViewModel.Add(new TripViewModel
             {

@@ -8,7 +8,7 @@
     var startLat = ViewData["Latitude"];
     var startLng = ViewData["Longitude"];
     var allActivities = new List<ActivityDetailsViewModel>();
-    allActivities.AddRange(Model.Spots); 
+    allActivities.AddRange(Model.Spots);
     allActivities.AddRange(Model.Activities);
     allActivities.Sort((a1, a2) => a1.Order.CompareTo(a2.Order));
 }
@@ -49,37 +49,65 @@
 {
     <div class="alert alert-success alert-dismissible fade show mt-4" role="alert">
         <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert  " aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
 <div class="row">
     <div class="col-md-8">
-        <div>
-            <h2>Map</h2>
-            <p>Api Key: @apiKey</p>
-            <div id="map" style="height:500px;width:100%;margin-top:10px;"></div>
-            <button id="route-walk-btn">Find walking route</button>
-            <button id="route-drive-btn">Find car route</button>
-            <button id="route-transit-btn">Find route with public transportation</button>
-            <br />
-            Acceptable walking time (minutes) <input type="number" value="30" id="transit-threshold"/>
-            <br />
-            Start time <input type="time" id="start-time" value="08:00" />
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title h5 mb-0">Route Planning</h2>
+            </div>
+            <div class="card-body">
+                <div id="map" style="height:400px;width:100%;"></div>
 
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="start-time" class="form-label">Start Time</label>
+                            <input type="time" class="form-control" id="start-time" value="08:00">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="transit-threshold" class="form-label">Max Walking Time (minutes)</label>
+                            <input type="number" class="form-control" id="transit-threshold" value="30" min="1" max="120">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="route-controls">
+                    <h6 class="mb-2">Find Route:</h6>
+                    <div class="btn-group-vertical w-100" role="group">
+                        <button id="route-walk-btn" class="btn btn-outline-primary text-start">
+                            <i class="fas fa-walking me-2"></i>Walking Route
+                        </button>
+                        <button id="route-drive-btn" class="btn btn-outline-primary text-start">
+                            <i class="fas fa-car me-2"></i>Driving Route
+                        </button>
+                        <button id="route-transit-btn" class="btn btn-outline-primary text-start">
+                            <i class="fas fa-bus me-2"></i>Public Transportation
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
     <!-- Spots -->
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Spots (@(Model.Spots.Count()))</h5>
-                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
+                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">
+                    <i class="fas fa-plus me-1"></i>Add Spot
+                </a>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 @if (allActivities.Any())
                 {
-                    <div class="list-group">
+                    <div class="list-group list-group-flush">
                         @{
                             int i = 0;
                             int j = 0;
@@ -91,7 +119,8 @@
                             {
                                 id = "spot-" + i;
                                 i++;
-                            } else
+                            }
+                            else
                             {
                                 id = "activity-" + j;
                                 j++;
@@ -115,26 +144,36 @@
                                                     📍 @((activity as SpotDetailsViewModel).Latitude.ToString("F4")), @((activity as SpotDetailsViewModel).Longitude.ToString("F4"))
                                                 </small>
                                             }
-                                            
+
                                         </div>
                                     </div>
                                     <div class="btn-group ms-2 flex-shrink-0">
-                                        <a asp-controller="Spots" asp-action="Details" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a asp-controller="Spots" asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <a asp-controller="Spots" asp-action="Details" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-controller="Spots" asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
                                         <form asp-controller="Spots" asp-action="Delete" asp-route-id="@activity.Id" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this spot?')">Delete</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this spot?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </form>
                                     </div>
                                 </div>
                             </div>
-                            
+
                         }
                     </div>
                 }
                 else
                 {
-                    <p class="text-muted">No spots added to this trip yet.</p>
-                    <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
+                    <div class="text-center p-4">
+                        <p class="text-muted mb-3">No spots added to this trip yet.</p>
+                        <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>Add Spot
+                        </a>
+                    </div>
                 }
             </div>
         </div>
@@ -155,7 +194,7 @@
     <script>
         let map;
         let points = JSON.parse('@Json.Serialize(Model.Spots)');
-        
+
         //Get user defined route durations
         points.forEach((point, i) => {
             if (i < points.length - 1){
@@ -165,7 +204,7 @@
                         break;
                     }
                 }
-            }    
+            }
         });
 
         let activities = JSON.parse('@Json.Serialize(allActivities)');
@@ -178,10 +217,9 @@
             const {AdvancedMarkerElement} = await google.maps.importLibrary("marker");
 
             // Initialize the map.
-            map = new google.maps.Map(document.getElementById("map"), { 
+            map = new google.maps.Map(document.getElementById("map"), {
                     center: center,
                     zoom: 12,
-                    //TODO: Create map id
                     mapId: 'DEMO_MAP_ID'
             });
             marker = new AdvancedMarkerElement({
@@ -192,12 +230,11 @@
 
             points.forEach((point, i) => {
               let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
-              
+
               if (point.order == 0) {
                   var iconImage = new google.maps.marker.PinElement({});
               } else {
                   let glyphLabel = document.createElement("div");
-                  // set style and classes as needed
                   glyphLabel.style = 'color: white; font-size: 17px;';
                   glyphLabel.innerText = i + 1;
                   var iconImage = new google.maps.marker.PinElement({
@@ -246,7 +283,6 @@
 
             });
 
-
             let walkRouteBtn = document.getElementById("route-walk-btn");
             walkRouteBtn.addEventListener('click', (event) => {showRoute('WALKING')});
 
@@ -276,7 +312,7 @@
 
         function getStartDatetime(){
             let [startHours, startMinutes] = document.getElementById('start-time').value.split(':');
-            let time = luxon.DateTime.local(parseInt("@Html.Raw(Model.Date.Year)"), parseInt("@Html.Raw(Model.Date.Month)"), 
+            let time = luxon.DateTime.local(parseInt("@Html.Raw(Model.Date.Year)"), parseInt("@Html.Raw(Model.Date.Month)"),
                                             parseInt("@Html.Raw(Model.Date.Day)"), parseInt(startHours), parseInt(startMinutes));
             return clampToAllowedRange(time);
         }
@@ -482,7 +518,7 @@
             } else {
                 return duration.toFormat("mm 'm'")
             }
-            
+
         }
 
         function durationStringMillis(durationMillis){
@@ -568,36 +604,60 @@
                 cards[0].parentNode.removeChild(cards[0]);
             }
         }
-
-
     </script>
 
     <style>
         .list-group-item {
             transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.125);
         }
 
-        .list-group-item:hover {
-            opacity: 1 !important;
-            transform: translateX(2px);
-            background-color: lightgray;
-        }
+            .list-group-item:hover {
+                opacity: 1 !important;
+                transform: translateX(2px);
+                background-color: #f8f9fa;
+            }
 
         .selected-item {
             opacity: 1 !important;
             transform: translateX(2px);
-            background-color: lightgray;
+            background-color: #e9ecef !important;
         }
 
         .transit-line {
-            background-color: red;
-            border-radius: 2px;
+            background-color: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 5px;
         }
 
         .hour {
-            color: gray;
+            color: #6c757d;
+            font-weight: 500;
         }
 
-    </style>
+        .route-controls .btn {
+            margin-bottom: 5px;
+        }
 
+            .route-controls .btn:last-child {
+                margin-bottom: 0;
+            }
+
+        .travel-card {
+            background-color: #f8f9fa;
+            border-left: 3px solid #0d6efd;
+        }
+
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .btn-group .btn {
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
 }
