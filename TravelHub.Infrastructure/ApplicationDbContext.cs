@@ -316,10 +316,11 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // entity.Property(s => s.Cost).HasPrecision(18, 2);
             entity.Property(s => s.Rating);
 
-            // M:N relationship with Countries
-            entity.HasMany(t => t.Countries)
+            // 1:N relationship from Spot to Country
+            entity.HasOne(s => s.Country)
                 .WithMany(c => c.Spots)
-                .UsingEntity(j => j.ToTable("SpotCountries"));
+                .HasForeignKey(s => new { s.CountryCode, s.CountryName })
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Accommodation Configuration ---
