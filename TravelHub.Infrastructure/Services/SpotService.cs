@@ -110,7 +110,7 @@ public class SpotService : GenericService<Spot>, ISpotService
         {
             country = await _countryRepository.AddAsync(new Country { Code = code, Name = name });
         }
-        //spot.Country = country;
+        spot.Country = country;
         await _spotRepository.UpdateAsync(spot);
         return country;
     }
