@@ -168,8 +168,6 @@
             }    
         });
 
-        alert(JSON.stringify(points));
-
         let activities = JSON.parse('@Json.Serialize(allActivities)');
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let polylines = [];
