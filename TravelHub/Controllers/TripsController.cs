@@ -111,6 +111,7 @@ public class TripsController : Controller
                 Name = e.Name,
                 Value = e.Value,
                 PaidByName = e.PaidBy != null ? $"{e.PaidBy.FirstName} {e.PaidBy.LastName}" : "Unknown",
+                TransferredToName = e.TransferredTo == null ? null : e.TransferredTo.FirstName + " " + e.TransferredTo.LastName,
                 CategoryName = e.Category?.Name,
                 CurrencyName = e.ExchangeRate?.Name ?? trip.CurrencyCode.GetDisplayName(),
                 CurrencyCode = e.ExchangeRate?.CurrencyCodeKey ?? trip.CurrencyCode,
@@ -273,7 +274,7 @@ public class TripsController : Controller
                 LastName = f.LastName,
                 Email = f.Email!
             }).ToList(),
-            IsCurrentUserOwner = true
+            IsCurrentUserOwner = GetCurrentUserId() == trip.PersonId
         };
 
         return View(viewModel);
@@ -631,6 +632,7 @@ public class TripsController : Controller
                 trip.IsPrivate = viewModel.IsPrivate;
 
                 await _tripService.UpdateAsync(trip);
+                await _tripParticipantService.AddOwnerAsync(trip.Id, trip.PersonId);
 
                 TempData["SuccessMessage"] = "Trip updated successfully!";
                 return RedirectToAction(nameof(MyTrips));

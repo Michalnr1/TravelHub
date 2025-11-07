@@ -8,14 +8,16 @@ namespace TravelHub.Infrastructure.Services;
 // Teraz dziedziczy z serwisu generycznego
 public class ExpenseService : GenericService<Expense>, IExpenseService
 {
-    private readonly IExpenseRepository _expenseRepository; // Specyficzne repozytorium do metod customowych
+    private readonly IExpenseRepository _expenseRepository;
+    private readonly ITripService _tripService;
     private readonly IExchangeRateService _exchangeRateService;
 
-    public ExpenseService(IExpenseRepository expenseRepository, IExchangeRateService exchangeRateService)
+    public ExpenseService(IExpenseRepository expenseRepository, IExchangeRateService exchangeRateService, ITripService tripService)
         : base(expenseRepository) // Przekazujemy repozytorium do serwisu generycznego
     {
         _expenseRepository = expenseRepository;
         _exchangeRateService = exchangeRateService;
+        _tripService = tripService;
     }
 
     public new async Task<Expense> GetByIdAsync(object id)
@@ -203,6 +205,107 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         return await _expenseRepository.GetExpenseByAccommodationIdAsync(accommodationId);
     }
 
+    public async Task<BalanceDto> CalculateBalancesAsync(int tripId)
+    {
+        var expenses = await _expenseRepository.GetByTripIdWithParticipantsAsync(tripId);
+        var trip = await _tripService.GetByIdAsync(tripId);
+        var participants = await _tripService.GetAllTripParticipantsAsync(tripId);
+
+        if (trip == null)
+            throw new InvalidOperationException($"Trip with id {tripId} not found");
+
+        var tripCurrency = trip.CurrencyCode;
+
+        var owesToOthers = new Dictionary<string, decimal>();
+        var owedByOthers = new Dictionary<string, decimal>();
+        var debtDetails = new List<DebtDetailDto>();
+
+        // Setup dictionaries
+        foreach (var participant in participants)
+        {
+            owesToOthers[participant.Id] = 0;
+            owedByOthers[participant.Id] = 0;
+        }
+
+        foreach (var expense in expenses)
+        {
+            var paidBy = expense.PaidById;
+            var expenseValueInTripCurrency = await ConvertToTripCurrencyAsync(expense.Value, expense.ExchangeRate, tripCurrency);
+
+            if (expense.TransferredToId == null)
+            {
+                foreach (var participant in expense.Participants.Where(p => p.PersonId != paidBy))
+                {
+                    var shareInTripCurrency = await ConvertToTripCurrencyAsync(participant.ActualShareValue, expense.ExchangeRate, tripCurrency);
+
+                    if (owesToOthers.ContainsKey(participant.PersonId))
+                        owesToOthers[participant.PersonId] += shareInTripCurrency;
+
+                    if (owedByOthers.ContainsKey(paidBy))
+                        owedByOthers[paidBy] += shareInTripCurrency;
+
+                    debtDetails.Add(new DebtDetailDto
+                    {
+                        FromPersonId = participant.PersonId,
+                        FromPersonName = $"{participant.Person?.FirstName} {participant.Person?.LastName}",
+                        ToPersonId = paidBy,
+                        ToPersonName = $"{expense.PaidBy?.FirstName} {expense.PaidBy?.LastName}",
+                        Amount = shareInTripCurrency
+                    });
+                }
+            }
+            else
+            {
+                var transferredTo = expense.TransferredToId;
+                var transferAmountInTripCurrency = await ConvertToTripCurrencyAsync(expense.Value, expense.ExchangeRate, tripCurrency);
+
+                if (owesToOthers.ContainsKey(paidBy))
+                    owesToOthers[paidBy] = Math.Max(0, owesToOthers[paidBy] - transferAmountInTripCurrency);
+
+                if (owedByOthers.ContainsKey(transferredTo))
+                    owedByOthers[transferredTo] = Math.Max(0, owedByOthers[transferredTo] - transferAmountInTripCurrency);
+
+                var existingDebt = debtDetails.FirstOrDefault(d => d.FromPersonId == paidBy && d.ToPersonId == transferredTo);
+
+                if (existingDebt != null)
+                {
+                    existingDebt.Amount = Math.Max(0, existingDebt.Amount - transferAmountInTripCurrency);
+                }
+            }
+        }
+
+        var aggregatedDebts = debtDetails
+            .GroupBy(d => new { d.FromPersonId, d.ToPersonId })
+            .Select(g => new DebtDetailDto
+            {
+                FromPersonId = g.Key.FromPersonId,
+                FromPersonName = g.First().FromPersonName,
+                ToPersonId = g.Key.ToPersonId,
+                ToPersonName = g.First().ToPersonName,
+                Amount = g.Sum(x => x.Amount)
+            })
+            .Where(d => d.Amount > 0.01m)
+            .ToList();
+
+        var participantBalances = participants.Select(p => new ParticipantBalanceDto
+        {
+            PersonId = p.Id,
+            FullName = $"{p.FirstName} {p.LastName}",
+            OwesToOthers = owesToOthers[p.Id],
+            OwedByOthers = owedByOthers[p.Id],
+            NetBalance = owedByOthers[p.Id] - owesToOthers[p.Id]
+        }).ToList();
+
+        return new BalanceDto
+        {
+            TripId = tripId,
+            TripName = trip.Name,
+            TripCurrency = tripCurrency,
+            ParticipantBalances = participantBalances,
+            DebtDetails = aggregatedDebts
+        };
+    }
+
     private List<ExpenseParticipant> CalculateAndCreateParticipants(decimal expenseValue, int expenseId, IEnumerable<ParticipantShareDto> participantShares)
     {
         var sharesList = participantShares.ToList();
@@ -272,29 +375,37 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
     private bool ValidateInputShares(List<ParticipantShareDto> shares, decimal expenseValue)
     {
-        decimal totalAmount = 0.00m;
-        decimal totalPercentage = 0.000m;
+        if (expenseValue == 0.00m)
+        {
+            return shares.All(share => share.InputValue == 0.00m);
+        }
+
+        decimal totalShareValueInAmount = 0.00m;
 
         foreach (var share in shares)
         {
             switch (share.ShareType)
             {
                 case 1: // Kwota
-                    totalAmount += share.InputValue;
+                    totalShareValueInAmount += share.InputValue;
                     break;
                 case 2: // Procent
-                    totalPercentage += share.InputValue;
+                    totalShareValueInAmount += share.InputValue * expenseValue;
                     break;
             }
         }
 
-        // const decimal tolerance = 0.01m;
+        const decimal tolerance = 0.01m;
 
-        // Sprawdź czy suma kwot nie przekracza expenseValue
-        bool amountsValid = totalAmount == expenseValue;
-        // Sprawdź czy suma procentów nie przekracza 1 (100%)
-        bool percentagesValid = totalPercentage == 1.0m;
+        return Math.Abs(totalShareValueInAmount - expenseValue) <= tolerance;
+    }
 
-        return amountsValid && percentagesValid;
+    private static Task<decimal> ConvertToTripCurrencyAsync(decimal amount, ExchangeRate? expenseRate, CurrencyCode tripCurrency)
+    {
+        // Jeśli brak kursu wydatku lub wydatek jest już w walucie podróży
+        if (expenseRate == null || expenseRate.CurrencyCodeKey == tripCurrency)
+            return Task.FromResult(amount);
+
+        return Task.FromResult(amount * expenseRate.ExchangeRateValue);
     }
 }

@@ -17,6 +17,12 @@
         <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Activity</a>
         <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Spot</a>
         <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Transport</a>
+        @*Wybierz jeden z przycisków żeby tu zostawić ja nie wiem który wygląda lepiej, osobiście bardziej podoba mi się ten pierwszy*@
+        <a href="@Url.Action("Balances", "Expenses", new { tripId = Model.Id })" class="btn btn-info">
+            <i class="fas fa-calculator"></i> Display participants' balances
+        </a>
+        <a asp-controller="Expenses" asp-action="Balances" asp-route-tripId="@Model.Id" class="btn btn-success">Display participants' balances</a>
+
         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#countriesModal">View Countries</button>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
         <a asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary">View on Map</a>
@@ -264,7 +270,10 @@
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Expenses (@Model.ExpensesCount)</h5>
-                <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Expense</a>
+                <div class="btn-group">
+                    <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Expense</a>
+                    <a asp-controller="Expenses" asp-action="AddTransferToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-info">Add Transfer</a>
+                </div>
             </div>
             <div class="card-body">
                 @if (Model.Expenses.Any())
@@ -280,6 +289,10 @@
                                             <span class="badge bg-success">@expense.Value @expense.CurrencyName</span>
                                             <span class="badge bg-secondary">@expense.CategoryName</span>
                                             <span class="badge bg-info">Paid by: @expense.PaidByName</span>
+                                            @if (!string.IsNullOrEmpty(expense.TransferredToName))
+                                            {
+                                                <span class="badge bg-info">Transferred to: @expense.TransferredToName</span>
+                                            }
                                         </div>
                                     </div>
                                     <div class="btn-group ms-2 flex-shrink-0">

@@ -46,6 +46,7 @@ public class ExpensesController : Controller
             Name = e.Name,
             Value = e.Value,
             PaidByName = e.PaidBy?.FirstName + " " + e.PaidBy?.LastName,
+            TransferredToName = e.TransferredTo?.FirstName + " " + e.TransferredTo?.LastName,
             CategoryName = e.Category?.Name,
             CurrencyName = e.ExchangeRate?.Name!
         }).ToList();
@@ -78,6 +79,7 @@ public class ExpensesController : Controller
             Name = expense.Name,
             Value = expense.Value,
             PaidByName = expense.PaidBy?.FirstName + " " + expense.PaidBy?.LastName,
+            TransferredToName = expense.TransferredTo?.FirstName + " " + expense.TransferredTo?.LastName,
             CategoryName = expense.Category?.Name,
             CurrencyName = expense.ExchangeRate?.Name!,
             CurrencyKey = expense.ExchangeRate?.CurrencyCodeKey,
@@ -109,29 +111,44 @@ public class ExpensesController : Controller
     {
         if (ModelState.IsValid)
         {
+            var exchangeRateEntry = await _exchangeRateService
+                .GetOrCreateExchangeRateAsync(viewModel.TripId, viewModel.SelectedCurrencyCode, viewModel.ExchangeRateValue);
+
             var expense = new Expense
             {
                 Name = viewModel.Name,
                 Value = viewModel.Value,
                 PaidById = viewModel.PaidById,
                 CategoryId = viewModel.CategoryId,
-                // CurrencyCodeKey = viewModel.CurrencyKey
+                TransferredToId = viewModel.TransferredToId,
+                ExchangeRateId = exchangeRateEntry.Id,
+                TripId = viewModel.TripId,
+                IsEstimated = false
             };
 
-            //if (viewModel.SelectedParticipants != null && viewModel.SelectedParticipants.Any())
-            //{
-            //    var participants = await _userManager.Users
-            //        .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
-            //        .ToListAsync();
-            //    expense.Participants = participants;
-            //}
+            List<ParticipantShareDto> participantSharesDto;
 
-            //await _expenseService.AddAsync(expense);
-            //await _expenseService.AddAsync(expense, viewModel.SelectedParticipants ?? new List<string>());
-
-            var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares.Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0).ToList());
+            if (viewModel.IsTransfer)
+            {
+                participantSharesDto = new List<ParticipantShareDto>
+                {
+                    new ParticipantShareDto
+                    {
+                        PersonId = viewModel.PaidById,
+                        ShareType = 1, // Value
+                        InputValue = viewModel.Value
+                    }
+                };
+            }
+            else
+            {
+                participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares
+                    .Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0)
+                    .ToList());
+            }
 
             await _expenseService.AddAsync(expense, participantSharesDto);
+            TempData["SuccessMessage"] = viewModel.IsTransfer ? "Transfer created successfully!" : "Expense created successfully!";
 
             return RedirectToAction(nameof(Index));
         }
@@ -179,6 +196,11 @@ public class ExpensesController : Controller
             return Forbid();
         }
 
+        if (viewModel.IsTransfer && viewModel.PaidById == viewModel.TransferredToId)
+        {
+            ModelState.AddModelError("TransferredToId", "Cannot transfer to the same person who paid");
+        }
+
         // Tymczasowo wyłącz walidację dla ParticipantsShares
         ModelState.Remove("ParticipantsShares");
 
@@ -209,17 +231,40 @@ public class ExpensesController : Controller
                 existingExpense.Name = viewModel.Name;
                 existingExpense.Value = viewModel.Value;
                 existingExpense.PaidById = viewModel.PaidById;
+                existingExpense.TransferredToId = viewModel.TransferredToId;
                 existingExpense.CategoryId = viewModel.CategoryId;
                 existingExpense.ExchangeRateId = exchangeRateEntry.Id;
                 existingExpense.TripId = viewModel.TripId;
 
-                var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares!
-                    .Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0)
-                    .ToList());
+                //var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares!
+                //    .Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0)
+                //    .ToList());
+
+                List<ParticipantShareDto> participantSharesDto;
+
+                if (viewModel.IsTransfer)
+                {
+                    existingExpense.IsEstimated = false;
+                    participantSharesDto = new List<ParticipantShareDto>
+                    {
+                        new ParticipantShareDto
+                        {
+                            PersonId = viewModel.PaidById,
+                            ShareType = 1, // Value
+                            InputValue = viewModel.Value
+                        }
+                    };
+                }
+                else
+                {
+                    participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares!
+                        .Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0)
+                        .ToList());
+                }
 
                 await _expenseService.UpdateAsync(existingExpense, participantSharesDto);
 
-                TempData["SuccessMessage"] = "Wydatek został zaktualizowany pomyślnie!";
+                TempData["SuccessMessage"] = viewModel.IsTransfer ? "Transfer updated successfully!" : "Expense updated successfully!";
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException)
@@ -336,16 +381,6 @@ public class ExpensesController : Controller
                 TripId = viewModel.TripId
             };
 
-            //if (viewModel.SelectedParticipants != null && viewModel.SelectedParticipants.Any())
-            //{
-            //    var participants = await _userManager.Users
-            //        .Where(p => viewModel.SelectedParticipants.Contains(p.Id))
-            //        .ToListAsync();
-            //    expense.Participants = participants;
-            //}
-
-            //await _expenseService.AddAsync(expense);
-            //await _expenseService.AddAsync(expense, viewModel.SelectedParticipants ?? new List<string>());
             var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares.Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0).ToList());
 
             await _expenseService.AddAsync(expense, participantSharesDto);
@@ -358,6 +393,110 @@ public class ExpensesController : Controller
         viewModel.People = tripPeople;
         viewModel.AllPeople = tripPeople;
         await PopulateSelectLists(viewModel);
+
+        return View(viewModel);
+    }
+
+    // GET: Expenses/AddTransferToTrip
+    public async Task<IActionResult> AddTransferToTrip(int tripId)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        var viewModel = await CreateExpenseCreateEditViewModel();
+        viewModel.TripId = tripId;
+
+        // Get people from the trip
+        var tripPeople = await GetPeopleFromTrip(tripId);
+        viewModel.People = tripPeople;
+        viewModel.AllPeople = tripPeople;
+        await PopulateSelectLists(viewModel);
+
+        return View("AddTransferToTrip", viewModel);
+    }
+
+    // POST: Expenses/AddTransferToTrip
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddTransferToTrip(ExpenseCreateEditViewModel viewModel)
+    {
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        // Walidacja dla transferu
+        if (viewModel.PaidById == viewModel.TransferredToId)
+        {
+            ModelState.AddModelError("TransferredToId", "Cannot transfer to the same person who paid");
+        }
+
+        if (ModelState.IsValid)
+        {
+            var exchangeRateEntry = await _exchangeRateService
+                .GetOrCreateExchangeRateAsync(viewModel.TripId, viewModel.SelectedCurrencyCode, viewModel.ExchangeRateValue);
+
+            var expense = new Expense
+            {
+                Name = viewModel.Name,
+                Value = viewModel.Value,
+                PaidById = viewModel.PaidById,
+                TransferredToId = viewModel.TransferredToId,
+                CategoryId = viewModel.CategoryId,
+                ExchangeRateId = exchangeRateEntry.Id,
+                TripId = viewModel.TripId,
+                IsEstimated = false
+            };
+
+            // Dla transferu: tylko osoba, która zapłaciła jako uczestnik
+            var participantSharesDto = new List<ParticipantShareDto>
+            {
+                new ParticipantShareDto
+                {
+                    PersonId = viewModel.PaidById,
+                    ShareType = 1, // Value
+                    InputValue = viewModel.Value
+                }
+            };
+
+            await _expenseService.AddAsync(expense, participantSharesDto);
+            TempData["SuccessMessage"] = "Transfer added successfully!";
+            return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
+        }
+
+        // Reload people for the trip if validation fails
+        var tripPeople = await GetPeopleFromTrip(viewModel.TripId);
+        viewModel.People = tripPeople;
+        viewModel.AllPeople = tripPeople;
+        await PopulateSelectLists(viewModel);
+
+        return View("AddTransferToTrip", viewModel);
+    }
+
+    // GET: Expenses/Balances
+    public async Task<IActionResult> Balances(int tripId)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        var balanceDto = await _expenseService.CalculateBalancesAsync(tripId);
+        var viewModel = BalanceViewModel.FromDto(balanceDto);
 
         return View(viewModel);
     }
@@ -404,6 +543,7 @@ public class ExpensesController : Controller
             viewModel.Name = expense.Name;
             viewModel.Value = expense.Value;
             viewModel.PaidById = expense.PaidById;
+            viewModel.TransferredToId = expense.TransferredToId;
             viewModel.CategoryId = expense.CategoryId;
             viewModel.TripId = expense.TripId;
             if (expense.ExchangeRate != null)
@@ -411,23 +551,27 @@ public class ExpensesController : Controller
                 viewModel.SelectedCurrencyCode = expense.ExchangeRate.CurrencyCodeKey;
                 viewModel.ExchangeRateValue = expense.ExchangeRate.ExchangeRateValue;
             }
-            viewModel.SelectedParticipants = expense.Participants?.Select(ep => ep.PersonId).ToList() ?? new List<string>();
 
-            viewModel.ParticipantsShares = viewModel.SelectedParticipants.Select(person =>
+            if (string.IsNullOrEmpty(expense.TransferredToId))
             {
-                var existingLink = expense.Participants?.FirstOrDefault(ep => ep.PersonId == person);
+                viewModel.SelectedParticipants = expense.Participants?.Select(ep => ep.PersonId).ToList() ?? new List<string>();
 
-                var shareViewModel = new ParticipantShareViewModel
+                viewModel.ParticipantsShares = viewModel.SelectedParticipants.Select(person =>
                 {
-                    PersonId = person,
-                    FullName = existingLink!.Person!.FirstName + existingLink.Person.LastName,
-                    Share = existingLink?.Share ?? 0.000m,
-                    ActualShareValue = existingLink?.ActualShareValue ?? 0.00m,
-                    ShareType = 1 // Domyślnie 0, widok niech to zinterpretuje.
-                };
+                    var existingLink = expense.Participants?.FirstOrDefault(ep => ep.PersonId == person);
 
-                return shareViewModel;
-            }).ToList();
+                    var shareViewModel = new ParticipantShareViewModel
+                    {
+                        PersonId = person,
+                        FullName = existingLink!.Person!.FirstName + existingLink.Person.LastName,
+                        Share = existingLink?.Share ?? 0.000m,
+                        ActualShareValue = existingLink?.ActualShareValue ?? 0.00m,
+                        ShareType = 1 // Domyślnie 0, widok niech to zinterpretuje.
+                    };
+
+                    return shareViewModel;
+                }).ToList();
+            }
         }
 
         return Task.FromResult(viewModel);

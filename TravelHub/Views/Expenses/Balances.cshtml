@@ -1,0 +1,332 @@
+﻿@*@model TravelHub.Web.ViewModels.Expenses.BalanceViewModel
+@{
+    ViewData["Title"] = "Salda uczestników - " + Model.TripName;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Salda uczestników</h2>
+        <div>
+            <a href="@Url.Action("Details", "Trips", new { id = Model.TripId })" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Powrót do podróży
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">@Model.TripName</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-1"><strong>Waluta podróży:</strong> @Model.TripCurrency</p>
+            <p class="mb-0 text-muted">Kwoty przeliczone na walutę podróży z uwzględnieniem kursów wymiany</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Podsumowanie sald</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Uczestnik</th>
+                                    <th class="text-end text-danger">Winien innym</th>
+                                    <th class="text-end text-success">Należne od innych</th>
+                                    <th class="text-end">Saldo netto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var balance in Model.ParticipantBalances)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@balance.FullName</strong>
+                                            @if (balance.NetBalance > 0)
+                                            {
+                                                <span class="badge bg-success ms-2">+</span>
+                                            }
+                                            else if (balance.NetBalance < 0)
+                                            {
+                                                <span class="badge bg-danger ms-2">-</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary ms-2">0</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-danger">@balance.FormattedOwesToOthers @Model.TripCurrency</td>
+                                        <td class="text-end text-success">@balance.FormattedOwedByOthers @Model.TripCurrency</td>
+                                        <td class="text-end @balance.NetBalanceClass fw-bold">
+                                            @balance.FormattedNetBalance @Model.TripCurrency
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mt-4 mt-lg-0">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Legenda</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">+</span>
+                        <small>Osoba otrzyma zwrot</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">-</span>
+                        <small>Osoba musi zapłacić</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-secondary me-2">0</span>
+                        <small>Saldo wyrównane</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.DebtDetails.Any())
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Szczegóły zobowiązań</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Lista konkretnych kwot, które uczestnicy są sobie winni:</p>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Kto jest winien</th>
+                                        <th>Komu jest winien</th>
+                                        <th class="text-end">Kwota do zapłaty</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var debt in Model.DebtDetails.OrderBy(d => d.FromPersonName))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@debt.FromPersonName</strong>
+                                            </td>
+                                            <td>
+                                                @debt.ToPersonName
+                                            </td>
+                                            <td class="text-end text-danger fw-bold">
+                                                @debt.FormattedAmount @Model.TripCurrency
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h5 class="alert-heading">Brak zobowiązań!</h5>
+                    <p class="mb-0">Wszystkie salda są wyrównane. Brak zaległych płatności między uczestnikami.</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .table th {
+            border-top: none;
+            font-weight: 600;
+        }
+
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+    </style>
+}*@
+@model TravelHub.Web.ViewModels.Expenses.BalanceViewModel
+@{
+    ViewData["Title"] = "Participant Balances - " + Model.TripName;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Participant Balances</h2>
+        <div>
+            <a href="@Url.Action("Details", "Trips", new { id = Model.TripId })" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Trip
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">@Model.TripName</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-1"><strong>Trip Currency:</strong> @Model.TripCurrency</p>
+            <p class="mb-0 text-muted">Amounts converted to trip currency using exchange rates</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Balance Summary</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Participant</th>
+                                    <th class="text-end text-danger">Owes to Others</th>
+                                    <th class="text-end text-success">Owed by Others</th>
+                                    <th class="text-end">Net Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var balance in Model.ParticipantBalances)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@balance.FullName</strong>
+                                            @if (balance.NetBalance > 0)
+                                            {
+                                                <span class="badge bg-success ms-2">+</span>
+                                            }
+                                            else if (balance.NetBalance < 0)
+                                            {
+                                                <span class="badge bg-danger ms-2">-</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary ms-2">0</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-danger">@balance.FormattedOwesToOthers @Model.TripCurrency</td>
+                                        <td class="text-end text-success">@balance.FormattedOwedByOthers @Model.TripCurrency</td>
+                                        <td class="text-end @balance.NetBalanceClass fw-bold">
+                                            @balance.FormattedNetBalance @Model.TripCurrency
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mt-4 mt-lg-0">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Legend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">+</span>
+                        <small>Person will receive money</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">-</span>
+                        <small>Person needs to pay</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-secondary me-2">0</span>
+                        <small>Balance settled</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.DebtDetails.Any())
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Debt Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">List of specific amounts that participants owe to each other:</p>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Who Owes</th>
+                                        <th>To Whom</th>
+                                        <th class="text-end">Amount to Pay</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var debt in Model.DebtDetails.OrderBy(d => d.FromPersonName))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@debt.FromPersonName</strong>
+                                            </td>
+                                            <td>
+                                                @debt.ToPersonName
+                                            </td>
+                                            <td class="text-end text-danger fw-bold">
+                                                @debt.FormattedAmount @Model.TripCurrency
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h5 class="alert-heading">No debts!</h5>
+                    <p class="mb-0">All balances are settled. No outstanding payments between participants.</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .table th {
+            border-top: none;
+            font-weight: 600;
+        }
+
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+    </style>
+}
