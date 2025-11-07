@@ -273,6 +273,12 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .WithMany(t => t.Days)
                   .HasForeignKey(d => d.TripId)
                   .OnDelete(DeleteBehavior.Restrict); // If a trip is deleted, its days are deleted.
+
+            // 1:N relationship with Trip
+            entity.HasOne(d => d.Accommodation)
+                  .WithMany(t => t.Days)
+                  .HasForeignKey(d => d.AccommodationId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --- Activity Configuration ---
@@ -385,6 +391,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .WithMany(p => p.PaidExpenses)
                   .HasForeignKey(e => e.PaidById)
                   .OnDelete(DeleteBehavior.Restrict); // Don't delete a person if they paid for an expense
+
+            // 1:N relationship for the person who recived a transfer
+            entity.HasOne(e => e.TransferredTo)
+                  .WithMany(p => p.RecivedTransfers)
+                  .HasForeignKey(e => e.TransferredToId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.Restrict); // Don't delete a person if they recived a transfer
 
             // 1:N relationship with Trip
             entity.HasOne(e => e.Trip)

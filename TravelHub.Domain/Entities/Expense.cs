@@ -13,6 +13,11 @@ public class Expense
     // Navigation Property to the person who paid
     public Person? PaidBy { get; set; }
 
+    // Foreign Key for the person who recived the transfer
+    public string? TransferredToId { get; set; }
+    // Navigation Property to the person who recived the transfer
+    public Person? TransferredTo { get; set; }
+
     // Foreign Key for Category
     public int? CategoryId { get; set; }
     // Navigation Property to the category

@@ -252,9 +252,10 @@ public class DaysController : Controller
 
         try
         {
+            var tripId = day.TripId;
             await _dayService.DeleteAsync(id);
             TempData["SuccessMessage"] = "Day deleted successfully!";
-            return RedirectToAction("Details", "Trips"); // or redirect back to trip details if preferred
+            return RedirectToAction("Details", "Trips", new { id = tripId });
         }
         catch (Exception ex)
         {

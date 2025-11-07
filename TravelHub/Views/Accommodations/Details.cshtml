@@ -1,7 +1,7 @@
 ﻿@model TravelHub.Web.ViewModels.Accommodations.AccommodationDetailsViewModel
 
 @{
-    ViewData["Title"] = "Accommodation Details";
+    ViewData["Title"] = "Accommodation details";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -17,15 +17,13 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Accommodation Information</h5>
+                <h5 class="card-title mb-0">Accommodation information</h5>
             </div>
             <div class="card-body">
                 <p><strong>Name:</strong> @Model.Name</p>
                 <p><strong>Description:</strong> @Model.Description</p>
                 <p><strong>Duration:</strong> @Model.DurationString</p>
-                <p><strong>Order:</strong> @Model.Order</p>
                 <p><strong>Category:</strong> @Model.CategoryName</p>
-                <p><strong>Day:</strong> @Model.DayName</p>
                 @* <p><strong>Cost:</strong> $@Model.Cost</p> *@
                 <p><strong>Location:</strong> @Model.Latitude.ToString("F4"), @Model.Longitude.ToString("F4")</p>
             </div>
@@ -38,21 +36,11 @@
                 <h5 class="card-title mb-0">Check-in/Check-out</h5>
             </div>
             <div class="card-body">
-                <p><strong>Check-in Date:</strong> @Model.CheckIn.ToString("MMM dd, yyyy")</p>
-                <p><strong>Check-out Date:</strong> @Model.CheckOut.ToString("MMM dd, yyyy")</p>
-                <p><strong>Check-in Time:</strong> @Model.CheckInTime.ToString("F1")</p>
-                <p><strong>Check-out Time:</strong> @Model.CheckOutTime.ToString("F1")</p>
+                <p><strong>Check-in date:</strong> @Model.CheckIn.ToString("MMM dd, yyyy")</p>
+                <p><strong>Check-out date:</strong> @Model.CheckOut.ToString("MMM dd, yyyy")</p>
+                <p><strong>Check-in time:</strong> @Model.CheckInTimeString</p>
+                <p><strong>Check-out time:</strong> @Model.CheckOutTimeString</p>
                 <p><strong>Nights:</strong> @((Model.CheckOut - Model.CheckIn).Days)</p>
-            </div>
-        </div>
-
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Trip Information</h5>
-            </div>
-            <div class="card-body">
-                <p><strong>Trip:</strong> @Model.TripName</p>
-                <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-sm btn-outline-primary">View Trip</a>
             </div>
         </div>
     </div>

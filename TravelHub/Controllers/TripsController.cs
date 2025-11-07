@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
-using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Expenses;
@@ -221,6 +220,7 @@ public class TripsController : Controller
                 // Cost = a.Cost,
                 CategoryName = a.Category?.Name,
                 DayName = a.Day?.Name,
+                Days = a.Days,
                 CheckIn = a.CheckIn,
                 CheckOut = a.CheckOut,
                 Latitude = a.Latitude,

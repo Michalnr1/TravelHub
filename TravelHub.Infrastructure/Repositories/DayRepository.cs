@@ -17,6 +17,7 @@ public class DayRepository : GenericRepository<Day>, IDayRepository
                 .ThenInclude(t => t!.Activities)
             .Include(d => d.Activities)
                 .ThenInclude(a => a.Category)
+            .Include(d => d.Accommodation)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 

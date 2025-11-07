@@ -1,7 +1,7 @@
 ﻿@model TravelHub.Web.ViewModels.Accommodations.AccommodationCreateEditViewModel
 
 @{
-    ViewData["Title"] = "Edit Accommodation";
+    ViewData["Title"] = "Edit accommodation";
     var returnUrl = ViewData["ReturnUrl"] as string ?? Url.Action("Details", "Accommodations", new { id = Model.Id });
     var apiKey = ViewData["GoogleApiKey"];
     var startLat = ViewData["Latitude"] ?? Model.Latitude;
@@ -10,7 +10,7 @@
     var maxDate = ViewData["MaxDate"] as string;
 }
 
-<h1>Edit Accommodation</h1>
+<h1>Edit accommodation</h1>
 
 <hr />
 <div class="row">
@@ -24,7 +24,7 @@
             <!-- Sekcja podstawowych danych Accommodation -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Accommodation Details</h5>
+                    <h5 class="card-title mb-0">Accommodation details</h5>
                 </div>
                 <div class="card-body">
                     <div class="form-group mb-3">
@@ -41,22 +41,12 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label asp-for="TripId" class="control-label">Trip</label>
-                                <select asp-for="TripId" class="form-control" asp-items="@(new SelectList(Model.Trips, "Id", "Name"))">
-                                    <option value="">-- Select Trip --</option>
-                                </select>
-                                <span asp-validation-for="TripId" class="text-danger"></span>
-                            </div>
+                            <input type="hidden" asp-for="TripId" />
+                            <span asp-validation-for="TripId" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label asp-for="DayId" class="control-label">Day</label>
-                                <select asp-for="DayId" class="form-control" asp-items="@(new SelectList(Model.Days, "Id", "DisplayName"))">
-                                    <option value="">-- Select Day --</option>
-                                </select>
-                                <span asp-validation-for="DayId" class="text-danger"></span>
-                            </div>
+                            <input type="hidden" asp-for="DayId" />
+                            <span asp-validation-for="DayId" class="text-danger"></span>
                         </div>
                     </div>
 
@@ -82,18 +72,16 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label asp-for="CheckInTime" class="control-label"></label>
-                                <input asp-for="CheckInTime" class="form-control" type="number" step="0.5" min="0" max="23.5" />
-                                <span asp-validation-for="CheckInTime" class="text-danger"></span>
-                                <small class="form-text text-muted">Check-in time (e.g., 14.0 for 14:00)</small>
+                                <label asp-for="CheckInTimeString" class="control-label"></label>
+                                <input asp-for="CheckInTimeString" class="form-control" type="time" step="300" />
+                                <span asp-validation-for="CheckInTimeString" class="text-danger"></span>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label asp-for="CheckOutTime" class="control-label"></label>
-                                <input asp-for="CheckOutTime" class="form-control" type="number" step="0.5" min="0" max="23.5" />
-                                <span asp-validation-for="CheckOutTime" class="text-danger"></span>
-                                <small class="form-text text-muted">Check-out time (e.g., 10.0 for 10:00)</small>
+                                <label asp-for="CheckOutTimeString" class="control-label"></label>
+                                <input asp-for="CheckOutTimeString" class="form-control" type="time" step="300" />
+                                <span asp-validation-for="CheckOutTimeString" class="text-danger"></span>
                             </div>
                         </div>
                     </div>
@@ -134,7 +122,7 @@
             <!-- Sekcja Expense -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Estimated Accommodation Cost (Optional)</h5>
+                    <h5 class="card-title mb-0">Estimated accommodation cost (optional)</h5>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
@@ -144,7 +132,7 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group mb-3">
-                                <label asp-for="ExpenseValue" class="form-label">Estimated Cost</label>
+                                <label asp-for="ExpenseValue" class="form-label">Estimated cost</label>
                                 <input asp-for="ExpenseValue" class="form-control" type="number" step="0.01" />
                                 <span asp-validation-for="ExpenseValue" class="text-danger"></span>
                             </div>
@@ -153,7 +141,7 @@
                             <div class="form-group mb-3">
                                 <label asp-for="ExpenseCurrencyCode" class="form-label">Currency</label>
                                 <select asp-for="ExpenseCurrencyCode" class="form-control" id="currencySelect">
-                                    <option value="">-- Select Currency --</option>
+                                    <option value="">-- Select currency --</option>
                                     @{
                                         var usedCurrencies = Model.CurrenciesGroups.Where(c => c.IsUsed).ToList();
                                         var allCurrencies = Model.CurrenciesGroups.Where(c => !c.IsUsed).ToList();
@@ -161,7 +149,7 @@
 
                                     @if (usedCurrencies.Any())
                                     {
-                                        <optgroup label="-- Used Currency (Currency, Rate) --">
+                                        <optgroup label="-- Used currency (currency, rate) --">
                                             @foreach (var currency in usedCurrencies)
                                             {
                                                 bool isSelected = (Model.ExpenseCurrencyCode == currency.Key && Model.ExpenseExchangeRateValue == currency.ExchangeRate);
@@ -190,7 +178,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-group mb-3">
-                                <label asp-for="ExpenseExchangeRateValue" class="form-label">Exchange Rate (to Base)</label>
+                                <label asp-for="ExpenseExchangeRateValue" class="form-label">Exchange rate (to base)</label>
                                 <input asp-for="ExpenseExchangeRateValue" class="form-control" type="number" step="0.000001" />
                                 <span asp-validation-for="ExpenseExchangeRateValue" class="text-danger"></span>
                             </div>

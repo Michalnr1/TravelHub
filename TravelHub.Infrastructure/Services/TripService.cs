@@ -200,13 +200,10 @@ public class TripService : GenericService<Trip>, ITripService
     private async Task AutoAssignAccommodationsToDay(Day day)
     {
         // Pobierz wszystkie accommodation z tej podróży bez przypisanego dnia
-        var accommodationsWithoutDay = await _accommodationService.GetAccommodationByTripAsync(day.TripId);
-        accommodationsWithoutDay = accommodationsWithoutDay
-            .Where(a => a.DayId == null)
-            .ToList();
+        var accommodations = await _accommodationService.GetAccommodationByTripAsync(day.TripId);
 
         var assignedCount = 0;
-        foreach (var accommodation in accommodationsWithoutDay)
+        foreach (var accommodation in accommodations)
         {
             // Sprawdź czy data dnia mieści się w zakresie check-in do check-out accommodation
             // (uwzględniamy dzień check-in, ale nie dzień check-out)
@@ -214,6 +211,8 @@ public class TripService : GenericService<Trip>, ITripService
             {
                 accommodation.DayId = day.Id;
                 await _accommodationService.UpdateAsync(accommodation);
+                day.AccommodationId = accommodation.Id;
+                await _dayRepository.UpdateAsync(day);
                 assignedCount++;
 
                 _logger.LogInformation("Automatically assigned accommodation {AccommodationId} to day {DayId}",

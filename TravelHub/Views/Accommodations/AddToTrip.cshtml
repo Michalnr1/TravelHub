@@ -61,18 +61,16 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label asp-for="CheckInTime" class="control-label"></label>
-                                <input asp-for="CheckInTime" class="form-control" type="number" step="0.5" min="0" max="23.5" />
-                                <span asp-validation-for="CheckInTime" class="text-danger"></span>
-                                <small class="form-text text-muted">Check-in time (e.g., 14.0 for 14:00)</small>
+                                <label asp-for="CheckInTimeString" class="control-label"></label>
+                                <input asp-for="CheckInTimeString" class="form-control" type="time" step="300" />
+                                <span asp-validation-for="CheckInTimeString" class="text-danger"></span>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label asp-for="CheckOutTime" class="control-label"></label>
-                                <input asp-for="CheckOutTime" class="form-control" type="number" step="0.5" min="0" max="23.5" />
-                                <span asp-validation-for="CheckOutTime" class="text-danger"></span>
-                                <small class="form-text text-muted">Check-out time (e.g., 10.0 for 10:00)</small>
+                                <label asp-for="CheckOutTimeString" class="control-label"></label>
+                                <input asp-for="CheckOutTimeString" class="form-control" type="time" step="300" />
+                                <span asp-validation-for="CheckOutTimeString" class="text-danger"></span>
                             </div>
                         </div>
                     </div>
