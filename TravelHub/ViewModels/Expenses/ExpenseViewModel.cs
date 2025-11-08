@@ -54,8 +54,12 @@ public class ExpenseCreateEditViewModel
     public string Name { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Value is required")]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Value must be greater than 0")]
+    [Range(0.00, double.MaxValue, ErrorMessage = "Value must be greater than 0")]
     public decimal Value { get; set; }
+
+    [Display(Name = "Estimated Value")]
+    [Range(0.00, double.MaxValue, ErrorMessage = "Estimated value must be greater than 0")]
+    public decimal EstimatedValue { get; set; }
 
     [Required(ErrorMessage = "Paid by is required")]
     [Display(Name = "Paid By")]
@@ -75,6 +79,9 @@ public class ExpenseCreateEditViewModel
     [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]
     [Display(Name = "Exchange Rate (to Base)")]
     public decimal ExchangeRateValue { get; set; } = 1.0M;
+    
+    [Display(Name = "Is Estimated")]
+    public bool IsEstimated { get; set; } = false;
 
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]

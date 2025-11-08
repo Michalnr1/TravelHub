@@ -212,12 +212,12 @@ public class ExpensesController : Controller
         ModelState.Remove("ParticipantsShares");
 
         // Własna walidacja
-        if (viewModel.ParticipantsShares != null)
+        if (!viewModel.IsEstimated && viewModel.ParticipantsShares != null)
         {
             var totalDistributed = viewModel.ParticipantsShares.Sum(ps => ps.ActualShareValue);
             if (Math.Abs(totalDistributed - viewModel.Value) > 0.01m)
             {
-                ModelState.AddModelError("", $"Suma udziałów ({totalDistributed}) nie zgadza się z kwotą wydatku ({viewModel.Value})");
+                ModelState.AddModelError("", $"The sum of the shares ({totalDistributed}) does not match the total amount ({viewModel.Value}).");
             }
         }
 
@@ -236,22 +236,19 @@ public class ExpensesController : Controller
 
                 // Update basic properties
                 existingExpense.Name = viewModel.Name;
-                existingExpense.Value = viewModel.Value;
+                existingExpense.Value = viewModel.IsEstimated ? 0 : viewModel.Value;
+                existingExpense.EstimatedValue = viewModel.IsEstimated ? viewModel.EstimatedValue : 0;
                 existingExpense.PaidById = viewModel.PaidById;
                 existingExpense.TransferredToId = viewModel.TransferredToId;
                 existingExpense.CategoryId = viewModel.CategoryId;
                 existingExpense.ExchangeRateId = exchangeRateEntry.Id;
                 existingExpense.TripId = viewModel.TripId;
-
-                //var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares!
-                //    .Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0)
-                //    .ToList());
+                existingExpense.IsEstimated = viewModel.IsEstimated;
 
                 List<ParticipantShareDto> participantSharesDto;
 
                 if (viewModel.IsTransfer)
                 {
-                    existingExpense.IsEstimated = false;
                     participantSharesDto = new List<ParticipantShareDto>
                     {
                         new ParticipantShareDto
@@ -262,6 +259,10 @@ public class ExpensesController : Controller
                         }
                     };
                 }
+                else if (viewModel.IsEstimated)
+                {
+                    participantSharesDto = new List<ParticipantShareDto>();
+                }
                 else
                 {
                     participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares!
@@ -271,7 +272,8 @@ public class ExpensesController : Controller
 
                 await _expenseService.UpdateAsync(existingExpense, participantSharesDto);
 
-                TempData["SuccessMessage"] = viewModel.IsTransfer ? "Transfer updated successfully!" : "Expense updated successfully!";
+                TempData["SuccessMessage"] = viewModel.IsEstimated ? "Estimated expense updated successfully!" 
+                    : viewModel.IsTransfer ? "Transfer updated successfully!" : "Expense updated successfully!";
                 return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
             }
             catch (DbUpdateConcurrencyException)
@@ -388,17 +390,29 @@ public class ExpensesController : Controller
             var expense = new Expense
             {
                 Name = viewModel.Name,
-                Value = viewModel.Value,
+                Value = viewModel.IsEstimated ? 0 : viewModel.Value,
+                EstimatedValue = viewModel.IsEstimated ? viewModel.EstimatedValue : 0,
                 PaidById = viewModel.PaidById,
                 CategoryId = viewModel.CategoryId,
                 ExchangeRateId = exchangeRateEntry.Id,
-                TripId = viewModel.TripId
+                TripId = viewModel.TripId,
+                IsEstimated = viewModel.IsEstimated,
             };
 
-            var participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares.Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0).ToList());
+            List<ParticipantShareDto> participantSharesDto;
+
+            if (viewModel.IsEstimated)
+            {
+                // Dla wydatków szacunkowych - pusta lista uczestników
+                participantSharesDto = new List<ParticipantShareDto>();
+            }
+            else
+            {
+                participantSharesDto = MapSharesToDto(viewModel.ParticipantsShares.Where(ps => ps.ShareType != 0 || ps.ActualShareValue > 0).ToList());
+            }
 
             await _expenseService.AddAsync(expense, participantSharesDto);
-            TempData["SuccessMessage"] = "Expense added successfully!";
+            TempData["SuccessMessage"] = viewModel.IsEstimated ? "Estimated expense created successfully!" : "Expense created successfully!";
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
@@ -555,18 +569,21 @@ public class ExpensesController : Controller
         {
             viewModel.Id = expense.Id;
             viewModel.Name = expense.Name;
-            viewModel.Value = expense.Value;
+            viewModel.Value = expense.IsEstimated ? expense.EstimatedValue : expense.Value;
+            viewModel.EstimatedValue = expense.EstimatedValue;
             viewModel.PaidById = expense.PaidById;
             viewModel.TransferredToId = expense.TransferredToId;
             viewModel.CategoryId = expense.CategoryId;
             viewModel.TripId = expense.TripId;
+            viewModel.IsEstimated = expense.IsEstimated;
+
             if (expense.ExchangeRate != null)
             {
                 viewModel.SelectedCurrencyCode = expense.ExchangeRate.CurrencyCodeKey;
                 viewModel.ExchangeRateValue = expense.ExchangeRate.ExchangeRateValue;
             }
 
-            if (string.IsNullOrEmpty(expense.TransferredToId))
+            if (!expense.IsEstimated && string.IsNullOrEmpty(expense.TransferredToId))
             {
                 viewModel.SelectedParticipants = expense.Participants?.Select(ep => ep.PersonId).ToList() ?? new List<string>();
 

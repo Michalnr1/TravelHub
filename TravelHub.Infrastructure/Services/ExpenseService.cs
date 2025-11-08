@@ -208,6 +208,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
     public async Task<BalanceDto> CalculateBalancesAsync(int tripId)
     {
         var expenses = await _expenseRepository.GetByTripIdWithParticipantsAsync(tripId);
+        expenses = expenses.Where(e => !e.IsEstimated);
         var trip = await _tripService.GetByIdAsync(tripId);
         var participants = await _tripService.GetAllTripParticipantsAsync(tripId);
 

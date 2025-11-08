@@ -47,14 +47,22 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="form-group mb-3">
-                        <label asp-for="Value" class="form-label">Total Amount</label>
-                        <input asp-for="Value" class="form-control"
+                        <label class="form-label" id="amountLabel">Total Amount</label>
+                        <input asp-for="Value" class="form-control real-expense-field"
                                type="text"
                                inputmode="decimal"
                                pattern="[0-9]*[.,]?[0-9]*"
                                id="totalAmount"
                                placeholder="0.00" />
-                        <span asp-validation-for="Value" class="text-danger"></span>
+                        <input asp-for="EstimatedValue" class="form-control estimated-expense-field"
+                               type="text"
+                               inputmode="decimal"
+                               pattern="[0-9]*[.,]?[0-9]*"
+                               id="estimatedAmount"
+                               placeholder="0.00"
+                               style="display: none;" />
+                        <span asp-validation-for="Value" class="text-danger real-expense-field"></span>
+                        <span asp-validation-for="EstimatedValue" class="text-danger estimated-expense-field" style="display: none;"></span>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -108,6 +116,19 @@
                 </div>
             </div>
 
+            <!-- Checkbox dla wydatku szacunkowego -->
+            <div class="form-group mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="isEstimatedCheckbox" asp-for="IsEstimated" />
+                    <label class="form-check-label" for="isEstimatedCheckbox">
+                        <strong>This is an estimated expense</strong>
+                    </label>
+                    <small class="form-text text-muted d-block">
+                        Estimated expenses are for planning purposes only and won't be included in balance calculations.
+                    </small>
+                </div>
+            </div>
+
             <div class="form-group mb-3">
                 <label asp-for="PaidById" class="form-label">Paid By</label>
                 <select asp-for="PaidById" class="form-control" required>
@@ -120,8 +141,8 @@
                 <span asp-validation-for="PaidById" class="text-danger"></span>
             </div>
 
-            <!-- Sekcja uczestników z checkboxami -->
-            <div class="form-group mb-4">
+            <!-- Sekcja uczestników z checkboxami (tylko dla wydatków rzeczywistych) -->
+            <div class="form-group mb-4" id="participantsSection">
                 <label class="form-label">Select Participants</label>
                 <div class="border rounded p-3">
                     @if (Model.People.Any())
@@ -148,7 +169,7 @@
                 </div>
             </div>
 
-            <!-- Sekcja zarządzania udziałami -->
+            <!-- Sekcja zarządzania udziałami (tylko dla wydatków rzeczywistych) -->
             <div class="form-group mb-4" id="sharesSection" style="display: none;">
                 <label class="form-label">Manage Shares</label>
                 <div class="border rounded p-3">
@@ -178,7 +199,7 @@
             </div>
 
             <div class="form-group">
-                <button type="submit" class="btn btn-primary">Update Expense</button>
+                <button type="submit" class="btn btn-primary" id="submitButton">Update Expense</button>
                 <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
@@ -196,6 +217,7 @@
                     <li>💡 Use categories to organize your expenses</li>
                     <li>💡 Make sure to select the correct currency</li>
                     <li>💡 Manage shares in the distribution section</li>
+                    <li>💡 Use estimated expenses for planning future costs</li>
                 </ul>
             </div>
         </div>
@@ -212,9 +234,12 @@
             var $currencySelect = $('#currencySelect');
             var $exchangeRateInput = $('#ExchangeRateValue');
             var $totalAmountInput = $('#totalAmount');
+            var $estimatedAmountInput = $('#estimatedAmount');
+            var $participantsSection = $('#participantsSection');
             var $sharesSection = $('#sharesSection');
             var $sharesContainer = $('#sharesContainer');
-            var $submitButton = $('button[type="submit"]');
+            var $submitButton = $('#submitButton');
+            var $isEstimatedCheckbox = $('#isEstimatedCheckbox');
             var shareIndex = 0;
             var hasInitializedExistingShares = false;
 
@@ -230,8 +255,58 @@
                 return value.toFixed(decimals).replace('.', ',');
             }
 
+            // Obsługa checkboxa wydatku szacunkowego
+            function handleEstimatedExpenseChange() {
+                var isEstimated = $isEstimatedCheckbox.is(':checked');
+
+                if (isEstimated) {
+                    // Przełącz na pole EstimatedValue
+                    $('.real-expense-field').hide();
+                    $('.estimated-expense-field').show();
+                    $('#amountLabel').text('Estimated Amount');
+
+                    // Ukryj sekcje uczestników i udziałów dla wydatków szacunkowych
+                    $participantsSection.hide();
+                    $sharesSection.hide();
+
+                    // Odznacz wszystkich uczestników
+                    $('.participant-checkbox').prop('checked', false);
+
+                    // Wyczyść udziały
+                    clearAllShares();
+
+                    // Zmień tekst przycisku
+                    $submitButton.text('Update Estimated Expense');
+                } else {
+                    // Przełącz na pole Value
+                    $('.real-expense-field').show();
+                    $('.estimated-expense-field').hide();
+                    $('#amountLabel').text('Total Amount');
+
+                    // Pokaż sekcje dla wydatków rzeczywistych
+                    $participantsSection.show();
+                    updateSharesSection();
+                    $submitButton.text('Update Expense');
+                }
+
+                validateTotalDistribution();
+            }
+
+            // Inicjalizacja stanu wydatku szacunkowego
+            handleEstimatedExpenseChange();
+
+            // Obsługa zmiany checkboxa
+            $isEstimatedCheckbox.on('change', handleEstimatedExpenseChange);
+
             // Walidacja sumy kosztów
             function validateTotalDistribution() {
+                if ($isEstimatedCheckbox.is(':checked')) {
+                    // Dla wydatków szacunkowych zawsze zwracaj true
+                    $('#remainingAmount').removeClass('text-danger fw-bold');
+                    $submitButton.prop('disabled', false).removeAttr('title');
+                    return true;
+                }
+
                 var totalAmount = parseDecimal($totalAmountInput.val());
                 var totalDistributed = 0;
 
@@ -243,7 +318,7 @@
 
                 if (!isValid) {
                     $('#remainingAmount').addClass('text-danger fw-bold');
-                    $submitButton.prop('disabled', true).attr('title', 'Suma udziałów musi być równa kwocie całkowitej');
+                    $submitButton.prop('disabled', true).attr('title', 'The sum of the shares must equal the total amount.');
                 } else {
                     $('#remainingAmount').removeClass('text-danger fw-bold');
                     $submitButton.prop('disabled', false).removeAttr('title');
@@ -295,13 +370,24 @@
                 validateTotalDistribution();
             });
 
+            $estimatedAmountInput.on('input', function () {
+                validateTotalDistribution();
+            });
+
             function updateTotalAmountDisplay() {
-                var totalAmount = parseDecimal($totalAmountInput.val());
+                var totalAmount = $isEstimatedCheckbox.is(':checked')
+                    ? parseDecimal($estimatedAmountInput.val())
+                    : parseDecimal($totalAmountInput.val());
                 $('#totalAmountDisplay').text(formatDecimal(totalAmount));
                 updateRemainingAmount();
             }
 
             function updateSharesSection() {
+                if ($isEstimatedCheckbox.is(':checked')) {
+                    $sharesSection.hide();
+                    return;
+                }
+
                 var checkedCount = $('.participant-checkbox:checked').length;
                 if (checkedCount > 0) {
                     $sharesSection.show();
@@ -571,10 +657,19 @@
 
             // Walidacja przed wysłaniem formularza
             $('form').on('submit', function(e) {
-                if (!validateTotalDistribution()) {
-                    e.preventDefault();
-                    alert('Nie można zapisać: Suma udziałów (' + $('#totalDistributed').text() + ') nie zgadza się z kwotą całkowitą (' + $('#totalAmountDisplay').text() + ')');
-                    return false;
+                // Dla wydatków szacunkowych pomiń walidację rozkładu udziałów
+                if (!$isEstimatedCheckbox.is(':checked')) {
+                    if (!validateTotalDistribution()) {
+                        e.preventDefault();
+                        alert('The sum of the shares (' + $('#totalDistributed').text() + ') does not match the total amount (' + $('#totalAmountDisplay').text() + ').');
+                        return false;
+                    }
+                }
+
+                // Dla wydatków szacunkowych, wyczyść listę uczestników
+                if ($isEstimatedCheckbox.is(':checked')) {
+                    $('.participant-checkbox').prop('checked', false);
+                    $sharesContainer.empty();
                 }
 
                 // Upewnij się, że wszystkie ukryte pola mają poprawne wartości
