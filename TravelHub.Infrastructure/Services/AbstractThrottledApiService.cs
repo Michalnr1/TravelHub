@@ -77,4 +77,49 @@ public class AbstractThrottledApiService
 
     protected Task<HttpResponseMessage> GetAsync(string url)
         => ExecuteThrottledAsync(() => _httpClient.GetAsync(url));
+
+    protected Task<HttpResponseMessage> PostAsync(string url, HttpContent body)
+        => ExecuteThrottledAsync(() => _httpClient.PostAsync(url, body));
+
+    protected Task<HttpResponseMessage> GetWithHeadersAsync(string url,
+                                                            Dictionary<string, string>? headers = null)
+    {
+        return ExecuteThrottledAsync(async () =>
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+            if (headers != null)
+            {
+                foreach (var (key, value) in headers)
+                {
+                    request.Headers.Add(key, value);
+                }
+            }
+
+            return await _httpClient.SendAsync(request);
+        });
+    }
+
+    protected Task<HttpResponseMessage> PostWithHeadersAsync(string url,
+                                                            HttpContent content,
+                                                            Dictionary<string, string>? headers = null)
+    {
+        return ExecuteThrottledAsync(async () =>
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = content
+            };
+
+            if (headers != null)
+            {
+                foreach (var (key, value) in headers)
+                {
+                    request.Headers.Add(key, value);
+                }
+            }
+
+            return await _httpClient.SendAsync(request);
+        });
+    }
 }

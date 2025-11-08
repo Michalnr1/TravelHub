@@ -1,0 +1,235 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    var toAirportCode = ViewData["ToAirportCode"];
+}
+
+<form id="flightForm">
+    From
+    <div class="autocomplete-container">
+        <input type="text" id="from" name="from" placeholder="Enter airport..." autocomplete="off" />
+        <div id="autocompleteResultsFrom" class="autocomplete-results"></div>
+    </div>
+
+    To:
+    <div class="autocomplete-container">
+        <input type="text" id="to" name="to" placeholder="Enter airport..." autocomplete="off" />
+        <div id="autocompleteResultsFrom" class="autocomplete-results"></div>
+    </div>
+
+    Date:
+    <input type="date" name="date" />
+
+    <input type="submit" value="Submit" />
+</form>
+
+<div id="flights">
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script src="~/lib/luxon/luxon.js"></script>
+
+    <script>
+
+        const defaultToAirportCode = "@Html.Raw(toAirportCode)";
+        if (defaultToAirportCode.length > 0){
+            document.getElementById("to").value = defaultToAirportCode;
+        }
+
+        document.getElementById("flightForm").addEventListener("submit", function (event) {
+          event.preventDefault(); 
+
+          const form = event.target;
+          const from = form.from.value;
+          const to = form.to.value;
+          const date = form.date.value;
+
+          if (Date(date) < Date()){
+              alert("Date in the past...")
+          } else {
+              handleFlightSearch({ from, to, date });
+          }          
+        });
+
+        function make_get_request(endpoint, on_success){
+            fetch(endpoint, {
+                method: "GET",
+            })
+            .then( response => response.json())
+            .then(data => {
+                on_success(data)
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function handleFlightSearch({ from, to, date }) {
+          const params = new URLSearchParams();
+          params.append("from", from);
+          params.append("to", to);
+          params.append("date", date);
+          clearFlightCards();
+          //Tu można by dać jakiś ekran ładowania?
+          make_get_request(`/Trips/Flights?${params}`, processFlightList);
+        }
+
+        function clearFlightCards(){
+            var listDiv = document.getElementById("flights");
+            while(listDiv.children[0]) {
+                listDiv.removeChild(listDiv.children[0]);
+            }
+        }
+
+        function processFlightList(flights){
+            let listDiv = document.getElementById('flights')
+            if (flights.length == 0) {
+                addTextSpan(listDiv, `None found`);
+            } else {
+                flights.slice(0, Math.min(5, flights.length)).forEach((flight) => {
+                    listDiv.appendChild(buildFlightCard(flight));
+                    listDiv.appendChild(document.createElement("hr"));
+                });
+            }
+            
+        }
+
+        function buildFlightCard(flight){
+            let div = document.createElement("div");
+            div.classList.add('list-group-item');
+            div.classList.add('flight-card');
+
+            addTextSpan(div, `${flight.originAirportCode} ---> ${flight.destinationAirportCode}`);
+            addTextSpan(div, `${flight.departureTime}      ${flight.arrivalTime}`);
+            addTextSpan(div, `Cost: ${flight.totalPrice} ${flight.currency}`);
+            addTextSpan(div, `Duration: ${flight.duration}`);
+
+            if (flight.segments.length == 1){
+                addTextSpan(div, `${flight.segments[0].carrierCode}${flight.segments[0].flightNumber}`);
+            } else {
+                addTextSpan(div, `Segments: `);
+                flight.segments.forEach((segment) => {
+                    let segmentDiv = document.createElement("div");
+                    addTextSpan(segmentDiv, `${segment.originAirportCode} ---> ${segment.destinationAirportCode}`);
+                    addTextSpan(segmentDiv, `${segment.departureTime}      ${segment.arrivalTime}`);
+                    addTextSpan(segmentDiv, `Duration: ${segment.duration}`);
+                    div.appendChild(segmentDiv);
+                });
+            }
+
+            return div;
+        }
+
+        function addTextSpan(div, text){
+            let span = document.createElement("span");
+            span.innerHTML = text;
+            div.appendChild(span);
+            div.appendChild(document.createElement("br"))
+        }
+
+        async function getAutocompleteResults(query) {
+          const params = new URLSearchParams();
+          params.append("query", query);
+          // Simulated delay for realism
+          return await fetch(`/Trips/Airports?${params}`, {
+                method: "GET",
+            })
+            .then( response => response.json())
+            .catch(error => console.error('Error:', error));
+        }
+
+        const MIN_CHARS = 3;    // minimum characters before searching
+        const DEBOUNCE_MS = 300; // delay between keystrokes
+
+        // --- Autocomplete logic ---
+        const inputFrom = document.getElementById("from");
+        const resultsDivFrom = document.getElementById("autocompleteResultsFrom");
+
+        const inputTo = document.getElementById("to");
+        const resultsDivTo = document.getElementById("autocompleteResultsTo");
+
+        let debounceTimer;
+
+        function addAutocompleteFunctionality(input, resultsDiv){
+            input.addEventListener("input", () => {
+              clearTimeout(debounceTimer);
+              const query = input.value.trim();
+
+              if (query.length < MIN_CHARS) {
+                resultsDiv.innerHTML = ""; // clear results if too short
+                return;
+              }
+
+              debounceTimer = setTimeout(async () => {
+                const results = await getAutocompleteResults(query);
+                showResults(results, resultsDiv, input);
+              }, DEBOUNCE_MS);
+            });
+
+            // Hide results if clicking outside
+            document.addEventListener("click", (e) => {
+              if (!e.target.closest(".autocomplete-container")) {
+                resultsDiv.innerHTML = "";
+              }
+            });
+        }
+
+        addAutocompleteFunctionality(inputFrom, resultsDivFrom);
+        addAutocompleteFunctionality(inputTo, resultsDivFrom);
+
+        function showResults(results, resultsDiv, input) {
+          resultsDiv.innerHTML = "";
+
+          if (results.length === 0) {
+            resultsDiv.innerHTML = "<div class='autocomplete-item'>No results</div>";
+            return;
+          }
+
+          for (const airport of results) {
+            const div = document.createElement("div");
+            div.classList.add("autocomplete-item");
+            div.textContent = `${airport.airportName} (${airport.airportCode})`;
+
+            div.addEventListener("click", () => {
+              input.value = airport.airportCode;   // fill text field with code
+              resultsDiv.innerHTML = "";    // clear dropdown
+            });
+
+            resultsDiv.appendChild(div);
+          }
+        }
+
+        
+    </script>
+}
+
+<style>
+    .autocomplete-container {
+        position: relative;
+        width: 300px;
+    }
+
+    .autocomplete-results {
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        border-top: none;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 10;
+    }
+
+    .autocomplete-item {
+        padding: 8px;
+        cursor: pointer;
+    }
+
+    .autocomplete-item:hover {
+        background: #f0f0f0;
+    }
+</style>

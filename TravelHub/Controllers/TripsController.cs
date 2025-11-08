@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Accommodations;
@@ -23,6 +24,7 @@ public class TripsController : Controller
     private readonly ICategoryService _categoryService;
     private readonly IAccommodationService _accommodationService;
     private readonly IExpenseService _expenseService;
+    private readonly IFlightService _flightService;
     private readonly ILogger<TripsController> _logger;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
@@ -35,6 +37,7 @@ public class TripsController : Controller
         ICategoryService categoryService,
         IAccommodationService accommodationService,
         IExpenseService expenseService,
+        IFlightService flightService,
         ILogger<TripsController> logger,
         UserManager<Person> userManager,
         IConfiguration configuration)
@@ -47,6 +50,7 @@ public class TripsController : Controller
         _categoryService = categoryService;
         _accommodationService = accommodationService;
         _expenseService = expenseService;
+        _flightService = flightService;
         _configuration = configuration;
         _logger = logger;
         _userManager = userManager;
@@ -831,6 +835,49 @@ public class TripsController : Controller
 
         ViewData["FormTitle"] = "Add New Group";
         return View("AddGroup", viewModel);
+    }
+
+    public async Task<IActionResult> FlightSearch(int id)
+    {
+        (double lat, double lng) = await _tripService.GetMedianCoords(id);
+        AirportDto? airport = await _flightService.GetAirportByCoords(lat, lng);
+        if (airport != null)
+        {
+            ViewData["ToAirportCode"] = airport.AirportCode;
+        } else
+        {
+            ViewData["AirportCode"] = "";
+        }
+        return View();
+    }
+
+    public async Task<IActionResult> Flights(string from, string to, string date)
+    {
+        if (from == null || to == null || date == null) { return BadRequest(); }
+        bool dateValid = DateTime.TryParseExact(date, "yyyy-MM-dd", null, 0, out DateTime result);
+        if (!dateValid) { return BadRequest(); }
+        try
+        {
+            var flights = await _flightService.GetFlights(from, to, result);
+            return Ok(flights);
+        } catch (HttpRequestException)
+        {
+            return BadRequest();
+        }  
+    }
+
+    public async Task<IActionResult> Airports(string query)
+    {
+        if (query == null) { return BadRequest(); }
+        try
+        {
+            var airports = await _flightService.GetAirportsByName(query);
+            return Ok(airports);
+        }
+        catch (HttpRequestException)
+        {
+            return BadRequest();
+        }
     }
 
     // GET: MyTrips
