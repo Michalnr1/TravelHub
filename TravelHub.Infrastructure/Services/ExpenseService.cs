@@ -5,7 +5,6 @@ using TravelHub.Domain.Interfaces.Services;
 
 namespace TravelHub.Infrastructure.Services;
 
-// Teraz dziedziczy z serwisu generycznego
 public class ExpenseService : GenericService<Expense>, IExpenseService
 {
     private readonly IExpenseRepository _expenseRepository;
@@ -309,6 +308,20 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         };
     }
 
+    public async Task<BudgetSummaryDto> GetBudgetSummaryAsync(BudgetFilterDto filter)
+    {
+        var expenses = await _expenseRepository.GetByTripIdWithParticipantsAsync(filter.TripId);
+        var trip = await _tripService.GetByIdAsync(filter.TripId) ?? throw new InvalidOperationException($"Trip with id {filter.TripId} not found");
+
+        // Filtruj wydatki
+        var filteredExpenses = FilterExpenses(expenses, filter);
+
+        // Konwertuj do waluty podróży
+        var expensesInTripCurrency = await ConvertExpensesToTripCurrency(filteredExpenses, trip.CurrencyCode);
+
+        return await CalculateBudgetSummary(expensesInTripCurrency, trip, filter);
+    }
+
     private List<ExpenseParticipant> CalculateAndCreateParticipants(decimal expenseValue, int expenseId, IEnumerable<ParticipantShareDto> participantShares)
     {
         var sharesList = participantShares.ToList();
@@ -482,5 +495,337 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         }
 
         return optimized;
+    }
+
+    private IEnumerable<Expense> FilterExpenses(IEnumerable<Expense> expenses, BudgetFilterDto filter)
+    {
+        var query = expenses.AsQueryable();
+
+        // Filtruj po osobie
+        if (!string.IsNullOrEmpty(filter.PersonId))
+        {
+            query = query.Where(e =>
+                e.PaidById == filter.PersonId ||
+                e.Participants.Any(p => p.PersonId == filter.PersonId) ||
+                (!string.IsNullOrEmpty(e.TransferredToId) &&
+                (e.PaidById == filter.PersonId || e.TransferredToId == filter.PersonId)));
+        }
+
+        // Filtruj po kategorii
+        if (filter.CategoryId.HasValue)
+        {
+            query = query.Where(e => e.CategoryId == filter.CategoryId.Value);
+        }
+
+        // Filtruj transfery
+        if (!filter.IncludeTransfers)
+        {
+            query = query.Where(e => string.IsNullOrEmpty(e.TransferredToId));
+        }
+
+        // Filtruj szacowane
+        if (!filter.IncludeEstimated)
+        {
+            query = query.Where(e => !e.IsEstimated);
+        }
+
+        return query.ToList();
+    }
+
+    private async Task<List<ExpenseCalculation>> ConvertExpensesToTripCurrency(IEnumerable<Expense> expenses, CurrencyCode tripCurrency)
+    {
+        var result = new List<ExpenseCalculation>();
+
+        foreach (var expense in expenses)
+        {
+            decimal convertedValue;
+
+            if (expense.IsEstimated)
+            {
+                convertedValue = await ConvertToTripCurrencyAsync(expense.EstimatedValue, expense.ExchangeRate, tripCurrency);
+            }
+            else
+            {
+                convertedValue = await ConvertToTripCurrencyAsync(expense.Value, expense.ExchangeRate, tripCurrency);
+            }
+
+            result.Add(new ExpenseCalculation
+            {
+                Expense = expense,
+                ConvertedValue = convertedValue,
+                OriginalCurrency = expense.ExchangeRate?.CurrencyCodeKey ?? tripCurrency,
+                TargetCurrency = tripCurrency
+            });
+        }
+
+        return result;
+    }
+
+    private Task<BudgetSummaryDto> CalculateBudgetSummary(List<ExpenseCalculation> expenses, Trip trip, BudgetFilterDto filter)
+    {
+        var summary = new BudgetSummaryDto
+        {
+            TripId = trip.Id,
+            TripName = trip.Name,
+            TripCurrency = trip.CurrencyCode,
+            FilterByPersonId = filter.PersonId,
+            FilterByCategoryId = filter.CategoryId
+        };
+
+        // Pobierz wszystkich unikalnych uczestników wycieczki
+        var allParticipants = expenses
+            .SelectMany(e => e.Expense.Participants.Select(p => p.Person))
+            .Concat(expenses.Select(e => e.Expense.PaidBy))
+            .Concat(expenses.Select(e => e.Expense.TransferredTo))
+            .Where(p => p != null)
+            .DistinctBy(p => p?.Id)
+            .ToList();
+
+        // Oblicz podsumowanie kategorii
+        summary.CategorySummaries = CalculateCategorySummaries(expenses, filter);
+
+        // Oblicz podsumowanie osób
+        summary.PersonSummaries = CalculatePersonSummaries(allParticipants!, expenses, filter);
+
+        // Oblicz sumy ogólne - uwzględniając wszystkie filtry
+        summary.TotalActualExpenses = summary.CategorySummaries.Sum(c => c.ActualExpenses);
+        summary.TotalEstimatedExpenses = summary.CategorySummaries.Sum(c => c.EstimatedExpenses);
+        summary.TotalTransfers = summary.CategorySummaries.Sum(c => c.Transfers);
+
+        var totalTransders = summary.PersonSummaries.Sum(p => p.Transfers);
+
+        // Oblicz procenty
+        var totalAll = summary.TotalActualExpenses + summary.TotalTransfers;
+        if (totalAll > 0)
+        {
+            foreach (var category in summary.CategorySummaries)
+            {
+                category.PercentageOfTotal = (category.Total / summary.TotalActualExpenses) * 100;
+            }
+
+            foreach (var person in summary.PersonSummaries)
+            {
+                person.PercentageOfTotal = (person.Total / summary.TotalActualExpenses + totalTransders) * 100;
+            }
+        }
+
+        // Uzupełnij nazwy filtrów
+        if (!string.IsNullOrEmpty(filter.PersonId))
+        {
+            var person = allParticipants.FirstOrDefault(p => p?.Id == filter.PersonId);
+            summary.FilterByPersonName = person != null ? $"{person.FirstName} {person.LastName}" : filter.PersonId;
+        }
+
+        if (filter.CategoryId.HasValue)
+        {
+            var category = summary.CategorySummaries.FirstOrDefault(c => c.CategoryId == filter.CategoryId.Value);
+            summary.FilterByCategoryName = category?.CategoryName ?? filter.CategoryId.ToString();
+        }
+
+        return Task.FromResult(summary);
+    }
+
+    private List<BudgetCategorySummaryDto> CalculateCategorySummaries(List<ExpenseCalculation> expenses, BudgetFilterDto filter)
+    {
+        var categorySummaries = new List<BudgetCategorySummaryDto>();
+
+        // Filtruj wydatki dla kategorii - uwzględnij filtr osoby
+        var expensesForCategories = expenses;
+        if (!string.IsNullOrEmpty(filter.PersonId))
+        {
+            // Filtruj wydatki tylko do tych, w których uczestniczy wybrana osoba
+            expensesForCategories = expenses.Where(e =>
+                e.Expense.PaidById == filter.PersonId ||
+                e.Expense.Participants.Any(p => p.PersonId == filter.PersonId) ||
+                (!string.IsNullOrEmpty(e.Expense.TransferredToId) &&
+                (e.Expense.PaidById == filter.PersonId || e.Expense.TransferredToId == filter.PersonId)))
+                .ToList();
+        }
+
+        // Grupuj po kategoriach - uwzględnij filtr osoby
+        var categoryGroups = expensesForCategories.GroupBy(e => new
+        {
+            Id = e.Expense.CategoryId ?? 0,
+            Name = e.Expense.Category?.Name ?? "Uncategorized",
+            Color = e.Expense.Category?.Color ?? "#6c757d"
+        });
+
+        foreach (var categoryGroup in categoryGroups)
+        {
+            var categorySummary = CalculateCategorySummary(categoryGroup.Key, categoryGroup.ToList(), filter);
+            categorySummaries.Add(categorySummary);
+        }
+
+        return categorySummaries;
+    }
+
+    private static BudgetCategorySummaryDto CalculateCategorySummary(dynamic categoryKey, List<ExpenseCalculation> categoryExpenses, BudgetFilterDto filter)
+    {
+        var categorySummary = new BudgetCategorySummaryDto
+        {
+            CategoryId = categoryKey.Id,
+            CategoryName = categoryKey.Name,
+            CategoryColor = categoryKey.Color,
+            ActualExpenses = 0,
+            EstimatedExpenses = 0,
+            Transfers = 0
+        };
+
+        foreach (var expenseCalc in categoryExpenses)
+        {
+            var expense = expenseCalc.Expense;
+
+            if (expense.IsEstimated)
+            {
+                // Dla wydatków szacowanych - tylko jeśli osoba zapłaciła
+                if (string.IsNullOrEmpty(filter.PersonId) || expense.PaidById == filter.PersonId)
+                {
+                    categorySummary.EstimatedExpenses += expenseCalc.ConvertedValue;
+                }
+            }
+            else if (string.IsNullOrEmpty(expense.TransferredToId))
+            {
+                // Dla zwykłych wydatków - tylko udział wybranej osoby
+                if (string.IsNullOrEmpty(filter.PersonId))
+                {
+                    // Bez filtra - cały wydatek
+                    categorySummary.ActualExpenses += expenseCalc.ConvertedValue;
+                }
+                else
+                {
+                    // Z filtrem osoby - tylko jej udział
+                    var personParticipation = expense.Participants.FirstOrDefault(p => p.PersonId == filter.PersonId);
+                    if (personParticipation != null)
+                    {
+                        var shareInTripCurrency = expenseCalc.ConvertedValue * personParticipation.Share;
+                        categorySummary.ActualExpenses += shareInTripCurrency;
+                    }
+                }
+            }
+            else
+            {
+                // Dla transferów
+                if (string.IsNullOrEmpty(filter.PersonId))
+                {
+                    // Bez filtra - cały transfer
+                    categorySummary.Transfers += expenseCalc.ConvertedValue;
+                }
+                else
+                {
+                    // Z filtrem osoby - uwzględniamy transfer jeśli osoba jest zaangażowana
+                    if (expense.PaidById == filter.PersonId)
+                    {
+                        categorySummary.Transfers += expenseCalc.ConvertedValue; // Wypłata
+                    }
+                    else if (expense.TransferredToId == filter.PersonId)
+                    {
+                        categorySummary.Transfers -= expenseCalc.ConvertedValue; // Wpłata (ujemna)
+                    }
+                }
+            }
+        }
+
+        return categorySummary;
+    }
+
+    private List<BudgetPersonSummaryDto> CalculatePersonSummaries(List<Person> allParticipants, List<ExpenseCalculation> expenses, BudgetFilterDto filter)
+    {
+        var personSummaries = new List<BudgetPersonSummaryDto>();
+
+        // Filtruj osoby dla podsumowania - uwzględnij filtr kategorii
+        var personsToShow = allParticipants;
+
+        if (!string.IsNullOrEmpty(filter.PersonId))
+        {
+            // Pokaż tylko wybraną osobę
+            personsToShow = allParticipants.Where(p => p.Id == filter.PersonId).ToList();
+        }
+        else if (filter.CategoryId.HasValue)
+        {
+            // Pokaż tylko osoby, które mają wydatki w wybranej kategorii
+            personsToShow = allParticipants.Where(p =>
+                expenses.Any(e =>
+                    ((e.Expense.PaidById == p.Id || e.Expense.Participants.Any(ep => ep.PersonId == p.Id)) &&
+                    e.Expense.CategoryId == filter.CategoryId.Value) ||
+                    (!string.IsNullOrEmpty(e.Expense.TransferredToId) &&
+                    e.Expense.TransferredToId == p.Id && e.Expense.CategoryId == filter.CategoryId.Value)))
+                .ToList();
+        }
+
+        // Grupuj po osobach - uwzględnij filtr kategorii
+        foreach (var participant in personsToShow)
+        {
+            var personSummary = CalculatePersonSummary(participant, expenses, filter.CategoryId);
+            personSummaries.Add(personSummary);
+        }
+
+        return personSummaries;
+    }
+
+    private BudgetPersonSummaryDto CalculatePersonSummary(Person? person, List<ExpenseCalculation> expenses, int? categoryFilter)
+    {
+        var personSummary = new BudgetPersonSummaryDto
+        {
+            PersonId = person!.Id,
+            PersonName = $"{person.FirstName} {person.LastName}",
+            ActualExpenses = 0,
+            EstimatedExpenses = 0,
+            Transfers = 0
+        };
+
+        foreach (var expenseCalc in expenses)
+        {
+            var expense = expenseCalc.Expense;
+
+            // Filtruj po kategorii jeśli jest ustawiona
+            if (categoryFilter.HasValue && expense.CategoryId != categoryFilter.Value && string.IsNullOrEmpty(expense.TransferredToId))
+                continue;
+
+            // Sprawdź czy osoba jest uczestnikiem tego wydatku
+            var personParticipation = expense.Participants.FirstOrDefault(p => p.PersonId == person.Id);
+
+            if (expense.IsEstimated)
+            {
+                // Dla wydatków szacowanych - osoba płacąca ma cały wydatek
+                if (expense.PaidById == person.Id)
+                {
+                    personSummary.EstimatedExpenses += expenseCalc.ConvertedValue;
+                }
+            }
+            else if (string.IsNullOrEmpty(expense.TransferredToId))
+            {
+                // Dla zwykłych wydatków - osoba ma tylko swoją część
+                if (personParticipation != null)
+                {
+                    // Konwertuj udział osoby do waluty podróży
+                    var shareInTripCurrency = expenseCalc.ConvertedValue * personParticipation.Share;
+                    personSummary.ActualExpenses += shareInTripCurrency;
+                }
+            }
+            else
+            {
+                // Dla transferów
+                if (expense.PaidById == person.Id)
+                {
+                    // Osoba zapłaciła transfer - to jest jej wydatek
+                    personSummary.Transfers += expenseCalc.ConvertedValue;
+                }
+                else if (expense.TransferredToId == person.Id)
+                {
+                    // Osoba otrzymała transfer - to jest jej przychód (ujemny wydatek)
+                    personSummary.Transfers -= expenseCalc.ConvertedValue;
+                }
+            }
+        }
+
+        return personSummary;
+    }
+
+    private class ExpenseCalculation
+    {
+        public Expense Expense { get; set; } = null!;
+        public decimal ConvertedValue { get; set; }
+        public CurrencyCode OriginalCurrency { get; set; }
+        public CurrencyCode TargetCurrency { get; set; }
     }
 }

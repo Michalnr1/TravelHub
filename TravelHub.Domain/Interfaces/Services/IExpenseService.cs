@@ -18,4 +18,5 @@ public interface IExpenseService : IGenericService<Expense>
     Task<decimal> GetTotalExpensesInCurrencyAsync(int tripId, CurrencyCode targetCurrency);
     Task<Expense?> GetExpenseByAccommodationIdAsync(int accommodationId);
     Task<BalanceDto> CalculateBalancesAsync(int tripId);
+    Task<BudgetSummaryDto> GetBudgetSummaryAsync(BudgetFilterDto filter);
 }

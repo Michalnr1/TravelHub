@@ -236,8 +236,8 @@ public class ExpensesController : Controller
 
                 // Update basic properties
                 existingExpense.Name = viewModel.Name;
-                existingExpense.Value = viewModel.IsEstimated ? 0 : viewModel.Value;
-                existingExpense.EstimatedValue = viewModel.IsEstimated ? viewModel.EstimatedValue : 0;
+                existingExpense.Value = viewModel.Value;
+                existingExpense.EstimatedValue = viewModel.EstimatedValue;
                 existingExpense.PaidById = viewModel.PaidById;
                 existingExpense.TransferredToId = viewModel.TransferredToId;
                 existingExpense.CategoryId = viewModel.CategoryId;
@@ -390,8 +390,8 @@ public class ExpensesController : Controller
             var expense = new Expense
             {
                 Name = viewModel.Name,
-                Value = viewModel.IsEstimated ? 0 : viewModel.Value,
-                EstimatedValue = viewModel.IsEstimated ? viewModel.EstimatedValue : 0,
+                Value = viewModel.Value,
+                EstimatedValue = viewModel.EstimatedValue,
                 PaidById = viewModel.PaidById,
                 CategoryId = viewModel.CategoryId,
                 ExchangeRateId = exchangeRateEntry.Id,
@@ -569,7 +569,7 @@ public class ExpensesController : Controller
         {
             viewModel.Id = expense.Id;
             viewModel.Name = expense.Name;
-            viewModel.Value = expense.IsEstimated ? expense.EstimatedValue : expense.Value;
+            viewModel.Value = expense.Value;
             viewModel.EstimatedValue = expense.EstimatedValue;
             viewModel.PaidById = expense.PaidById;
             viewModel.TransferredToId = expense.TransferredToId;

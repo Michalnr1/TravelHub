@@ -18,7 +18,10 @@
         <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Spot</a>
         <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Transport</a>
         <a href="@Url.Action("Balances", "Expenses", new { tripId = Model.Id })" class="btn btn-info">
-            <i class="fas fa-calculator"></i> Display participants' balances
+            <i class="fas fa-balance-scale"></i> Balance Sheet
+        </a>
+        <a href="@Url.Action("Index", "BudgetSummary", new { tripId = Model.Id })" class="btn btn-info">
+            <i class="fas fa-chart-pie"></i> Budget Summary
         </a>
 
         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#countriesModal">View Countries</button>
