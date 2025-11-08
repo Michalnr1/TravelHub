@@ -10,8 +10,6 @@ public class Spot : Activity
     // public decimal Cost { get; set; }
     public Rating? Rating { get; set; }
 
-    public string? FileName { get; set; }
-
     // Navigation Properties
 
     [InverseProperty("Spot")]
@@ -23,6 +21,9 @@ public class Spot : Activity
 
     // A spot can have many photos (1:N)
     public ICollection<Photo> Photos { get; set; } = new List<Photo>();
+    
+    // A spot can have many files (1:N)
+    public ICollection<File> Files { get; set; } = new List<File>();
 
     // A spot can be the starting point for many transports
     [InverseProperty("FromSpot")]

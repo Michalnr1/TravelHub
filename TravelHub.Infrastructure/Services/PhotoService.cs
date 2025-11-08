@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
+using File = System.IO.File;
 
 namespace TravelHub.Infrastructure.Services;
 

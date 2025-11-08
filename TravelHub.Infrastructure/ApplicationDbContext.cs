@@ -315,7 +315,6 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // entity.HasKey(s => s.Id);
             // entity.Property(s => s.Cost).HasPrecision(18, 2);
             entity.Property(s => s.Rating);
-            entity.Property(s => s.FileName).IsRequired(false).HasMaxLength(200);
 
             // 1:N relationship from Spot to Country
             entity.HasOne(s => s.Country)
@@ -584,6 +583,18 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                 .WithMany(t => t.ChatMessages)
                 .HasForeignKey(cm => cm.TripId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Domain.Entities.File>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+            entity.Property(f => f.Name).IsRequired(false).HasMaxLength(200);
+
+            // 1:N relationship with Trip
+            entity.HasOne(f => f.Spot)
+                .WithMany(t => t.Files)
+                .HasForeignKey(f => f.SpotId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
