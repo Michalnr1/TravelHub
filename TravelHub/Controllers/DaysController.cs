@@ -53,8 +53,12 @@ public class DaysController : Controller
     public async Task<IActionResult> MapView(int id)
     {
         var day = await _dayService.GetDayWithDetailsAsync(id);
-        var trip = await _tripService.GetTripWithDetailsAsync(day!.TripId);
         if (day == null)
+        {
+            return NotFound();
+        }
+        var trip = await _tripService.GetTripWithDetailsAsync(day!.TripId);
+        if (trip == null)
         {
             return NotFound();
         }

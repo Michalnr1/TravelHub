@@ -482,7 +482,7 @@
             routeInfoWindow.close();
 
             const midPolyline = polylines[Math.round((polylines.length - 1) / 2)];
-            const path = midPolyline.getPath().Cg;
+            const path = midPolyline.getPath().getArray();
             const pos = path[Math.round((path.length - 1) / 2)];
 
             const duration = endTime.diff(startTime, ["hours", "minutes"]);
