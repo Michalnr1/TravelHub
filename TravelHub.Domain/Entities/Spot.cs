@@ -10,6 +10,8 @@ public class Spot : Activity
     // public decimal Cost { get; set; }
     public Rating? Rating { get; set; }
 
+    public string? FileName { get; set; }
+
     // Navigation Properties
 
     [InverseProperty("Spot")]

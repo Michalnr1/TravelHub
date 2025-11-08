@@ -37,4 +37,6 @@ public class Person : IdentityUser
     public ICollection<ExpenseParticipant> ExpensesToCover { get; set; } = new List<ExpenseParticipant>();
     // A person can have many notifications (1:N)
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    // A person can have many chat messages (1:N)
+    public ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
 }

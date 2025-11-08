@@ -7,6 +7,7 @@ public class Expense
     public decimal EstimatedValue { get; set; }
     public required string Name { get; set; }
     public bool IsEstimated { get; set; }
+    public int Multiplier { get; set; }
 
     // Foreign Key for the person who paid
     public required string PaidById { get; set; }

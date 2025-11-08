@@ -32,4 +32,7 @@ public class Trip
 
     // A trip can have many exchange rates (1:N)
     public ICollection<ExchangeRate> ExchangeRates { get; set; } = new List<ExchangeRate>();
+
+    // A trip can have many chat messages (1:N)
+    public ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
 }

@@ -315,6 +315,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // entity.HasKey(s => s.Id);
             // entity.Property(s => s.Cost).HasPrecision(18, 2);
             entity.Property(s => s.Rating);
+            entity.Property(s => s.FileName).IsRequired(false).HasMaxLength(200);
 
             // 1:N relationship from Spot to Country
             entity.HasOne(s => s.Country)
@@ -386,6 +387,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(e => e.Value).HasPrecision(18, 2);
             entity.Property(e => e.EstimatedValue).HasPrecision(18, 2);
             entity.Property(e => e.IsEstimated).IsRequired();
+            entity.Property(e => e.Multiplier).IsRequired();
 
             // 1:N relationship for the person who paid
             entity.HasOne(e => e.PaidBy)
@@ -562,6 +564,26 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.ToTable("ExpenseParticipants");
+        });
+
+        // --- ChatMessage Configuration ---
+        builder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasKey(cm => cm.Id);
+
+            entity.Property(cm => cm.Message).IsRequired().HasMaxLength(500);
+
+            // 1:N relationship with Person (Author)
+            entity.HasOne(cm => cm.Person)
+                  .WithMany(person => person.ChatMessages)
+                  .HasForeignKey(cm => cm.PersonId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // 1:N relationship with Trip
+            entity.HasOne(cm => cm.Trip)
+                .WithMany(t => t.ChatMessages)
+                .HasForeignKey(cm => cm.TripId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
