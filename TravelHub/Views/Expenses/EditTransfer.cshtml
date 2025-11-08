@@ -1,0 +1,402 @@
+﻿@model TravelHub.Web.ViewModels.Expenses.ExpenseCreateEditViewModel
+
+@{
+    ViewData["Title"] = "Edit Transfer";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Edit Transfer</h1>
+    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">Back to Trip</a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Edit" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="TripId" />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="Name" class="form-label">Transfer Description</label>
+                        <input asp-for="Name" class="form-control" placeholder="e.g., Money transfer, Payment, etc." />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="CategoryId" class="form-label">Category</label>
+                        <select asp-for="CategoryId" class="form-control">
+                            <option value="">-- Select Category --</option>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label asp-for="Value" class="form-label">Transfer Amount</label>
+                        <input asp-for="Value" class="form-control"
+                               type="text"
+                               inputmode="decimal"
+                               pattern="[0-9]*[.,]?[0-9]*"
+                               id="totalAmount"
+                               placeholder="0.00" />
+                        <span asp-validation-for="Value" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label asp-for="SelectedCurrencyCode" class="form-label">Currency</label>
+                        <select asp-for="SelectedCurrencyCode" class="form-control" id="currencySelect" required>
+                            @{
+                                var usedCurrencies = Model.CurrenciesGroups.Where(c => c.IsUsed).ToList();
+                                var allCurrencies = Model.CurrenciesGroups.Where(c => !c.IsUsed).ToList();
+                            }
+
+                            @if (usedCurrencies.Any())
+                            {
+                                <optgroup label="-- Used Currency (Currency, Rate) --">
+                                    @foreach (var currency in usedCurrencies)
+                                    {
+                                        bool isSelected = (Model.SelectedCurrencyCode == currency.Key && Model.ExchangeRateValue == currency.ExchangeRate);
+                                        <option value="@currency.Key"
+                                                data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                selected="@isSelected">
+                                            @currency.DropdownText
+                                        </option>
+                                    }
+                                </optgroup>
+                            }
+
+                            <optgroup label="-- All currencies --">
+                                @foreach (var currency in allCurrencies)
+                                {
+                                    <option value="@currency.Key"
+                                            data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                            selected="@(Model.SelectedCurrencyCode == currency.Key && Model.ExchangeRateValue == 1.0M)">
+                                        @currency.DropdownText
+                                    </option>
+                                }
+                            </optgroup>
+                        </select>
+                        <span asp-validation-for="SelectedCurrencyCode" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label asp-for="ExchangeRateValue" class="form-label">Exchange Rate (to Base)</label>
+                        <input asp-for="ExchangeRateValue" class="form-control"
+                               type="text"
+                               inputmode="decimal"
+                               pattern="[0-9]*[.,]?[0-9]*"
+                               placeholder="1.000000" />
+                        <span asp-validation-for="ExchangeRateValue" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sekcja transferu -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="PaidById" class="form-label">From (Who sent money)</label>
+                        <select asp-for="PaidById" class="form-control" required id="paidBySelect">
+                            <option value="">-- Select Sender --</option>
+                            @foreach (var person in Model.People)
+                            {
+                                <option value="@person.Id">@person.FullName</option>
+                            }
+                        </select>
+                        <span asp-validation-for="PaidById" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="TransferredToId" class="form-label">To (Who received money)</label>
+                        <select asp-for="TransferredToId" class="form-control" required id="transferredToSelect">
+                            <option value="">-- Select Receiver --</option>
+                            @foreach (var person in Model.People)
+                            {
+                                <option value="@person.Id">@person.FullName</option>
+                            }
+                        </select>
+                        <span asp-validation-for="TransferredToId" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informacja o uczestnikach transferu -->
+            <div class="alert alert-info mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <div>
+                        <strong>Transfer Information:</strong>
+                        <ul class="mb-0 mt-1">
+                            <li>This transfer will be recorded as an expense paid by the sender</li>
+                            <li>The sender will be automatically added as the only participant</li>
+                            <li>The receiver will be recorded in the transfer details</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ukryte pola dla uczestników -->
+            <div id="transferParticipants" style="display: none;">
+                <!-- Automatycznie ustawiamy tylko osobę płacącą jako uczestnika -->
+                <input type="hidden" name="ParticipantsShares[0].PersonId" id="senderParticipantId" />
+                <input type="hidden" name="ParticipantsShares[0].FullName" id="senderParticipantName" />
+                <input type="hidden" name="ParticipantsShares[0].Share" value="1.000000" />
+                <input type="hidden" name="ParticipantsShares[0].ActualShareValue" id="senderParticipantAmount" />
+                <input type="hidden" name="ParticipantsShares[0].ShareType" value="1" />
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Update Transfer</button>
+                <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Transfer Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li>💡 <strong>From:</strong> Person who sent the money</li>
+                    <li>💡 <strong>To:</strong> Person who received the money</li>
+                    <li>💡 <strong>Amount:</strong> Total amount transferred</li>
+                    <li>💡 <strong>Currency:</strong> Currency used for transfer</li>
+                    <li>💡 <strong>Description:</strong> Purpose of the transfer</li>
+                    <li class="mt-2 text-muted"><small>Transfer will be automatically assigned to the sender as an expense</small></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Podgląd transferu -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Transfer Preview</h6>
+            </div>
+            <div class="card-body">
+                <div class="transfer-preview text-center">
+                    <div class="mb-2">
+                        <span id="previewSender" class="fw-bold text-primary">@Model.People.FirstOrDefault(p => p.Id == Model.PaidById)?.FullName ?? "[Sender]"</span>
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-arrow-down text-success"></i>
+                        <div class="small text-muted">transfers</div>
+                    </div>
+                    <div class="mb-2">
+                        <span id="previewAmount" class="fw-bold">@Model.Value.ToString("F2")</span>
+                        <span id="previewCurrency" class="text-muted">@Model.SelectedCurrencyCode</span>
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-arrow-down text-success"></i>
+                        <div class="small text-muted">to</div>
+                    </div>
+                    <div>
+                        <span id="previewReceiver" class="fw-bold text-success">@Model.People.FirstOrDefault(p => p.Id == Model.TransferredToId)?.FullName ?? "[Receiver]"</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            var $currencySelect = $('#currencySelect');
+            var $exchangeRateInput = $('#ExchangeRateValue');
+            var $totalAmountInput = $('#totalAmount');
+            var $paidBySelect = $('#paidBySelect');
+            var $transferredToSelect = $('#transferredToSelect');
+            var $transferParticipants = $('#transferParticipants');
+
+            // Elementy podglądu
+            var $previewSender = $('#previewSender');
+            var $previewReceiver = $('#previewReceiver');
+            var $previewAmount = $('#previewAmount');
+            var $previewCurrency = $('#previewCurrency');
+
+            // Funkcja do parsowania liczb z przecinkiem/kropką
+            function parseDecimal(value) {
+                if (!value || value === '') return 0;
+                return parseFloat(value.replace(',', '.')) || 0;
+            }
+
+            // Funkcja do formatowania wyświetlania
+            function formatDecimal(value, decimals = 2) {
+                if (!value || value === 0) return '0.00';
+                return value.toFixed(decimals).replace('.', ',');
+            }
+
+            // Ustawianie kursu waluty
+            function setExchangeRate(selectedOption) {
+                var rate = selectedOption.data('rate');
+                if (rate) {
+                    $exchangeRateInput.val(parseFloat(rate).toFixed(6));
+                } else {
+                    $exchangeRateInput.val('1.000000');
+                }
+            }
+
+            // Aktualizacja podglądu transferu
+            function updateTransferPreview() {
+                var senderText = $paidBySelect.find('option:selected').text() || '[Sender]';
+                var receiverText = $transferredToSelect.find('option:selected').text() || '[Receiver]';
+                var amount = parseDecimal($totalAmountInput.val());
+                var currency = $currencySelect.find('option:selected').val() || '@Model.SelectedCurrencyCode';
+
+                $previewSender.text(senderText);
+                $previewReceiver.text(receiverText);
+                $previewAmount.text(formatDecimal(amount));
+                $previewCurrency.text(currency);
+            }
+
+            // Aktualizacja ukrytych pól uczestników
+            function updateTransferParticipants() {
+                var senderId = $paidBySelect.val();
+                var senderName = $paidBySelect.find('option:selected').text();
+                var amount = parseDecimal($totalAmountInput.val());
+
+                if (senderId) {
+                    $('#senderParticipantId').val(senderId);
+                    $('#senderParticipantName').val(senderName);
+                    $('#senderParticipantAmount').val(amount);
+                    $transferParticipants.show();
+                } else {
+                    $transferParticipants.hide();
+                }
+            }
+
+            // Walidacja przed wysłaniem formularza
+            function validateTransfer() {
+                var senderId = $paidBySelect.val();
+                var receiverId = $transferredToSelect.val();
+                var amount = parseDecimal($totalAmountInput.val());
+
+                // Sprawdź czy wybrano różnych użytkowników
+                if (senderId && receiverId && senderId === receiverId) {
+                    alert('Cannot transfer money to the same person! Please select different users for sender and receiver.');
+                    return false;
+                }
+
+                // Sprawdź czy kwota jest większa od zera
+                if (amount <= 0) {
+                    alert('Transfer amount must be greater than 0!');
+                    return false;
+                }
+
+                return true;
+            }
+
+            // Obsługa zmiany waluty
+            $currencySelect.on('change', function () {
+                var $selected = $(this).find('option:selected');
+                setExchangeRate($selected);
+                updateTransferPreview();
+            });
+
+            // Obsługa zmiany kwoty
+            $totalAmountInput.on('input', function () {
+                updateTransferPreview();
+                updateTransferParticipants();
+            });
+
+            // Obsługa zmiany nadawcy/odbiorcy
+            $paidBySelect.on('change', function () {
+                updateTransferPreview();
+                updateTransferParticipants();
+
+                // Walidacja: nie można wybrać tego samego użytkownika
+                var senderId = $(this).val();
+                var receiverId = $transferredToSelect.val();
+
+                if (senderId === receiverId) {
+                    $transferredToSelect.val('');
+                    updateTransferPreview();
+                }
+            });
+
+            $transferredToSelect.on('change', function () {
+                updateTransferPreview();
+
+                // Walidacja: nie można wybrać tego samego użytkownika
+                var receiverId = $(this).val();
+                var senderId = $paidBySelect.val();
+
+                if (senderId === receiverId) {
+                    $(this).val('');
+                    updateTransferPreview();
+                    alert('Cannot select the same person as both sender and receiver!');
+                }
+            });
+
+            // Walidacja formularza przed wysłaniem
+            $('form').on('submit', function (e) {
+                if (!validateTransfer()) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Upewnij się, że ukryte pola mają poprawne wartości
+                var amount = parseDecimal($totalAmountInput.val());
+                $('#senderParticipantAmount').val(amount);
+
+                return true;
+            });
+
+            // Inicjalizacja kursu waluty
+            var $initialSelectedOption = $currencySelect.find('option:selected');
+            if ($initialSelectedOption.length > 0 && $exchangeRateInput.val() === '') {
+                setExchangeRate($initialSelectedOption);
+            }
+
+            // Inicjalizacja podglądu
+            updateTransferPreview();
+            updateTransferParticipants();
+        });
+    </script>
+
+    <style>
+        .transfer-preview {
+            padding: 15px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+
+        .fa-arrow-down {
+            font-size: 1.5rem;
+        }
+
+        #previewAmount {
+            font-size: 1.2rem;
+            color: #198754;
+        }
+
+        #previewSender, #previewReceiver {
+            font-size: 1.1rem;
+        }
+    </style>
+}

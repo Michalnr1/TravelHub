@@ -178,6 +178,13 @@ public class ExpensesController : Controller
 
         var viewModel = await CreateExpenseCreateEditViewModel(expense);
         await PopulateSelectLists(viewModel);
+
+        // Użyj innego widoku dla transferów
+        if (!string.IsNullOrEmpty(expense.TransferredToId))
+        {
+            return View("EditTransfer", viewModel);
+        }
+
         return View(viewModel);
     }
 
@@ -281,6 +288,13 @@ public class ExpensesController : Controller
         }
 
         await PopulateSelectLists(viewModel);
+        
+        // Użyj odpowiedniego widoku w przypadku błędu walidacji
+        if (viewModel.IsTransfer)
+        {
+            return View("EditTransfer", viewModel);
+        }
+
         return View(viewModel);
     }
 
