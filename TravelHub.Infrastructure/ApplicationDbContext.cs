@@ -47,6 +47,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(p => p.LastName).IsRequired().HasMaxLength(100);
             entity.Property(p => p.Nationality).HasMaxLength(100);
             entity.Property(p => p.Birthday).HasColumnType("date");
+            entity.Property(p => p.DefaultAirportCode).HasMaxLength(3);
 
             // ZMIANA: Konfiguracja relacji M:N przez encję PersonFriends
             entity.HasMany(p => p.Friends)

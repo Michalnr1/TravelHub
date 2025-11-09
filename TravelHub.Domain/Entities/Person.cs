@@ -10,6 +10,7 @@ public class Person : IdentityUser
     public required string Nationality { get; set; }
     public DateTime Birthday { get; set; }
     public required bool IsPrivate { get; set; } = true;
+    public string? DefaultAirportCode { get; set; }
 
     // Navigation Properties
 
