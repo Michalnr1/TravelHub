@@ -28,7 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<PersonFriends> PersonFriends { get; set; }
     public DbSet<FriendRequest> FriendRequests { get; set; }
-    public DbSet<TripParticipant> TripParticipants { get; set; }
+    public DbSet<TripParticipant> TripParticipants { get; set; } 
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)

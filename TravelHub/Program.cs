@@ -102,6 +102,7 @@ builder.Services.AddScoped<ISpotRepository, SpotRepository>();
 builder.Services.AddScoped<ITransportRepository, TransportRepository>();
 builder.Services.AddScoped<ITripParticipantRepository, TripParticipantRepository>();
 builder.Services.AddScoped<ITripRepository, TripRepository>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
 
 // Services
 builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
@@ -119,6 +120,7 @@ builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<ITripParticipantService, TripParticipantService>();
 builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
 builder.Services.AddRazorPages();
 
