@@ -25,6 +25,7 @@ public class TripsController : Controller
     private readonly IAccommodationService _accommodationService;
     private readonly IExpenseService _expenseService;
     private readonly IFlightService _flightService;
+    private readonly IRecommendationService _recommendationService;
     private readonly ILogger<TripsController> _logger;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
@@ -38,6 +39,7 @@ public class TripsController : Controller
         IAccommodationService accommodationService,
         IExpenseService expenseService,
         IFlightService flightService,
+        IRecommendationService recommendationService,
         ILogger<TripsController> logger,
         UserManager<Person> userManager,
         IConfiguration configuration)
@@ -51,6 +53,7 @@ public class TripsController : Controller
         _accommodationService = accommodationService;
         _expenseService = expenseService;
         _flightService = flightService;
+        _recommendationService = recommendationService;
         _configuration = configuration;
         _logger = logger;
         _userManager = userManager;
@@ -888,6 +891,38 @@ public class TripsController : Controller
             return BadRequest();
         }
     }
+
+    public async Task<IActionResult> Recs(double lat, double lng, int? radius)
+    {
+        //if (lat == null || lng == null) { return BadRequest(); }
+
+        try
+        {
+            var recs = await _recommendationService.FindRecommendationsByCoords(lat, lng, radius ?? 5000);
+            return Ok(recs);
+        }
+        catch (HttpRequestException)
+        {
+            return BadRequest();
+        }
+        
+    }
+    public async Task<IActionResult> PlacePhoto(string name)
+    {
+        //if (lat == null || lng == null) { return BadRequest(); }
+
+        try
+        {
+            string url = await _recommendationService.GetPhotoUrl(name);
+            return Ok(url);
+        }
+        catch (HttpRequestException)
+        {
+            return BadRequest();
+        }
+
+    }
+
 
     // GET: MyTrips
     public async Task<IActionResult> MyTrips()
