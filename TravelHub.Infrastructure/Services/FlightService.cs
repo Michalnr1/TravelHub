@@ -1,16 +1,11 @@
-﻿using Azure.Core;
+﻿using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using System.Xml;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Xml;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Interfaces.Services;
 
@@ -23,7 +18,7 @@ public class FlightService : AbstractThrottledApiService, IFlightService
     private string? apiAccessToken;
     private DateTime tokenExpiration;
     public FlightService(IHttpClientFactory httpClientFactory, IConfiguration config) : base(httpClientFactory, maxRequestsPerWindow: int.Parse(config["Amadeus:RateLimit:MaxRequests"] ?? "1"),
-                   timeWindow: TimeSpan.FromSeconds(double.Parse(config["Amadeus:RateLimit:WindowSeconds"] ?? "0.1")))
+                   timeWindow: TimeSpan.FromSeconds(double.Parse(config["Amadeus:RateLimit:WindowSeconds"] ?? "0.1", CultureInfo.InvariantCulture)))
     {
         apiId = config["Amadeus:Id"]!;
         apiSecret = config["Amadeus:Secret"]!;
