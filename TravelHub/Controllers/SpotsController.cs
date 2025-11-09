@@ -173,6 +173,12 @@ public class SpotsController : Controller
 
             var createdSpot = await _spotService.AddAsync(spot);
 
+            (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(viewModel.Latitude, viewModel.Longitude);
+            if (countryName != null && countryCode != null)
+            {
+                await _spotService.AddCountry(createdSpot.Id, countryName, countryCode);
+            }
+
             // Jeśli podano koszt, utwórz powiązany Expense
             if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
             {
@@ -256,6 +262,12 @@ public class SpotsController : Controller
                 existingSpot.Latitude = viewModel.Latitude;
                 // existingSpot.Cost = viewModel.Cost;
                 existingSpot.Rating = viewModel.Rating;
+
+                (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(viewModel.Latitude, viewModel.Longitude);
+                if (countryName != null && countryCode != null)
+                {
+                    await _spotService.AddCountry(existingSpot.Id, countryName, countryCode);
+                }
 
                 await _spotService.UpdateAsync(existingSpot);
 
