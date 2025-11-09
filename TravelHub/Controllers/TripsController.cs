@@ -841,10 +841,19 @@ public class TripsController : Controller
     {
         (double lat, double lng) = await _tripService.GetMedianCoords(id);
         AirportDto? airport = await _flightService.GetAirportByCoords(lat, lng);
+        Person? user = await _userManager.GetUserAsync(User);
+        if (user != null && user.DefaultAirportCode != null)
+        {
+            ViewData["FromAirportCode"] = user.DefaultAirportCode;
+        } else
+        {
+            ViewData["FromAirportCode"] = "";
+        }
         if (airport != null)
         {
             ViewData["ToAirportCode"] = airport.AirportCode;
-        } else
+        }
+        else
         {
             ViewData["AirportCode"] = "";
         }
