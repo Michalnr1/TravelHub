@@ -892,6 +892,15 @@ public class TripsController : Controller
         }
     }
 
+    public async Task<IActionResult> RecsView(int id)
+    {
+        (double lat, double lng) = await _tripService.GetMedianCoords(id);
+        ViewData["Latitude"] = lat;
+        ViewData["Longitude"] = lng;
+        return View();
+
+    }
+
     public async Task<IActionResult> Recs(double lat, double lng, int? radius)
     {
         //if (lat == null || lng == null) { return BadRequest(); }
