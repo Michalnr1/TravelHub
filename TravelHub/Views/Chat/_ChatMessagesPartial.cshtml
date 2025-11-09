@@ -1,0 +1,45 @@
+﻿@model IEnumerable<ChatMessageViewModel>
+
+@{
+    // Try get current person id from ViewBag (fallback)
+    var currentPersonId = ViewBag.CurrentPersonId as string;
+}
+
+<div class="list-group">
+    @foreach (var m in Model)
+    {
+        <div class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+                <div>
+                    <strong>@(string.IsNullOrEmpty(m.PersonFirstName) ? "Anonymous" : (m.PersonFirstName + " " + m.PersonLastName))</strong>
+                </div>
+                <div class="mt-1">@Html.Raw(Html.Encode(m.Message).Replace("\n", "<br/>"))</div>
+            </div>
+
+            <div class="ms-3">
+                @* Delete button visible only to the author. *@
+                @{
+                    var isAuthor = false;
+                    if (ViewData.ModelMetadata?.ContainerType?.GetProperty("CurrentPersonId") != null)
+                    {
+                        isAuthor = true;
+                    }
+                    if (!string.IsNullOrEmpty(currentPersonId) && currentPersonId == m.PersonId)
+                    {
+                        isAuthor = true;
+                    }
+                }
+
+                @if (isAuthor)
+                {
+                    <form asp-controller="Chat" asp-action="Delete" method="post" onsubmit="return confirm('Are you sure you want to delete this message?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="messageId" value="@m.Id" />
+                        <input type="hidden" name="tripId" value="@m.TripId" />
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+</div>

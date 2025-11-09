@@ -118,6 +118,16 @@
                 </div>
             </div>
 
+            <!-- Pole Multiplier dla wydatków szacunkowych -->
+            <div class="form-group mb-3 estimated-expense-field" style="display: none;">
+                <label asp-for="Multiplier" class="form-label">Multiplier</label>
+                <input asp-for="Multiplier" class="form-control" type="number" min="1" value="@Model.Multiplier" />
+                <small class="form-text text-muted">
+                    Number of times this estimated expense will occur (e.g., 10 for 10 days of food expenses)
+                </small>
+                <span asp-validation-for="Multiplier" class="text-danger"></span>
+            </div>
+
             <div class="form-group mb-3">
                 <label asp-for="PaidById" class="form-label">Paid By</label>
                 <select asp-for="PaidById" class="form-control" required>

@@ -504,6 +504,16 @@
     </div>
 </div>
 
+<div class="mt-3">
+    <!-- CHAT button: navigates to ChatController.Index?tripId={Model.Id} -->
+    <a asp-controller="Chat"
+       asp-action="Index"
+       asp-route-tripId="@Model.Id"
+       class="btn btn-primary">
+        Open Chat
+    </a>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function() {

@@ -1,0 +1,66 @@
+﻿@model ChatViewModel
+
+<h3>Chat</h3>
+
+<div class="mb-3">
+    <!-- Back to Trip details -->
+    <a asp-controller="Trips"
+       asp-action="Details"
+       asp-route-id="@Model.TripId"
+       class="btn btn-secondary">
+        Back to Trip
+    </a>
+</div>
+
+<div id="chatMessages">
+    @await Html.PartialAsync("_ChatMessagesPartial", Model.Messages)
+</div>
+
+<hr />
+
+@* message form *@
+<form id="chatForm" asp-action="PostMessage" asp-controller="Chat" method="post">
+    <input type="hidden" name="tripId" value="@Model.TripId" />
+    <div class="mb-3">
+        <textarea name="Message" class="form-control" rows="3" placeholder="Napisz wiadomość..."></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Wyślij</button>
+</form>
+
+@section Scripts {
+    <script>
+
+        const chatForm = document.getElementById('chatForm');
+        chatForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const formData = new FormData(chatForm);
+
+            const response = await fetch(chatForm.action + '?tripId=' + formData.get('tripId'), {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+
+            const partialRes = await fetch('@Url.Action("MessagesPartial", "Chat")?tripId=' + formData.get('tripId'));
+            const html = await partialRes.text();
+            document.getElementById('chatMessages').innerHTML = html;
+
+            chatForm.querySelector('textarea[name="Message"]').value = '';
+        });
+
+        // polling every 5s, without site refresh
+        setInterval(async () => {
+            const tripId = '@Model.TripId';
+            const partialRes = await fetch('@Url.Action("MessagesPartial", "Chat")?tripId=' + tripId);
+            const html = await partialRes.text();
+            document.getElementById('chatMessages').innerHTML = html;
+        }, 5000);
+    </script>
+}
