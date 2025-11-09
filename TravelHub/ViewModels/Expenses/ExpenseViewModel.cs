@@ -83,6 +83,10 @@ public class ExpenseCreateEditViewModel
     [Display(Name = "Is Estimated")]
     public bool IsEstimated { get; set; } = false;
 
+    [Display(Name = "Multiplier (for estimated expenses)")]
+    [Range(1, int.MaxValue, ErrorMessage = "Multiplier must be at least 1")]
+    public int Multiplier { get; set; } = 1;
+
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]
     public int TripId { get; set; }

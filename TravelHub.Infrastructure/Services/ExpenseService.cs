@@ -539,13 +539,17 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         foreach (var expense in expenses)
         {
             decimal convertedValue;
+            decimal baseValue;
 
             if (expense.IsEstimated)
             {
-                convertedValue = await ConvertToTripCurrencyAsync(expense.EstimatedValue, expense.ExchangeRate, tripCurrency);
+                // Dla wydatków szacunkowych: pomnóż przez multiplier
+                baseValue = expense.EstimatedValue * expense.Multiplier;
+                convertedValue = await ConvertToTripCurrencyAsync(baseValue, expense.ExchangeRate, tripCurrency);
             }
             else
             {
+                baseValue = expense.Value;
                 convertedValue = await ConvertToTripCurrencyAsync(expense.Value, expense.ExchangeRate, tripCurrency);
             }
 
@@ -553,6 +557,8 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             {
                 Expense = expense,
                 ConvertedValue = convertedValue,
+                BaseValue = baseValue, // Dodajemy baseValue do śledzenia wartości bazowej
+                IsMultiplied = expense.IsEstimated && expense.Multiplier > 1,
                 OriginalCurrency = expense.ExchangeRate?.CurrencyCodeKey ?? tripCurrency,
                 TargetCurrency = tripCurrency
             });
@@ -825,6 +831,8 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
     {
         public Expense Expense { get; set; } = null!;
         public decimal ConvertedValue { get; set; }
+        public decimal BaseValue { get; set; } // Wartość bazowa przed konwersją walutową
+        public bool IsMultiplied { get; set; }
         public CurrencyCode OriginalCurrency { get; set; }
         public CurrencyCode TargetCurrency { get; set; }
     }
