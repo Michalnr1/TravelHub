@@ -18,6 +18,27 @@
         <div id="autocompleteResultsFrom" class="autocomplete-results"></div>
     </div>
 
+    <fieldset style="margin-top:1em;">
+        <legend>Travelers</legend>
+        <label>
+            Adults:
+            <input type="number" id="adults" name="adults" value="1" min="0" max="9" />
+        </label>
+        <label>
+            Children:
+            <input type="number" id="children" name="children" value="0" min="0" max="9" />
+        </label>
+        <label>
+            Seated infants:
+            <input type="number" id="seatedInfants" name="seatedInfants" value="0" max="9" />
+        </label>
+        <label>
+            Held infants:
+            <input type="number" id="heldInfants" name="heldInfants" value="0" max="9" />
+        </label>
+    </fieldset>
+
+
     Date:
     <input type="date" name="date" />
 
@@ -49,12 +70,35 @@
           const from = form.from.value;
           const to = form.to.value;
           const date = form.date.value;
+          const adults = parseInt(form.adults.value || "0");
+          const children = parseInt(form.children.value || "0");
+          const seatedInfants = parseInt(form.seatedInfants.value || "0");
+          const heldInfants = parseInt(form.heldInfants.value || "0");
 
-          if (Date(date) < Date()){
-              alert("Date in the past...")
-          } else {
-              handleFlightSearch({ from, to, date });
-          }          
+
+          if (new Date(date) < new Date()) {
+              alert("Date cannot be in the past.");
+              return;
+          }
+
+          if (adults < 1) {
+              alert("There must be at least one adult traveler.");
+              return;
+          }
+
+          if ((seatedInfants + heldInfants) > adults) {
+              alert("Each infant must be accompanied by an adult.");
+              return;
+          }
+
+          if ((adults + children) > 9) {
+              alert("There may be at most 9 adults and children in total.");
+              return;
+          }
+
+          handleFlightSearch({ from, to, date, adults, children, seatedInfants, heldInfants });
+
+
         });
 
         function make_get_request(endpoint, on_success){
@@ -68,15 +112,21 @@
             .catch(error => console.error('Error:', error));
         }
 
-        function handleFlightSearch({ from, to, date }) {
-          const params = new URLSearchParams();
-          params.append("from", from);
-          params.append("to", to);
-          params.append("date", date);
-          clearFlightCards();
-          //Tu można by dać jakiś ekran ładowania?
-          make_get_request(`/Trips/Flights?${params}`, processFlightList);
+        function handleFlightSearch({ from, to, date, adults, children, seatedInfants, heldInfants }) {
+            const params = new URLSearchParams();
+            params.append("from", from);
+            params.append("to", to);
+            params.append("date", date);
+            params.append("adults", adults);
+            params.append("children", children);
+            params.append("seatedInfants", seatedInfants);
+            params.append("heldInfants", heldInfants);
+
+            clearFlightCards();
+            //tu można by dać jakiś ekran ładowania?
+            make_get_request(`/Trips/Flights?${params}`, processFlightList);
         }
+
 
         function clearFlightCards(){
             var listDiv = document.getElementById("flights");
@@ -134,7 +184,6 @@
         async function getAutocompleteResults(query) {
           const params = new URLSearchParams();
           params.append("query", query);
-          // Simulated delay for realism
           return await fetch(`/Trips/Airports?${params}`, {
                 method: "GET",
             })
@@ -179,7 +228,7 @@
         }
 
         addAutocompleteFunctionality(inputFrom, resultsDivFrom);
-        addAutocompleteFunctionality(inputTo, resultsDivFrom);
+        addAutocompleteFunctionality(inputTo, resultsDivTo);
 
         function showResults(results, resultsDiv, input) {
           resultsDiv.innerHTML = "";

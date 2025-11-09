@@ -30,7 +30,8 @@ public class FlightService : AbstractThrottledApiService, IFlightService
         tokenExpiration = DateTime.MinValue;
     }
 
-    public async Task<List<FlightDto>> GetFlights(string fromAirportCode, string toAirportCode, DateTime departureDate, DateTime? returnDate = null)
+    public async Task<List<FlightDto>> GetFlights(string fromAirportCode, string toAirportCode, DateTime departureDate, 
+                                        DateTime? returnDate = null, int? adults = 1, int? children = 0, int? seated_infants = 0, int? held_infants = 0)
     {
         if (DateTime.Now > tokenExpiration)
         {
@@ -38,6 +39,16 @@ public class FlightService : AbstractThrottledApiService, IFlightService
         }
 
         string url = "https://test.api.amadeus.com/v2/shopping/flight-offers";
+
+        List<TravellerDto> travelers;
+        try
+        {
+            travelers = BuildTravelersList(adults ?? 1, children ?? 0, seated_infants ?? 0, held_infants ?? 0);
+        } catch (ArgumentException)
+        {
+            return new List<FlightDto>();
+        }
+        
 
         var payload = new
             {
@@ -55,21 +66,22 @@ public class FlightService : AbstractThrottledApiService, IFlightService
                             //destinationRadius = 299
                         }
                     },
-                travelers = new[]
-                    {
-                        new
+                travelers = travelers.Select((traveler) =>
+                {
+                    return new
                         {
-                            id = "1",
-                            travelerType = "ADULT"
-                        }
-                    },
+                            id = traveler.Id,
+                            travelerType = traveler.Type,
+                            associatedAdultId = traveler.AssociatedAdultId
+                        };
+                }),
                 sources = new[] { "GDS" }
                 // currencyCode = "EUR"
             };
 
         using StringContent body = new(
             System.Text.Json.JsonSerializer.Serialize(
-                payload), 
+                payload, new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull, }), 
             Encoding.UTF8, "application/json");
 
         System.Diagnostics.Debug.WriteLine($"{await body.ReadAsStringAsync()}\n");
@@ -195,6 +207,58 @@ public class FlightService : AbstractThrottledApiService, IFlightService
             return airports;
         }
         return new List<AirportDto>();
+    }
+
+    private List<TravellerDto> BuildTravelersList(int adults, int children, int seated_infants, int held_infants)
+    {
+        if (adults == 0)
+        {
+            throw new ArgumentException("There must be at least one adult");
+        }
+        if (adults < seated_infants + held_infants)
+        {
+            throw new ArgumentException("There must be no more infants then there are adults");
+        }
+        if (adults + children > 9)
+        {
+            throw new ArgumentException("There must be no more than 9 non-infant passengers");
+        }
+        int id = 1;
+        List<TravellerDto> output = new List<TravellerDto>();
+        for (int i = 0; i < adults; i++)
+        {
+            output.Add(new TravellerDto()
+            {
+                Id = id++,
+                Type = "ADULT"
+            });
+        }
+        for (int i = 0; i < children; i++)
+        {
+            output.Add(new TravellerDto()
+            {
+                Id = id++,
+                Type = "CHILD"
+            });
+        }
+        for (int i = 0; i < held_infants; i++)
+        {
+            output.Add(new TravellerDto()
+            {
+                Id = id++,
+                Type = "HELD_INFANT",
+                AssociatedAdultId = i+1
+            });
+        }
+        for (int i = 0; i < seated_infants; i++)
+        {
+            output.Add(new TravellerDto()
+            {
+                Id = id++,
+                Type = "SEATED_INFANT"
+            });
+        }
+        return output;
     }
 
     private FlightDto FlightOfferToFlightDto(JToken item)

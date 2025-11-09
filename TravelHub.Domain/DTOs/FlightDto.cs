@@ -46,3 +46,10 @@ public record AirportDto
     public string? DistanceUnit { get; set; }
 
 }
+
+public record TravellerDto
+{
+    public required int Id { get; set; }
+    public required string Type { get; set; }
+    public int? AssociatedAdultId { get; set; }
+}
