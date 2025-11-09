@@ -153,7 +153,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title">Balance</h6>
-                            <h3 class="card-text">@Model.Balance.ToString("N2") @Model.TripCurrency</h3>
+                            <h3 class="card-text">@Math.Abs(Model.Balance).ToString("N2") @Model.TripCurrency</h3>
                             <small>Actual vs Estimated</small>
                         </div>
                         <div class="align-self-center">
@@ -172,7 +172,7 @@
             <li><strong>Actual Expenses:</strong> Real money spent during the trip</li>
             <li><strong>Estimated Expenses:</strong> Planned budget before the trip</li>
             <li><strong>Transfers:</strong> Money exchanged between participants (doesn't affect total budget)</li>
-            <li><strong>Budget Balance:</strong> Difference between actual and estimated expenses (red - over budger, green - under budget)</li>
+            <li><strong>Balance:</strong> Difference between actual and estimated expenses (red - over budger, green - under budget)</li>
         </ul>
     </div>
 

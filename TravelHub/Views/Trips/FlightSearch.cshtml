@@ -2,6 +2,7 @@
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
 @{
+    var fromAirportCode = ViewData["FromAirportCode"];
     var toAirportCode = ViewData["ToAirportCode"];
 }
 
@@ -59,8 +60,12 @@
     <script>
 
         const defaultToAirportCode = "@Html.Raw(toAirportCode)";
+        const defaultFromAirportCode = "@Html.Raw(fromAirportCode)";
         if (defaultToAirportCode.length > 0){
             document.getElementById("to").value = defaultToAirportCode;
+        }
+         if (defaultFromAirportCode.length > 0){
+            document.getElementById("from").value = defaultFromAirportCode;
         }
 
         document.getElementById("flightForm").addEventListener("submit", function (event) {

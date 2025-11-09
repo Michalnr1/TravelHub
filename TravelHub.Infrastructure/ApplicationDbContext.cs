@@ -47,6 +47,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(p => p.LastName).IsRequired().HasMaxLength(100);
             entity.Property(p => p.Nationality).HasMaxLength(100);
             entity.Property(p => p.Birthday).HasColumnType("date");
+            entity.Property(p => p.DefaultAirportCode).HasMaxLength(3);
 
             // ZMIANA: Konfiguracja relacji M:N przez encję PersonFriends
             entity.HasMany(p => p.Friends)
@@ -386,7 +387,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(e => e.Value).HasPrecision(18, 2);
             entity.Property(e => e.EstimatedValue).HasPrecision(18, 2);
             entity.Property(e => e.IsEstimated).IsRequired();
-            entity.Property(e => e.Multiplier).IsRequired();
+            entity.Property(e => e.Multiplier).IsRequired().HasDefaultValue(1);
 
             // 1:N relationship for the person who paid
             entity.HasOne(e => e.PaidBy)

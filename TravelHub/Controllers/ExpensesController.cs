@@ -244,6 +244,7 @@ public class ExpensesController : Controller
                 existingExpense.ExchangeRateId = exchangeRateEntry.Id;
                 existingExpense.TripId = viewModel.TripId;
                 existingExpense.IsEstimated = viewModel.IsEstimated;
+                existingExpense.Multiplier = viewModel.IsEstimated ? viewModel.Multiplier : 1;
 
                 List<ParticipantShareDto> participantSharesDto;
 
@@ -397,6 +398,7 @@ public class ExpensesController : Controller
                 ExchangeRateId = exchangeRateEntry.Id,
                 TripId = viewModel.TripId,
                 IsEstimated = viewModel.IsEstimated,
+                Multiplier = viewModel.IsEstimated ? viewModel.Multiplier : 1,
             };
 
             List<ParticipantShareDto> participantSharesDto;
@@ -576,6 +578,7 @@ public class ExpensesController : Controller
             viewModel.CategoryId = expense.CategoryId;
             viewModel.TripId = expense.TripId;
             viewModel.IsEstimated = expense.IsEstimated;
+            viewModel.Multiplier = expense.Multiplier;
 
             if (expense.ExchangeRate != null)
             {
