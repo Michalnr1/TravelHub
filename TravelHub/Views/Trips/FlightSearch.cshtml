@@ -16,7 +16,7 @@
     To:
     <div class="autocomplete-container">
         <input type="text" id="to" name="to" placeholder="Enter airport..." autocomplete="off" />
-        <div id="autocompleteResultsFrom" class="autocomplete-results"></div>
+        <div id="autocompleteResultsTo" class="autocomplete-results"></div>
     </div>
 
     <fieldset style="margin-top:1em;">
@@ -162,7 +162,7 @@
             addTextSpan(div, `${flight.departureTime}      ${flight.arrivalTime}`);
             addTextSpan(div, `Cost: ${flight.totalPrice} ${flight.currency}`);
             addTextSpan(div, `Duration: ${flight.duration}`);
-
+            alert(JSON.stringify(flight));
             if (flight.segments.length == 1){
                 addTextSpan(div, `${flight.segments[0].carrierCode}${flight.segments[0].flightNumber}`);
             } else {
@@ -172,6 +172,7 @@
                     addTextSpan(segmentDiv, `${segment.originAirportCode} ---> ${segment.destinationAirportCode}`);
                     addTextSpan(segmentDiv, `${segment.departureTime}      ${segment.arrivalTime}`);
                     addTextSpan(segmentDiv, `Duration: ${segment.duration}`);
+                    addTextSpan(div, `${segment.carrierCode}${segment.flightNumber}`);
                     div.appendChild(segmentDiv);
                 });
             }
@@ -209,6 +210,7 @@
         let debounceTimer;
 
         function addAutocompleteFunctionality(input, resultsDiv){
+            alert(resultsDiv);
             input.addEventListener("input", () => {
               clearTimeout(debounceTimer);
               const query = input.value.trim();
