@@ -90,16 +90,20 @@ public class CreateTripViewModel
     public string Name { get; set; } = string.Empty;
 
     [Required]
-    [Display(Name = "Start Date")]
+    [Display(Name = "Start date")]
     public DateTime StartDate { get; set; } = DateTime.Today;
 
     [Required]
-    [Display(Name = "End Date")]
+    [Display(Name = "End date")]
     public DateTime EndDate { get; set; } = DateTime.Today.AddDays(7);
 
     [Required]
     [Display(Name = "Privacy")]
     public bool IsPrivate { get; set; } = true;
+
+    [Required]
+    [Display(Name = "Currency code")]
+    public CurrencyCode CurrencyCode { get; set; }
 }
 
 public class EditTripViewModel
@@ -111,11 +115,11 @@ public class EditTripViewModel
     public string Name { get; set; } = string.Empty;
 
     [Required]
-    [Display(Name = "Start Date")]
+    [Display(Name = "Start date")]
     public DateTime StartDate { get; set; }
 
     [Required]
-    [Display(Name = "End Date")]
+    [Display(Name = "End date")]
     public DateTime EndDate { get; set; }
 
     [Required]
@@ -124,6 +128,10 @@ public class EditTripViewModel
     [Required]
     [Display(Name = "Privacy")]
     public bool IsPrivate { get; set; } = true;
+
+    [Required]
+    [Display(Name = "Currency code")]
+    public CurrencyCode CurrencyCode { get; set; }
 }
 
 public class AddDayViewModel
