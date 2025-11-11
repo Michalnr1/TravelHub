@@ -141,7 +141,8 @@ public class SpotsController : Controller
         viewModel.Files = files.Select(f => new FileViewModel
         {
             Id = f.Id,
-            Name = f.Name
+            Name = f.DisplayName, 
+            spotId = spot.Id
         }).ToList();
 
         return View(viewModel);

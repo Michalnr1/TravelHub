@@ -114,6 +114,7 @@ public class FileViewModel
 {
     public int Id { get; set; }
     public string? Name { get; set; }
+    public int spotId { get; set; }
 }
 
 public class SpotDetailsViewModel : ActivityDetailsViewModel

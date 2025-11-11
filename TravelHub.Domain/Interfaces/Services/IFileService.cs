@@ -14,4 +14,8 @@ public interface IFileService : IGenericService<File>
     Task<File> AddFileAsync(File file, Stream fileStream, string fileName, string webRootPath);
 
     Task DeleteFileAsync(int id, string webRootPath);
+
+    //encryption methods
+    Task<(File CreatedFile, string Password)> AddEncryptedFileAsync(File file, Stream fileStream, string originalFileName, string webRootPath);
+    Task<Stream> DecryptFileToStreamAsync(int fileId, string password, string webRootPath);
 }

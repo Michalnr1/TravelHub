@@ -4,6 +4,22 @@
 @{
     ViewData["Title"] = "Spot Details";
 }
+@if (TempData["FilePassword"] != null)
+{
+    <div class="alert alert-warning mt-3">
+        <strong>File password (save it securely):</strong>
+        <div class="mt-2">
+            <code>@TempData["FilePassword"]</code>
+        </div>
+        <small class="text-muted d-block mt-1">
+            This password will not be shown again. Save it now — without it, you won’t be able to open the encrypted file.
+        </small>
+        <button type="button" class="btn btn-outline-secondary btn-sm mt-2"
+                onclick="navigator.clipboard.writeText('@TempData["FilePassword"]'); alert('Password copied!');">
+            Copy password
+        </button>
+    </div>
+}
 @if (TempData["SuccessMessage"] != null)
 {
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
@@ -132,19 +148,9 @@
     {
         var fileUrl = Url.Content($"~/files/spots/{Uri.EscapeDataString(f.Name ?? "")}");
         <div class="d-inline-block me-2 mb-2">
-            <!-- PDF preview using <object> with fallback link -->
-            <div style="width:150px; height:200px; border:1px solid #ddd; overflow:hidden;">
-                <object data="@fileUrl" type="application/pdf" width="150" height="200">
-                    <!-- Fallback content (browser may not support embed) -->
-                    <p class="small">Preview not available. <a href="@fileUrl" target="_blank" rel="noopener noreferrer">Open PDF</a></p>
-                </object>
-            </div>
-
-            <div class="mt-1">
-                <!-- Open in new tab -->
-                <a class="btn btn-sm btn-outline-primary" href="@fileUrl" target="_blank" rel="noopener noreferrer">Open</a>
-
-            </div>
+            <div>@f.Name</div>
+            <!-- Download via controller action (by id) -->
+            <a class="btn btn-sm btn-secondary" asp-controller="Files" asp-action="Download" asp-route-id="@f.Id" , asp-route-spotId="@f.spotId">Download</a>
             <form asp-controller="Files" asp-action="Delete" method="post" class="mt-1">
                 <input type="hidden" name="id" value="@f.Id" />
                 <input type="hidden" name="spotId" value="@Model.Id" />
