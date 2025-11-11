@@ -25,8 +25,10 @@ public class FlightService : AbstractThrottledApiService, IFlightService
         tokenExpiration = DateTime.MinValue;
     }
 
-    public async Task<List<FlightDto>> GetFlights(string fromAirportCode, string toAirportCode, DateTime departureDate, 
-                                        DateTime? returnDate = null, int? adults = 1, int? children = 0, int? seated_infants = 0, int? held_infants = 0)
+    public async Task<List<FlightDto>> GetFlights(string fromAirportCode, string toAirportCode, DateTime departureDate,
+                                                  int? adults, int? children, int? seated_infants, int? held_infants,
+                                                  string? currencyCode, int? maxPrice, int? maxStops
+                                        )
     {
         if (DateTime.Now > tokenExpiration)
         {
@@ -47,6 +49,7 @@ public class FlightService : AbstractThrottledApiService, IFlightService
 
         var payload = new
             {
+                currencyCode = currencyCode,
                 originDestinations = new[]
                     {
                         new
@@ -70,8 +73,18 @@ public class FlightService : AbstractThrottledApiService, IFlightService
                             associatedAdultId = traveler.AssociatedAdultId
                         };
                 }),
+                searchCriteria = new 
+                    {
+                        maxPrice = maxPrice,
+                        flightFilters = new 
+                            {
+                                connectionRestriction = new
+                                    {
+                                        maxNumberOfConnections = maxStops
+                                    }
+                            }
+                    },
                 sources = new[] { "GDS" }
-                // currencyCode = "EUR"
             };
 
         using StringContent body = new(

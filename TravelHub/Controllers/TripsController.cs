@@ -863,14 +863,18 @@ public class TripsController : Controller
         return View();
     }
 
-    public async Task<IActionResult> Flights(string from, string to, string date, int? adults, int? children, int? seatedInfants, int? heldInfants)
+    public async Task<IActionResult> Flights(string from, string to, string date, int? adults, int? children, int? seatedInfants, int? heldInfants,
+                                            string? currency, int? maxPrice, int? maxStops)
     {
         if (from == null || to == null || date == null) { return BadRequest(); }
+        if (maxPrice != null && currency == null) { return BadRequest(); }
+        if (maxStops > 2 || maxStops < 0) { return BadRequest(); }
         bool dateValid = DateTime.TryParseExact(date, "yyyy-MM-dd", null, 0, out DateTime result);
         if (!dateValid) { return BadRequest(); }
         try
         {
-            var flights = await _flightService.GetFlights(from, to, result, null, adults, children, seatedInfants, heldInfants);
+            var flights = await _flightService.GetFlights(from, to, result, adults, children, seatedInfants, heldInfants, currency, 
+                                                          maxPrice, maxStops);
             return Ok(flights);
         } catch (HttpRequestException)
         {
