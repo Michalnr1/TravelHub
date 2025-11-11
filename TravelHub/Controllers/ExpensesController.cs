@@ -18,6 +18,7 @@ public class ExpensesController : Controller
     private readonly IGenericService<Category> _categoryService;
     private readonly ITripService _tripService;
     private readonly ITripParticipantService _tripParticipantService;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly UserManager<Person> _userManager;
 
     public ExpensesController(
@@ -26,7 +27,8 @@ public class ExpensesController : Controller
         IGenericService<Category> categoryService,
         UserManager<Person> userManager,
         ITripService tripService,
-        ITripParticipantService tripParticipantService)
+        ITripParticipantService tripParticipantService,
+        ICurrencyConversionService currencyConversionService)
     {
         _expenseService = expenseService;
         _exchangeRateService = exchangeRateService;
@@ -34,6 +36,7 @@ public class ExpensesController : Controller
         _userManager = userManager;
         _tripService = tripService;
         _tripParticipantService = tripParticipantService;
+        _currencyConversionService = currencyConversionService;
     }
 
     // GET: Expenses
@@ -529,6 +532,21 @@ public class ExpensesController : Controller
         var viewModel = BalanceViewModel.FromDto(balanceDto);
 
         return View(viewModel);
+    }
+
+    public async Task<IActionResult> ExchangeRate(string? from, string? to)
+    {
+        if (from == null || to == null) { return BadRequest(); }
+        decimal rate;
+        try
+        {
+            rate = await _currencyConversionService.GetExchangeRate(from, to);
+        } catch (HttpRequestException)
+        {
+            return BadRequest();
+        }
+        return Ok(rate);
+        
     }
 
     private async Task<List<PersonSelectItem>> GetPeopleFromTrip(int tripId)

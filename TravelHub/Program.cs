@@ -57,6 +57,7 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Identity.UI.Services.IEmailSende
 builder.Services.AddScoped<IReverseGeocodingService, ReverseGeocodingService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
 
 // Identity
 builder.Services.AddIdentity<Person, IdentityRole>(options =>  // ← Person!
