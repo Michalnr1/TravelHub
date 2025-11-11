@@ -36,6 +36,7 @@ public class ExpenseDetailsViewModel
     public List<ExpenseParticipantDetail> Participants { get; set; } = new List<ExpenseParticipantDetail>();
     public int TripId { get; set; }
     public string? TripName { get; set; }
+    public CurrencyCode TripCurrency { get; set; }
 }
 
 public class ExpenseParticipantDetail
@@ -90,6 +91,7 @@ public class ExpenseCreateEditViewModel
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]
     public int TripId { get; set; }
+    public CurrencyCode TripCurrency { get; set; }
 
     // Helper flag
     public bool IsTransfer => !string.IsNullOrEmpty(TransferredToId);

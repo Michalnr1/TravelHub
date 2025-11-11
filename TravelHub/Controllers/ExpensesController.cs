@@ -87,6 +87,7 @@ public class ExpensesController : Controller
             CurrencyName = expense.ExchangeRate?.Name!,
             CurrencyKey = expense.ExchangeRate?.CurrencyCodeKey,
             TripId = expense.TripId,
+            TripCurrency = expense.Trip!.CurrencyCode,
             TripName = expense.Trip?.Name,
             Participants = expense.Participants?.Select(ep => new ExpenseParticipantDetail
             {
@@ -595,6 +596,7 @@ public class ExpensesController : Controller
             viewModel.TransferredToId = expense.TransferredToId;
             viewModel.CategoryId = expense.CategoryId;
             viewModel.TripId = expense.TripId;
+            viewModel.TripCurrency = expense.Trip!.CurrencyCode;
             viewModel.IsEstimated = expense.IsEstimated;
             viewModel.Multiplier = expense.Multiplier;
 

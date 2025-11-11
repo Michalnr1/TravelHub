@@ -82,7 +82,6 @@
                                 @foreach (var currency in allCurrencies)
                                 {
                                     <option value="@currency.Key"
-                                            data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                             selected="@(Model.SelectedCurrencyCode == currency.Key && Model.ExchangeRateValue == 1.0M)">
                                         @currency.DropdownText
                                     </option>
@@ -245,6 +244,7 @@
             var $isEstimatedCheckbox = $('#isEstimatedCheckbox');
             var $isEstimatedHidden = $('#isEstimatedHidden');
             var shareIndex = 0;
+            var tripCurrency = "@Html.Raw(Model.TripCurrency)";
 
             // Funkcja do parsowania liczb z przecinkiem/kropką
             function parseDecimal(value) {
@@ -331,12 +331,26 @@
                 return isValid;
             }
 
+            function fetchExchangeRate(target){
+                $.ajax({
+                  url: "/Expenses/ExchangeRate",
+                  type: "get",
+                  data: {
+                      from: target,
+                      to: tripCurrency
+                  },
+                  success: function( result ) {
+                    $exchangeRateInput.val(result);
+                  }
+                });
+            }
+
             function setExchangeRate(selectedOption) {
                 var rate = selectedOption.data('rate');
                 if (rate) {
                     $exchangeRateInput.val(parseFloat(rate).toFixed(6));
                 } else {
-                    $exchangeRateInput.val('1.000000');
+                    fetchExchangeRate(selectedOption.val());
                 }
             }
 
