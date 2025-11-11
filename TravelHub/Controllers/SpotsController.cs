@@ -21,6 +21,7 @@ public class SpotsController : Controller
     private readonly ITripParticipantService _tripParticipantService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
+    private readonly IFileService _fileService;
     private readonly IReverseGeocodingService _reverseGeocodingService;
     private readonly IExpenseService _expenseService;
     private readonly IExchangeRateService _exchangeRateService;
@@ -36,6 +37,7 @@ public class SpotsController : Controller
         ITripParticipantService tripParticipantService,
         IGenericService<Day> dayService,
         IPhotoService photoService,
+        IFileService fileService, 
         IReverseGeocodingService reverseGeocodingService,
         IExpenseService expenseService,
         IExchangeRateService exchangeRateService,
@@ -50,6 +52,7 @@ public class SpotsController : Controller
         _tripParticipantService = tripParticipantService;
         _dayService = dayService;
         _photoService = photoService;
+        _fileService = fileService;
         _reverseGeocodingService = reverseGeocodingService;
         _expenseService = expenseService;
         _exchangeRateService = exchangeRateService;
@@ -125,13 +128,20 @@ public class SpotsController : Controller
             TransportsToCount = spot.TransportsTo?.Count ?? 0
         };
 
-        // pobierz zdjęcia i zamapuj na PhotoViewModel
+        // download photos
         var photos = await _photoService.GetBySpotIdAsync(spot.Id);
         viewModel.Photos = photos.Select(p => new PhotoViewModel
         {
             Id = p.Id,
             Name = p.Name,
             Alt = p.Alt
+        }).ToList();
+
+        var files = await _fileService.GetBySpotIdAsync(spot.Id);
+        viewModel.Files = files.Select(f => new FileViewModel
+        {
+            Id = f.Id,
+            Name = f.Name
         }).ToList();
 
         return View(viewModel);

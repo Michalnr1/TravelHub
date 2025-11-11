@@ -110,6 +110,12 @@ public class PhotoViewModel
     public string? Alt { get; set; }
 }
 
+public class FileViewModel
+{
+    public int Id { get; set; }
+    public string? Name { get; set; }
+}
+
 public class SpotDetailsViewModel : ActivityDetailsViewModel
 {
     public double Longitude { get; set; }
@@ -117,6 +123,7 @@ public class SpotDetailsViewModel : ActivityDetailsViewModel
     // public decimal Cost { get; set; }
     public Rating? Rating { get; set; }
     public IEnumerable<PhotoViewModel>? Photos { get; set; }
+    public IEnumerable<FileViewModel>? Files { get; set; }
     public int PhotoCount { get; set; }
     public int TransportsFromCount { get; set; }
     public int TransportsToCount { get; set; }

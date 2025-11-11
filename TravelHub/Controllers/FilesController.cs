@@ -1,41 +1,40 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Hosting;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 
 namespace TravelHub.Web.Controllers;
 
 [Authorize]
-public class PhotosController : Controller
+public class FilesController : Controller
 {
-    private readonly IPhotoService _photoService;
+    private readonly IFileService _fileService;
     private readonly IWebHostEnvironment _env;
 
-    public PhotosController(IPhotoService photoService, IWebHostEnvironment env)
+    public FilesController(IFileService fileService, IWebHostEnvironment env)
     {
-        _photoService = photoService;
+        _fileService = fileService;
         _env = env;
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Upload(int spotId, IFormFile photoFile, string? alt)
+    public async Task<IActionResult> Upload(int spotId, IFormFile fileFile)
     {
-        if (photoFile == null || photoFile.Length == 0)
+        if (fileFile == null || fileFile.Length == 0)
         {
             TempData["ErrorMessage"] = "No file to upload";
             return RedirectToAction("Details", "Spots", new { id = spotId });
         }
 
-        var photo = new Photo { Name = photoFile.FileName, SpotId = spotId, Alt = alt };
+        var file = new Domain.Entities.File { Name = fileFile.FileName, SpotId = spotId };
         try
         {
-            using (var stream = photoFile.OpenReadStream())
+            using (var stream = fileFile.OpenReadStream())
             {
-                await _photoService.AddPhotoAsync(photo, stream, photoFile.FileName, _env.WebRootPath);
+                await _fileService.AddFileAsync(file, stream, fileFile.FileName, _env.WebRootPath);
             }
-            TempData["SuccessMessage"] = "Photo added";
+            TempData["SuccessMessage"] = "File added";
         }
         catch (ArgumentException ex)
         {
@@ -43,7 +42,7 @@ public class PhotosController : Controller
         }
         catch (Exception)
         {
-            TempData["ErrorMessage"] = "There was an error during photo upload";
+            TempData["ErrorMessage"] = "There was an error during file upload";
         }
 
         return RedirectToAction("Details", "Spots", new { id = spotId });
@@ -53,8 +52,8 @@ public class PhotosController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, int spotId)
     {
-        await _photoService.DeletePhotoAsync(id, _env.WebRootPath);
-        TempData["SuccessMessage"] = "Photo deleted";
+        await _fileService.DeleteFileAsync(id, _env.WebRootPath);
+        TempData["SuccessMessage"] = "File deleted";
         return RedirectToAction("Details", "Spots", new { id = spotId });
     }
 }

@@ -112,6 +112,7 @@
 </div>
 
 <div class="spot-photos mb-3">
+    <h4>Photos</h4>
     @foreach (var p in Model.Photos ?? Enumerable.Empty<PhotoViewModel>())
     {
         <div class="d-inline-block me-2 mb-2">
@@ -119,7 +120,35 @@
             <form asp-controller="Photos" asp-action="Delete" method="post" class="mt-1">
                 <input type="hidden" name="id" value="@p.Id" />
                 <input type="hidden" name="spotId" value="@Model.Id" />
-                <button type="submit" class="btn btn-sm btn-danger">Usuń</button>
+                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+        </div>
+    }
+</div>
+
+<div class="spot-files mb-3">
+    <h4>Files</h4>
+    @foreach (var f in Model.Files ?? Enumerable.Empty<FileViewModel>())
+    {
+        var fileUrl = Url.Content($"~/files/spots/{Uri.EscapeDataString(f.Name ?? "")}");
+        <div class="d-inline-block me-2 mb-2">
+            <!-- PDF preview using <object> with fallback link -->
+            <div style="width:150px; height:200px; border:1px solid #ddd; overflow:hidden;">
+                <object data="@fileUrl" type="application/pdf" width="150" height="200">
+                    <!-- Fallback content (browser may not support embed) -->
+                    <p class="small">Preview not available. <a href="@fileUrl" target="_blank" rel="noopener noreferrer">Open PDF</a></p>
+                </object>
+            </div>
+
+            <div class="mt-1">
+                <!-- Open in new tab -->
+                <a class="btn btn-sm btn-outline-primary" href="@fileUrl" target="_blank" rel="noopener noreferrer">Open</a>
+
+            </div>
+            <form asp-controller="Files" asp-action="Delete" method="post" class="mt-1">
+                <input type="hidden" name="id" value="@f.Id" />
+                <input type="hidden" name="spotId" value="@Model.Id" />
+                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
             </form>
         </div>
     }
@@ -137,6 +166,18 @@
             <input type="text" name="alt" placeholder="Description (alternative)" class="form-control" />
         </div>
         <button type="submit" class="btn btn-primary">Add photo</button>
+    </form>
+</div>
+
+<div>
+    <h4 class="mb-3 text-center">Add file to spot</h4>
+
+    <form asp-controller="Files" asp-action="Upload" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="spotId" value="@Model.Id" />
+        <div class="mb-2">
+            <input type="file" name="fileFile" accept=".pdf" />
+        </div>
+        <button type="submit" class="btn btn-primary">Add file</button>
     </form>
 </div>
 

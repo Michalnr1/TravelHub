@@ -29,17 +29,17 @@ public class PhotoService : GenericService<Photo>, IPhotoService
     public async Task<Photo> AddPhotoAsync(Photo photo, Stream fileStream, string fileName, string webRootPath)
     {
         if (fileStream == null) throw new ArgumentNullException(nameof(fileStream));
-        if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Nazwa pliku jest wymagana.", nameof(fileName));
+        if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("File name is required", nameof(fileName));
 
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(ext))
-            throw new ArgumentException("Nieobsługiwany format pliku.");
+            throw new ArgumentException("Not allowed file format");
 
         // Jeśli stream ma długość i jest za duży, odrzuć
         try
         {
             if (fileStream.CanSeek && fileStream.Length > MaxFileBytes)
-                throw new ArgumentException($"Plik jest za duży. Maksymalnie {MaxFileBytes / (1024 * 1024)} MB.");
+                throw new ArgumentException($"File is too big. Maximum {MaxFileBytes / (1024 * 1024)} MB.");
         }
         catch
         {

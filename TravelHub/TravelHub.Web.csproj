@@ -9,7 +9,6 @@
   <ItemGroup>
     <Folder Include="Areas\Identity\Data\" />
     <Folder Include="wwwroot\files\spots\" />
-    <Folder Include="wwwroot\files\trips\" />
     <Folder Include="wwwroot\images\spots\" />
   </ItemGroup>
 

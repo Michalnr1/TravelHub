@@ -98,6 +98,7 @@ builder.Services.AddScoped<IFriendRequestRepository, FriendRequestRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IPersonFriendsRepository, PersonFriendsRepository>();
 builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
+builder.Services.AddScoped<IFileRepository, FileRepository>();
 builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<ISpotRepository, SpotRepository>();
 builder.Services.AddScoped<ITransportRepository, TransportRepository>();
@@ -121,6 +122,7 @@ builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<ITripParticipantService, TripParticipantService>();
 builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
 builder.Services.AddRazorPages();
