@@ -13,6 +13,8 @@ using TravelHub.Infrastructure;
 using TravelHub.Infrastructure.Email;
 using TravelHub.Infrastructure.Repositories;
 using TravelHub.Infrastructure.Services;
+using DinkToPdf;
+using DinkToPdf.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +45,8 @@ builder.Services.AddHangfire(configuration => configuration
         }));
 
 builder.Services.AddHangfireServer();
+
+builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
 // Email Configuration
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
@@ -123,6 +127,7 @@ builder.Services.AddScoped<ITripParticipantService, TripParticipantService>();
 builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 
 builder.Services.AddRazorPages();

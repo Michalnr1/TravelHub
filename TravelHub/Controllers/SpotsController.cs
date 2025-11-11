@@ -1,10 +1,15 @@
-﻿using System.Text;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Expenses;
 using CategorySelectItem = TravelHub.Web.ViewModels.Activities.CategorySelectItem;
@@ -22,6 +27,10 @@ public class SpotsController : Controller
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
     private readonly IFileService _fileService;
+    private readonly IPdfService _pdfService;
+    private readonly ICompositeViewEngine _viewEngine;
+    private readonly ITempDataProvider _tempDataProvider;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IReverseGeocodingService _reverseGeocodingService;
     private readonly IExpenseService _expenseService;
     private readonly IExchangeRateService _exchangeRateService;
@@ -43,7 +52,11 @@ public class SpotsController : Controller
         IExchangeRateService exchangeRateService,
         ILogger<SpotsController> logger,
         IConfiguration configuration,
-        UserManager<Person> userManager)
+        UserManager<Person> userManager,
+        IPdfService pdfService,
+        ICompositeViewEngine viewEngine,
+        ITempDataProvider tempDataProvider,
+        IHttpContextAccessor httpContextAccessor)
     {
         _spotService = spotService;
         _activityService = activityService;
@@ -59,6 +72,10 @@ public class SpotsController : Controller
         _logger = logger;
         _configuration = configuration;
         _userManager = userManager;
+        _pdfService = pdfService;
+        _viewEngine = viewEngine;
+        _tempDataProvider = tempDataProvider;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     // GET: Spots
@@ -526,6 +543,69 @@ public class SpotsController : Controller
         var hrs = totalMinutes / 60;
         var mins = totalMinutes % 60;
         return $"{hrs}:{mins:D2}";
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportPdf(int id)
+    {
+        var spot = await _spotService.GetByIdAsync(id);
+        if (spot == null)
+            return NotFound();
+
+        var vm = new SpotDetailsViewModel
+        {
+            Id = spot.Id,
+            TripName = spot.Trip.Name,
+            Name = spot.Name,
+            Description = spot.Description,
+            Latitude = spot.Latitude,
+            Longitude = spot.Longitude,
+            Rating = spot.Rating,
+            Duration = spot.Duration,
+            Order = spot.Order,
+            CategoryName = spot.Category.Name,
+            DayName = spot.Day.Name,
+            // fill other properties the Details view expects, e.g. Photos
+            Photos = (await _photoService.GetBySpotIdAsync(spot.Id))
+                  .Select(p => new PhotoViewModel { Id = p.Id, Name = p.Name, Alt = p.Alt })
+                  .ToList()
+        };
+
+        // Render the view to HTML string
+        var htmlString = await RenderViewToStringAsync("Details", vm);
+
+        var bytes = await _pdfService.GeneratePdfFromHtmlAsync(htmlString, $"Spot_{spot.Name}.pdf");
+
+        return File(bytes, "application/pdf", $"Spot_{spot.Name}.pdf");
+    }
+
+    private async Task<string> RenderViewToStringAsync(string viewName, object model)
+    {
+        var actionContext = new ActionContext(_httpContextAccessor.HttpContext, this.RouteData, this.ControllerContext.ActionDescriptor);
+
+        using var sw = new StringWriter();
+
+        var viewResult = _viewEngine.FindView(actionContext, viewName, false);
+        if (!viewResult.Success)
+            throw new InvalidOperationException($"Could not find view {viewName}");
+
+        var viewDictionary = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary())
+        {
+            Model = model
+        };
+
+        var viewContext = new ViewContext(
+            actionContext,
+            viewResult.View,
+            viewDictionary,
+            new TempDataDictionary(actionContext.HttpContext, _tempDataProvider),
+            sw,
+            new HtmlHelperOptions()
+        );
+
+        await viewResult.View.RenderAsync(viewContext);
+
+        return sw.ToString();
     }
 
     private async Task PopulateSelectListsForTrip(SpotCreateEditViewModel viewModel, int tripId)

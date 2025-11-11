@@ -13,6 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DinkToPdf" Version="1.0.8" />
+	<PackageReference Include="LibWkHtmlToX-64" Version="0.12.4" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.21" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.10" />
@@ -25,7 +27,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.0" />
   </ItemGroup>
 
-    <ItemGroup>
+	<ItemGroup>
 	    <ProjectReference Include="..\TravelHub.Domain\TravelHub.Domain.csproj" />
 	    <ProjectReference Include="..\TravelHub.Infrastructure\TravelHub.Infrastructure.csproj" />
     </ItemGroup>
