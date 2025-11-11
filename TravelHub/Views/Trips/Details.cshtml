@@ -25,6 +25,7 @@
         </a>
 
         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#countriesModal">View Countries</button>
+        <a asp-controller="Trips" asp-action="FlightSearch" asp-route-Id="@Model.Id" class="btn btn-success">Flight search</a>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
         <a asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary">View on Map</a>
         <a asp-action="MyTrips" class="btn btn-outline-secondary">Back to List</a>
