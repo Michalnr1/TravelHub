@@ -189,6 +189,8 @@
 
 <div>
     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
-    <a asp-action="Export" asp-route-id="@Model.Id" class="btn btn-outline-primary ms-2">Export to TXT</a>
+    <a asp-action="ExportPdf" asp-controller="Spots" asp-route-id="@Model.Id" class="btn btn-primary">
+        Download as PDF
+    </a>
     <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">Back to trip</a>
 </div>
