@@ -651,40 +651,4 @@ public class ActivitiesController : Controller
     {
         return trip.PersonId == GetCurrentUserId();
     }
-
-    // GET: Activities/Export/5
-    public async Task<IActionResult> Export(int? id)
-    {
-        if (id == null) return NotFound();
-
-        var activity = await _activityService.GetByIdAsync(id.Value);
-        if (activity == null) return NotFound();
-
-        string name = activity.Name ?? string.Empty;
-        string description = activity.Description ?? string.Empty;
-        string duration = FormatDuration(activity.Duration);
-
-        var sb = new StringBuilder();
-        sb.AppendLine("Activity name:");
-        sb.AppendLine(name);
-        sb.AppendLine();
-        sb.AppendLine("Description:");
-        sb.AppendLine(description);
-        sb.AppendLine();
-        sb.AppendLine("Duration:");
-        sb.AppendLine(duration);
-
-        var bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        var fileName = $"activity_{activity.Name}.txt";
-        return File(bytes, "text/plain; charset=utf-8", fileName);
-    }
-
-    private static string FormatDuration(decimal hoursDecimal)
-    {
-        // Convert decimal hours to H:MM (e.g., 1.5 -> "1:30")
-        var totalMinutes = (int)Math.Round((double)hoursDecimal * 60);
-        var hrs = totalMinutes / 60;
-        var mins = totalMinutes % 60;
-        return $"{hrs}:{mins:D2}";
-    }
 }
