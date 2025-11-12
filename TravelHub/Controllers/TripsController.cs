@@ -560,7 +560,8 @@ public class TripsController : Controller
                     EndDate = viewModel.EndDate,
                     Status = Status.Planning,
                     PersonId = GetCurrentUserId(),
-                    IsPrivate = viewModel.IsPrivate
+                    IsPrivate = viewModel.IsPrivate,
+                    CurrencyCode = viewModel.CurrencyCode
                 };
 
                 var newTrip = await _tripService.AddAsync(trip);
@@ -842,25 +843,50 @@ public class TripsController : Controller
 
     public async Task<IActionResult> FlightSearch(int id)
     {
+        Trip trip = await _tripService.GetByIdAsync(id);
+        if (trip == null)
+        {
+            return NotFound();
+        }
         (double lat, double lng) = await _tripService.GetMedianCoords(id);
         AirportDto? airport = await _flightService.GetAirportByCoords(lat, lng);
         Person? user = await _userManager.GetUserAsync(User);
+        string fromAirport;
+        string toAirport;
         if (user != null && user.DefaultAirportCode != null)
         {
-            ViewData["FromAirportCode"] = user.DefaultAirportCode;
-        } else
-        {
-            ViewData["FromAirportCode"] = "";
-        }
-        if (airport != null)
-        {
-            ViewData["ToAirportCode"] = airport.AirportCode;
+            fromAirport = user.DefaultAirportCode;
         }
         else
         {
-            ViewData["AirportCode"] = "";
+            fromAirport = "";
         }
-        return View();
+        if (airport != null && airport.AirportCode != null)
+        {
+            toAirport = airport.AirportCode;
+        }
+        else
+        {
+            toAirport = "";
+        }
+        var allCurrencyCodes = Enum.GetValues(typeof(CurrencyCode))
+            .Cast<CurrencyCode>()
+            .Select(currency => new CurrencySelectGroupItem
+            {
+                Key = currency,
+                Name = currency.GetDisplayName()
+            })
+            .ToList();
+        FlightSearchViewModel model = new FlightSearchViewModel
+        {
+            FromAirportCode = fromAirport,
+            ToAirportCode = toAirport,
+            DefaultCurrencyCode = trip.CurrencyCode,
+            Currencies = allCurrencyCodes,
+            DefaultDate = trip.StartDate,
+            Participants = trip.Participants.Count + 1
+        };      
+        return View(model);
     }
 
     public async Task<IActionResult> Flights(string from, string to, string date, int? adults, int? children, int? seatedInfants, int? heldInfants,

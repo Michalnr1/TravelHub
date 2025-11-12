@@ -1,6 +1,7 @@
-﻿@{
-    var fromAirportCode = ViewData["FromAirportCode"];
-    var toAirportCode = ViewData["ToAirportCode"];
+﻿@model TravelHub.Web.ViewModels.Trips.FlightSearchViewModel
+
+@{
+    ViewData["Title"] = "Find flight";
 }
 
 <div class="flight-search-container">
@@ -30,7 +31,7 @@
 
             <div class="form-group">
                 <label for="date">Date</label>
-                <input type="date" id="date" name="date" />
+                <input type="date" id="date" name="date"/>
             </div>
         </div>
 
@@ -39,7 +40,7 @@
             <div class="travelers-grid">
                 <div class="traveler-item">
                     <label for="adults">Adults</label>
-                    <input type="number" id="adults" name="adults" value="1" min="0" max="9" />
+                    <input type="number" id="adults" name="adults" value="@Math.Min(Model.Participants,9)" min="0" max="9" />
                     <small>12+ years</small>
                 </div>
                 <div class="traveler-item">
@@ -71,13 +72,13 @@
                     <div class="form-group">
                         <label for="currency">Currency</label>
                         <select id="currency" name="currency" class="form-control">
-                            <option value="">Default</option>
-                            <option value="USD">USD - US Dollar</option>
-                            <option value="EUR">EUR - Euro</option>
-                            <option value="GBP">GBP - British Pound</option>
-                            <option value="PLN">PLN - Polish Złoty</option>
-                            <option value="CAD">CAD - Canadian Dollar</option>
-                            <option value="AUD">AUD - Australian Dollar</option>
+                            @foreach (var currency in Model.Currencies)
+                            {
+                                bool isSelected = (Model.DefaultCurrencyCode == currency.Key);
+                                <option value="@currency.Key" selected="@isSelected">
+                                    @currency.DropdownText
+                                </option>
+                            }
                         </select>
                     </div>
 
@@ -121,8 +122,8 @@
     <script src="~/lib/luxon/luxon.js"></script>
 
     <script>
-        const defaultToAirportCode = "@Html.Raw(toAirportCode)";
-        const defaultFromAirportCode = "@Html.Raw(fromAirportCode)";
+        const defaultToAirportCode = "@Html.Raw(Model.ToAirportCode)";
+        const defaultFromAirportCode = "@Html.Raw(Model.FromAirportCode)";
 
         // Initialize form with default values
         document.addEventListener('DOMContentLoaded', function() {
@@ -138,9 +139,8 @@
             document.getElementById('date').min = today;
 
             // Set default date to 7 days from today
-            const nextWeek = new Date();
-            nextWeek.setDate(nextWeek.getDate() + 7);
-            document.getElementById('date').value = nextWeek.toISOString().split('T')[0];
+            const defaultDate = new Date('@Model.DefaultDate.ToString("yyyy-MM-dd")');
+            document.getElementById('date').value = defaultDate.toISOString().split('T')[0];
         });
 
         // Swap airports functionality
