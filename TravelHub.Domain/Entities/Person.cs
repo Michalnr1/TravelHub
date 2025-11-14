@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using System.Collections.Generic;
 
 namespace TravelHub.Domain.Entities;
 
@@ -40,4 +39,7 @@ public class Person : IdentityUser
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     // A person can have many chat messages (1:N)
     public ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
+
+    // A person can have many blogs (1:N)
+    public ICollection<Blog> Blogs { get; set; } = new List<Blog>();
 }

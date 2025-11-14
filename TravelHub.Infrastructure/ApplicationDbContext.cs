@@ -29,6 +29,8 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<PersonFriends> PersonFriends { get; set; }
     public DbSet<FriendRequest> FriendRequests { get; set; }
     public DbSet<TripParticipant> TripParticipants { get; set; } 
+    public DbSet<Blog> Blogs { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -168,6 +170,12 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                 .HasConversion(currencyCodeConverter)
                 .HasMaxLength(3);
 
+            // 1:1 relationship with Blog
+            entity.HasOne(t => t.Blog)
+                .WithOne(b => b.Trip)
+                .HasForeignKey<Blog>(b => b.TripId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // 1:N relationship with Person (Trip organizer)
             entity.HasOne(t => t.Person)
                 .WithMany(p => p.Trips)
@@ -268,18 +276,38 @@ public class ApplicationDbContext : IdentityDbContext<Person>
         {
             entity.HasKey(d => d.Id);
             entity.Property(d => d.Date).HasColumnType("date");
+            entity.Property(d => d.Number).IsRequired(false);
+            entity.Property(d => d.Name).HasMaxLength(100);
 
             // 1:N relationship with Trip
             entity.HasOne(d => d.Trip)
                   .WithMany(t => t.Days)
                   .HasForeignKey(d => d.TripId)
-                  .OnDelete(DeleteBehavior.Restrict); // If a trip is deleted, its days are deleted.
+                  .OnDelete(DeleteBehavior.Restrict);
 
-            // 1:N relationship with Trip
+            // 1:N relationship with Accommodation
             entity.HasOne(d => d.Accommodation)
                   .WithMany(t => t.Days)
                   .HasForeignKey(d => d.AccommodationId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // 1:N relationship with Activities
+            entity.HasMany(d => d.Activities)
+                .WithOne(a => a.Day)
+                .HasForeignKey(a => a.DayId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 1:N relationship with Posts
+            entity.HasMany(d => d.Posts)
+                .WithOne(p => p.Day)
+                .HasForeignKey(p => p.DayId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes for better performance
+            entity.HasIndex(d => d.TripId);
+            entity.HasIndex(d => d.AccommodationId);
+            entity.HasIndex(d => d.Date);
         });
 
         // --- Activity Configuration ---
@@ -468,12 +496,40 @@ public class ApplicationDbContext : IdentityDbContext<Person>
         {
             entity.HasKey(p => p.Id);
             entity.Property(p => p.Content).IsRequired();
+            entity.Property(p => p.Title).IsRequired().HasMaxLength(200);
+            entity.Property(p => p.CreationDate).IsRequired();
+            entity.Property(p => p.EditDate).IsRequired(false);
 
             // 1:N relationship with Person (Author)
             entity.HasOne(p => p.Author)
                   .WithMany(person => person.Posts)
                   .HasForeignKey(p => p.AuthorId)
-                  .OnDelete(DeleteBehavior.Restrict); // Don't delete an author if they have posts
+                  .OnDelete(DeleteBehavior.ClientNoAction); // Don't delete an author if they have posts
+
+            // 1:N relationship with Blog
+            entity.HasOne(p => p.Blog)
+                .WithMany(b => b.Posts)
+                .HasForeignKey(p => p.BlogId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 1:N relationship with Day
+            entity.HasOne(p => p.Day)
+                .WithMany(d => d.Posts)
+                .HasForeignKey(p => p.DayId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // 1:N relationship with Comments
+            entity.HasMany(p => p.Comments)
+                .WithOne(c => c.Post)
+                .HasForeignKey(c => c.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for better performance
+            entity.HasIndex(p => p.AuthorId);
+            entity.HasIndex(p => p.BlogId);
+            entity.HasIndex(p => p.DayId);
+            entity.HasIndex(p => p.CreationDate);
         });
 
         // --- Comment Configuration ---
@@ -586,6 +642,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // --- File Configuration ---
         builder.Entity<Domain.Entities.File>(entity =>
         {
             entity.HasKey(f => f.Id);
@@ -596,6 +653,38 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                 .WithMany(t => t.Files)
                 .HasForeignKey(f => f.SpotId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // --- Blog Configuration ---
+        builder.Entity<Blog>(entity =>
+        {
+            entity.HasKey(b => b.Id);
+            entity.Property(b => b.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+            entity.Property(b => b.Description).HasMaxLength(1000);
+
+            // 1:N relationship with Person (Owner)
+            entity.HasOne(b => b.Owner)
+                .WithMany(p => p.Blogs)
+                .HasForeignKey(b => b.OwnerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 1:1 relationship with Trip
+            entity.HasOne(b => b.Trip)
+                .WithOne(t => t.Blog)
+                .HasForeignKey<Blog>(b => b.TripId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 1:N relationship with Posts
+            entity.HasMany(b => b.Posts)
+                .WithOne(p => p.Blog)
+                .HasForeignKey(p => p.BlogId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for better performance
+            entity.HasIndex(b => b.OwnerId);
+            entity.HasIndex(b => b.TripId).IsUnique();
         });
     }
 }

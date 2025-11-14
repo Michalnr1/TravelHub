@@ -15,6 +15,11 @@ public class Trip
     // Navigation Property for the person who owns the trip (1:N)
     public Person? Person { get; set; }
 
+    // Foreign Key for Blog
+    public int? BlogId { get; set; }
+    // Navigation Property to the blog
+    public Blog? Blog { get; set; }
+
     // A trip can have many participants (M:N through TripParticipant)
     public ICollection<TripParticipant> Participants { get; set; } = new List<TripParticipant>();
 

@@ -18,4 +18,7 @@ public class Day
 
     // A day can have multiple activities (1:N)
     public ICollection<Activity> Activities { get; set; } = new List<Activity>();
+
+    // A day can have multiple posts (1:N)
+    public ICollection<Post> Posts { get; set; } = new List<Post>();
 }
