@@ -125,6 +125,8 @@ public class FlightService : AbstractThrottledApiService, IFlightService
     public async Task<AirportDto?> GetAirportByCoords(double lat, double lng)
     {
 
+        if (lat == 0 && lng == 0) return null;
+
         if (DateTime.Now > tokenExpiration)
         {
             await UpdateAccessToken();

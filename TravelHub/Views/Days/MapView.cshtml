@@ -11,6 +11,8 @@
     allActivities.AddRange(Model.Spots);
     allActivities.AddRange(Model.Activities);
     allActivities.Sort((a1, a2) => a1.Order.CompareTo(a2.Order));
+    // if (Model.PreviousAccommodation != null) allActivities.Insert(0, Model.PreviousAccommodation);
+    // if (Model.NextAccommodation != null) allActivities.Add(Model.NextAccommodation);
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -231,7 +233,7 @@
             points.forEach((point, i) => {
               let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
 
-              if (point.order == 0) {
+              if (@Json.Serialize(Model.IsGroup)) {
                   var iconImage = new google.maps.marker.PinElement({});
               } else {
                   let glyphLabel = document.createElement("div");

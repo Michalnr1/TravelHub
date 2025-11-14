@@ -205,6 +205,8 @@ public class DayDetailViewModel
     public TripViewModel? Trip { get; set; }
     public List<ActivityDetailsViewModel> Activities { get; set; } = new();
     public List<SpotDetailsViewModel> Spots { get; set; } = new();
+    public AccommodationBasicViewModel? PreviousAccommodation { get; set; }
+    public AccommodationBasicViewModel? NextAccommodation { get; set; }
     public bool IsGroup => Number == null && !string.IsNullOrWhiteSpace(Name);
     public string DisplayName => IsGroup
         ? Name ?? "Unnamed Group"
