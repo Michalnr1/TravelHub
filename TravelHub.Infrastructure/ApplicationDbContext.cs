@@ -158,6 +158,8 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                 .IsRequired()
                 .HasMaxLength(450);
 
+            entity.Property(t => t.Catalog).HasMaxLength(100);
+
             // Konwersja enum Status
             var statusConverter = new EnumToStringConverter<Status>();
             entity.Property(t => t.Status)
@@ -659,10 +661,9 @@ public class ApplicationDbContext : IdentityDbContext<Person>
         builder.Entity<Blog>(entity =>
         {
             entity.HasKey(b => b.Id);
-            entity.Property(b => b.Name)
-                .IsRequired()
-                .HasMaxLength(200);
+            entity.Property(b => b.Name).IsRequired().HasMaxLength(200);
             entity.Property(b => b.Description).HasMaxLength(1000);
+            entity.Property(t => t.Catalog).HasMaxLength(100);
 
             // 1:N relationship with Person (Owner)
             entity.HasOne(b => b.Owner)

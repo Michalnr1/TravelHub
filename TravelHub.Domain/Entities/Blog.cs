@@ -5,6 +5,7 @@ public class Blog
     public int Id { get; set; }
     public required string Name { get; set; }
     public string? Description { get; set; }
+    public string? Catalog { get; set; }
 
     // Foreign Key for Owner
     public required string OwnerId { get; set; }

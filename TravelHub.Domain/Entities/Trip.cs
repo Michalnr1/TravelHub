@@ -9,6 +9,7 @@ public class Trip
     public DateTime EndDate { get; set; }
     public bool IsPrivate { get; set; }
     public CurrencyCode CurrencyCode { get; set; }
+    public string? Catalog { get; set; }
 
     // Foreign Key for Person
     public required string PersonId { get; set; }
