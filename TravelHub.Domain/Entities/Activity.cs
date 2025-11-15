@@ -7,6 +7,10 @@ public class Activity
     public string? Description { get; set; }
     public decimal Duration { get; set; }
     public int Order { get; set; } // The order of the activity within the day
+    public decimal StartTime { get; set; }
+
+    // Checklist as a JSON
+    public Checklist? Checklist { get; set; } = new();
 
     // Foreign Key for Category (N:1)
     public int? CategoryId { get; set; }

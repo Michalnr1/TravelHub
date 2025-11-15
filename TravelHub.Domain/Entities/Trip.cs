@@ -11,6 +11,9 @@ public class Trip
     public CurrencyCode CurrencyCode { get; set; }
     public string? Catalog { get; set; }
 
+    // Checklist as a JSON
+    public Checklist? Checklist { get; set; } = new();
+
     // Foreign Key for Person
     public required string PersonId { get; set; }
     // Navigation Property for the person who owns the trip (1:N)

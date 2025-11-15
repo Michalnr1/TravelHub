@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Text.Json;
 using TravelHub.Domain.Entities;
 
 // Ensure you have a 'using' statement for the namespace where your entities are located.
@@ -159,6 +160,18 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                 .HasMaxLength(450);
 
             entity.Property(t => t.Catalog).HasMaxLength(100);
+
+            entity.Property(t => t.Checklist)
+              .HasConversion(
+                  v => JsonSerializer.Serialize(v, new JsonSerializerOptions
+                  {
+                      PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                  }),
+                  v => JsonSerializer.Deserialize<Checklist>(v, new JsonSerializerOptions
+                  {
+                      PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                  }))
+              .HasColumnType("nvarchar(max)");
 
             // Konwersja enum Status
             var statusConverter = new EnumToStringConverter<Status>();
@@ -319,6 +332,19 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(a => a.Name).IsRequired().HasMaxLength(200);
             entity.Property(a => a.Description).HasMaxLength(1000);
             entity.Property(a => a.Duration).HasPrecision(18, 2);
+            entity.Property(a => a.StartTime).HasPrecision(4, 2);
+
+            entity.Property(a => a.Checklist)
+              .HasConversion(
+                  v => JsonSerializer.Serialize(v, new JsonSerializerOptions
+                  {
+                      PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                  }),
+                  v => JsonSerializer.Deserialize<Checklist>(v, new JsonSerializerOptions
+                  {
+                      PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                  }))
+              .HasColumnType("nvarchar(max)");
 
             // 1:N relationship with Trip
             entity.HasOne(a => a.Trip)
