@@ -109,25 +109,26 @@
             <div class="card-body p-0">
                 @if (allActivities.Any())
                 {
-                    <div class="list-group list-group-flush">
-                        @{
-                            int i = 0;
-                            int j = 0;
-                        }
+                    <div class="list-group list-group-flush" id="activitiesContainer">
                         @foreach (var activity in allActivities)
                         {
                             string id;
-                            @if (activity is SpotDetailsViewModel)
+                            bool isSpot = activity is SpotDetailsViewModel;
+                            @if (isSpot)
                             {
-                                id = "spot-" + i;
-                                i++;
+                                id = "spot-" + activity.Id;
                             }
                             else
                             {
-                                id = "activity-" + j;
-                                j++;
+                                id = "activity-" + activity.Id;
                             }
-                            <div class="list-group-item" id=@(id)>
+                            <div class="list-group-item d-flex justify-content-between align-items-start
+                                            @(isSpot ? "border-success" : "border-primary") activity-item"
+                                 style="border-left-width: 4px;"
+                                 data-activity-id="@activity.Id"
+                                 data-order="@activity.Order"
+                                 draggable="true"
+                                 id=@(id)>
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
                                         <h6 class="mb-1">@activity.Name</h6>
@@ -163,6 +164,9 @@
                                         </form>
                                     </div>
                                 </div>
+                                <div class="drag-handle ms-2 text-muted" style="cursor: grab;">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
                             </div>
 
                         }
@@ -178,6 +182,9 @@
                     </div>
                 }
             </div>
+            <button id="order-apply" class="btn btn-outline-primary text-start" onclick="applyActivityOrder()">
+                Apply order change
+            </button>
         </div>
     </div>
 </div>
@@ -198,16 +205,7 @@
         let points = JSON.parse('@Json.Serialize(Model.Spots)');
 
         //Get user defined route durations
-        points.forEach((point, i) => {
-            if (i < points.length - 1){
-                for (let j = 0; j < point.transportsFrom.length; j++){
-                    if (point.transportsFrom[j].toSpotId == points[i+1].id) {
-                        point.fixedDurationFrom = parseFloat(point.transportsFrom[j].duration);
-                        break;
-                    }
-                }
-            }
-        });
+        fillFixedDurations(points);
 
         let activities = JSON.parse('@Json.Serialize(allActivities)');
         let previousAccommodation = JSON.parse('@Json.Serialize(Model.PreviousAccommodation)');
@@ -216,6 +214,9 @@
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let polylines = [];
         let routeInfoWindow;
+
+        let draggedItem = null;
+        let isUpdating = false;
 
         async function initMap() {
             // Request needed libraries.
@@ -239,11 +240,11 @@
               if (@Json.Serialize(Model.IsGroup)) {
                   var iconImage = new google.maps.marker.PinElement({});
               } else {
-                  let glyphLabel = document.createElement("div");
-                  glyphLabel.style = 'color: white; font-size: 17px;';
-                  glyphLabel.innerText = i + 1;
+                  point.glyphLabel = document.createElement("div");
+                  point.glyphLabel.style = 'color: white; font-size: 17px;';
+                  point.glyphLabel.innerText = i + 1;
                   var iconImage = new google.maps.marker.PinElement({
-                    glyph: glyphLabel,
+                    glyph: point.glyphLabel,
                   });
               }
               const marker = new AdvancedMarkerElement({
@@ -267,7 +268,7 @@
                   }
               });
 
-              let listElem = document.getElementById("spot-" + i);
+              let listElem = document.getElementById("spot-" + points[i].id);
               listElem.addEventListener("mouseenter", (event) => {
                   infoWindow.close();
                   infoWindow.setContent(marker.title);
@@ -382,6 +383,7 @@
                     }
                     spotNum++;
                 }
+               
                 activities[i].arrTime = time;
                 time = addActivityDuration(time, activities[i]);
                 activities[i].endTime = time;
@@ -406,7 +408,7 @@
             time = startTime;
             for (let i = 0; i < legs.length; i++) {
                 const leg = legs[i];
-                const locationCard = document.getElementById(`spot-${i+1}`);
+                const locationCard = document.getElementById(`spot-${points[i+1].id}`);
 
                 if (leg.type == 'Transit') {
                     const card = buildTravelCard(i);
@@ -459,7 +461,7 @@
 
         function validatePlan(activities, startTime, endTime) {
             if (involvesCheckout && startTime > decimalToDateTime(startTime, previousAccommodation.checkOutTime)) {
-                displayWarning(`The starting time you set is after the checkout time.`);
+                displayWarning(`The starting time you set is after the checkout time!`);
             }
             let duration = endTime.diff(startTime)
             if (duration > luxon.Duration.fromObject({hours: 16})) {
@@ -474,14 +476,28 @@
         }
             
         function getTransportDuration(point, leg) {
-            if (Object.hasOwn(point, 'fixedDurationFrom')) {
+            if (hasFixedDuration(point)) {
                 return point.fixedDurationFrom * 3600 * 1000;
             }
             return leg.durationMillis;
         }
 
+        function fillFixedDurations(points) {
+            points.forEach((point, i) => {
+                if (i < points.length - 1){
+                    point.fixedDurationFrom = null;
+                    for (let j = 0; j < point.transportsFrom.length; j++){
+                        if (point.transportsFrom[j].toSpotId == points[i+1].id) {
+                            point.fixedDurationFrom = parseFloat(point.transportsFrom[j].duration);
+                            break;
+                        }
+                    }
+                }
+            });
+        }
+
         function hasFixedDuration(point) {
-            return Object.hasOwn(point, 'fixedDurationFrom');
+            return Object.hasOwn(point, 'fixedDurationFrom') && point.fixedDurationFrom != null;
         }
 
         function addActivityDuration(time, activity) {
@@ -662,6 +678,271 @@
 
         function decimalToDateTime(refTime, decimal) {
             return refTime.set({hours: Math.floor(decimal), minutes: Math.ceil(60 * (decimal % 1))});
+        }
+
+        //REORDERING ACTIVITIES
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('order-apply').disabled = true;
+
+            const container = document.getElementById('activitiesContainer');
+            if (!container) return;
+
+            // Add event listeners for drag and drop
+            const items = container.querySelectorAll('.activity-item');
+            let ia, ib;
+            if (previousAccommodation != null) {
+                ia = 1;
+            } else {
+                ia = 0;
+            }
+            if (nextAccommodation != null) {
+                ib = items.length-1;
+            } else {
+                ib = items.length;
+            }
+            Array.from(items).slice(ia, ib).forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('dragenter', handleDragEnter);
+                item.addEventListener('dragleave', handleDragLeave);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+
+                // Prevent text selection while dragging
+                item.addEventListener('mousedown', function(e) {
+                    if (e.target.closest('.drag-handle') || e.target.classList.contains('drag-handle')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            function handleDragStart(e) {
+                if (isUpdating) {
+                    e.preventDefault();
+                    return;
+                }
+
+                draggedItem = this;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.innerHTML);
+
+                // Add visual feedback
+                this.style.opacity = '0.4';
+                this.classList.add('dragging');
+            }
+
+            function handleDragOver(e) {
+                if (e.preventDefault) {
+                    e.preventDefault();
+                }
+                e.dataTransfer.dropEffect = 'move';
+                return false;
+            }
+
+            function handleDragEnter(e) {
+                this.classList.add('drag-over');
+            }
+
+            function handleDragLeave(e) {
+                this.classList.remove('drag-over');
+            }
+
+            function handleDrop(e) {
+                if (e.stopPropagation) {
+                    e.stopPropagation();
+                }
+
+                if (draggedItem !== this && draggedItem) {
+                    // Swap elements in DOM
+                    const allItems = Array.from(container.querySelectorAll('.activity-item'));
+                    const draggedIndex = allItems.indexOf(draggedItem);
+                    const targetIndex = allItems.indexOf(this);
+
+                    if (draggedIndex < targetIndex) {
+                        this.parentNode.insertBefore(draggedItem, this.nextSibling);
+                    } else {
+                        this.parentNode.insertBefore(draggedItem, this);
+                    }
+
+                    // Update order numbers and send to server
+                    updateActivityOrder();
+                }
+
+                this.classList.remove('drag-over');
+                return false;
+            }
+
+            function handleDragEnd(e) {
+                items.forEach(item => {
+                    item.classList.remove('drag-over');
+                    item.classList.remove('dragging');
+                    item.style.opacity = '';
+                });
+                draggedItem = null;
+            }
+
+            function updateActivityOrder() {
+                
+                clearPolylines();
+                clearTravelCards();
+                clearWarnings();
+
+                const items = container.querySelectorAll('.activity-item');
+
+                activities = Array.from(items).map((item, idx) => {
+                    const activityId = parseInt(item.dataset.activityId);
+                    const activity = activities.find(a => a.id === activityId);
+                    activity.order = idx + 1;
+                    return activity;
+                });
+
+                newPoints = []
+                let spotCounter = 0
+                for (let i = 0; i < items.length; i++){
+                    const activityId = parseInt(items[i].dataset.activityId);
+                    point = points.find(p => p.id === activityId);
+                    if (point) {
+                        newPoints.push(point);
+                        newPoints[spotCounter].order = spotCounter + 1;
+                        point.glyphLabel.innerText = spotCounter + 1
+                        spotCounter++;
+                    }                  
+                }
+                points = newPoints;
+
+                //alert(JSON.stringify(points.map(e => e.name)));
+
+                // recompute fixed durations
+                fillFixedDurations(points);
+                document.getElementById('order-apply').disabled = false;
+
+            }
+
+            // Add touch support for mobile devices
+            if ('ontouchstart' in window) {
+                let touchStartY = 0;
+                let touchCurrentY = 0;
+                let touchDraggedItem = null;
+
+                items.forEach(item => {
+                    item.addEventListener('touchstart', function(e) {
+                        touchStartY = e.touches[0].clientY;
+                        touchDraggedItem = this;
+                        this.classList.add('touch-dragging');
+                    });
+
+                    item.addEventListener('touchmove', function(e) {
+                        if (!touchDraggedItem) return;
+
+                        e.preventDefault();
+                        touchCurrentY = e.touches[0].clientY;
+
+                        const deltaY = touchCurrentY - touchStartY;
+                        if (Math.abs(deltaY) > 10) {
+                            touchDraggedItem.style.transform = `translateY(${deltaY}px)`;
+                        }
+                    });
+
+                    item.addEventListener('touchend', function(e) {
+                        if (!touchDraggedItem) return;
+
+                        const allItems = Array.from(container.querySelectorAll('.activity-item'));
+                        const draggedIndex = allItems.indexOf(touchDraggedItem);
+
+                        // Calculate new position based on movement
+                        const deltaY = touchCurrentY - touchStartY;
+                        const itemHeight = touchDraggedItem.offsetHeight;
+                        const positionsMoved = Math.round(deltaY / itemHeight);
+
+                        let newIndex = draggedIndex + positionsMoved;
+                        newIndex = Math.max(0, Math.min(newIndex, allItems.length - 1));
+
+                        if (newIndex !== draggedIndex) {
+                            if (newIndex > draggedIndex) {
+                                allItems[newIndex].parentNode.insertBefore(touchDraggedItem, allItems[newIndex].nextSibling);
+                            } else {
+                                allItems[newIndex].parentNode.insertBefore(touchDraggedItem, allItems[newIndex]);
+                            }
+
+                            updateActivityOrder();
+                        }
+
+                        touchDraggedItem.style.transform = '';
+                        touchDraggedItem.classList.remove('touch-dragging');
+                        touchDraggedItem = null;
+                    });
+                });
+            }
+        });
+
+        function applyActivityOrder() {
+            if (isUpdating) return;
+
+            const items = document.getElementById('activitiesContainer').querySelectorAll('.activity-item');
+            const orderData = [];
+
+            items.forEach((item, index) => {
+                const activityId = item.getAttribute('data-activity-id');
+                const newOrder = index + 1;
+
+                // Update displayed order
+                // const orderDisplay = item.querySelector('.order-display');
+                // if (orderDisplay) {
+                //     orderDisplay.textContent = newOrder;
+                // }
+
+                orderData.push({
+                    activityId: parseInt(activityId),
+                    order: newOrder
+                });
+            });
+
+            // Show loading indicator
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'block';
+            }
+            document.getElementById('order-apply').disabled = true;
+            isUpdating = true;
+
+            // Send update to server
+            fetch('@Url.Action("UpdateActivityOrder", "Days")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({
+                    dayId: @Model.Id,
+                    activities: orderData
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log('Order updated successfully');
+                } else {
+                    console.error('Failed to update order:', data.message);
+                    // Optional: show error message to user
+                }
+            })
+            .catch(error => {
+                console.error('Error updating order:', error);
+                // Optional: show error message to user and revert order
+            })
+            .finally(() => {
+                // Hide loading indicator
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+                isUpdating = false;
+            });
         }
 
     </script>
