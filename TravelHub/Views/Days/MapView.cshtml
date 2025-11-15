@@ -15,6 +15,8 @@
 
 <h1>@ViewData["Title"]</h1>
 
+<div id="warning-container" class="mt-3"></div>
+
 <div>
     <hr />
     <dl class="row">
@@ -208,6 +210,9 @@
         });
 
         let activities = JSON.parse('@Json.Serialize(allActivities)');
+        let previousAccommodation = JSON.parse('@Json.Serialize(Model.PreviousAccommodation)');
+        let nextAccommodation = JSON.parse('@Json.Serialize(Model.NextAccommodation)');
+        let involvesCheckout = previousAccommodation != null && (nextAccommodation == null || previousAccommodation.id != nextAccommodation.id);
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let polylines = [];
         let routeInfoWindow;
@@ -320,8 +325,6 @@
         async function showRoute(travelMode) {
             if (points.length < 2) return;
 
-            clearTravelCards();
-
             let startTime = getStartDatetime();
 
             let baseTravelMode = travelMode == 'TRANSIT' ? 'WALKING' : travelMode;
@@ -332,6 +335,8 @@
             }
 
             clearPolylines();
+            clearTravelCards();
+            clearWarnings();
 
             legs = route.routes[0].legs;
 
@@ -344,6 +349,7 @@
 
             let endTime = activities[activities.length - 1].endTime;
             showRouteSummary(startTime, endTime);
+            validatePlan(activities, startTime, endTime);
         }
 
         async function fetchBaseRoute(travelMode) {
@@ -376,7 +382,7 @@
                     }
                     spotNum++;
                 }
-                activities[i].begTime = time;
+                activities[i].arrTime = time;
                 time = addActivityDuration(time, activities[i]);
                 activities[i].endTime = time;
             }
@@ -451,6 +457,22 @@
             }
         }
 
+        function validatePlan(activities, startTime, endTime) {
+            if (involvesCheckout && startTime > decimalToDateTime(startTime, previousAccommodation.checkOutTime)) {
+                displayWarning(`The starting time you set is after the checkout time.`);
+            }
+            let duration = endTime.diff(startTime)
+            if (duration > luxon.Duration.fromObject({hours: 16})) {
+                displayWarning(`The itinerary for this day takes ${duration.toFormat("hh 'h' mm 'm'")}, are you sure?`);
+            }
+            for (let i = 1; i < activities.length; i++){
+                if (activities[i].startTime != 0 && activities[i].arrTime > decimalToDateTime(startTime, activities[i].startTime)) {
+                    displayWarning(`You set the starting time for ${activities[i].name} as ${decimalToDateTime(startTime, activities[i].startTime).toLocaleString(luxon.DateTime.TIME_24_SIMPLE)}, but with this plan you would arrive at ${activities[i].arrTime.toLocaleString(luxon.DateTime.TIME_24_SIMPLE)}`);
+                    break;
+                }
+            }
+        }
+            
         function getTransportDuration(point, leg) {
             if (Object.hasOwn(point, 'fixedDurationFrom')) {
                 return point.fixedDurationFrom * 3600 * 1000;
@@ -463,6 +485,21 @@
         }
 
         function addActivityDuration(time, activity) {
+            if (activity.startTime > 0) {
+                //Not sure about this
+                let activityStartTime = decimalToDateTime(time, activity.startTime);
+                if (activityStartTime > time) {
+                    return activityStartTime.plus({
+                        hours: Math.floor(parseFloat(activity.duration)),
+                        minutes: Math.round(60 * (parseFloat(activity.duration) % 1))
+                    });
+                } else {
+                    return time.plus({
+                        hours: Math.floor(parseFloat(activity.duration)),
+                        minutes: Math.round(60 * (parseFloat(activity.duration) % 1))
+                    });
+                }
+            }
             return time.plus({
                 hours: Math.floor(parseFloat(activity.duration)),
                 minutes: Math.round(60 * (parseFloat(activity.duration) % 1))
@@ -595,6 +632,38 @@
                 cards[0].parentNode.removeChild(cards[0]);
             }
         }
+
+        function displayWarning(message) {
+            const container = document.getElementById("warning-container");
+
+            const div = document.createElement("div");
+            div.classList.add("route-warning");
+
+            const text = document.createElement("span");
+            text.innerHTML = `<strong>Warning:</strong> ${message}`;
+
+            const closeBtn = document.createElement("button");
+            closeBtn.innerHTML = "&times;";
+            closeBtn.addEventListener("click", () => div.remove());
+
+            div.appendChild(text);
+            div.appendChild(closeBtn);
+
+            container.appendChild(div);
+        }
+
+        function clearWarnings(){
+            var warnings = document.getElementsByClassName('route-warning');
+
+            while(warnings[0]) {
+                warnings[0].parentNode.removeChild(warnings[0]);
+            }
+        }
+
+        function decimalToDateTime(refTime, decimal) {
+            return refTime.set({hours: Math.floor(decimal), minutes: Math.ceil(60 * (decimal % 1))});
+        }
+
     </script>
 
     <style>
@@ -650,5 +719,27 @@
         .btn-group .btn {
             padding: 0.25rem 0.5rem;
         }
+
+        .route-warning {
+            border-left: 4px solid #dc3545;
+            background-color: #f8d7da;
+            color: #842029;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .route-warning button {
+            border: none;
+            background: transparent;
+            font-size: 1.2rem;
+            line-height: 1;
+            cursor: pointer;
+            color: #842029;
+        }
+
     </style>
 }
