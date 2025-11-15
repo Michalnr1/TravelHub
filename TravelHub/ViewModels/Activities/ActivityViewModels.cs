@@ -131,6 +131,14 @@ public class SpotDetailsViewModel : ActivityDetailsViewModel
     public List<TransportBasicViewModel>? TransportsFrom { get; set; }
 }
 
+public class AccommodationBasicViewModel : SpotDetailsViewModel
+{
+    public DateTime CheckIn { get; set; }
+    public DateTime CheckOut { get; set; }
+    public decimal CheckInTime { get; set; }
+    public decimal CheckOutTime { get; set; }
+}
+
 // Select list items
 public class CategorySelectItem
 {

@@ -231,7 +231,7 @@
             points.forEach((point, i) => {
               let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
 
-              if (point.order == 0) {
+              if (@Json.Serialize(Model.IsGroup)) {
                   var iconImage = new google.maps.marker.PinElement({});
               } else {
                   let glyphLabel = document.createElement("div");
@@ -323,7 +323,6 @@
             clearTravelCards();
 
             let startTime = getStartDatetime();
-            let time = startTime;
 
             let baseTravelMode = travelMode == 'TRANSIT' ? 'WALKING' : travelMode;
             let route = await fetchBaseRoute(baseTravelMode);
@@ -334,13 +333,17 @@
 
             clearPolylines();
 
-            if (travelMode === 'WALKING' || travelMode === 'DRIVING') {
-                time = await renderSimpleRoute(route, travelMode, time);
-            } else if (travelMode === 'TRANSIT') {
-                time = await renderTransitRoute(route, time);
-            }
+            legs = route.routes[0].legs;
 
-            showRouteSummary(startTime, time);
+            legs = await processLegs(legs, travelMode == 'TRANSIT', startTime);
+
+            console.log(JSON.stringify(legs));
+            console.log(JSON.stringify(activities));
+
+            await renderRoute(legs, travelMode, startTime);
+
+            let endTime = activities[activities.length - 1].endTime;
+            showRouteSummary(startTime, endTime);
         }
 
         async function fetchBaseRoute(travelMode) {
@@ -352,72 +355,36 @@
             return await getRoute(points[0], points[points.length - 1], intermediates, travelMode);
         }
 
-        async function renderSimpleRoute(route, travelMode, time) {
-            const { Polyline } = await google.maps.importLibrary("maps");
-            let spotNum = 0;
-
-            for (let i = 0; i < activities.length; i++) {
-                time = addActivityDuration(time, activities[i]);
-
-                if (activities[i].type == 'Spot') {
-                    if (spotNum > 0) {
-                        const leg = route.routes[0].legs[spotNum - 1];
-                        const durationMillis = getSpotDuration(points[spotNum - 1], leg);
-
-                        const locationCard = document.getElementById(`spot-${spotNum}`);
-                        const card = buildTravelCard(spotNum - 1, durationMillis, travelMode);
-                        locationCard.before(card);
-
-                        const polyline = new Polyline({ map, path: leg.path });
-                        setPolylineEventBindings(polyline, card);
-                        polylines.push(polyline);
-
-                        time = time.plus({ milliseconds: parseInt(durationMillis) });
-                    }
-                    spotNum++;
-                }
-            }
-
-            return time;
-        }
-
-        async function renderTransitRoute(route, time) {
-            const { Polyline } = await google.maps.importLibrary("maps");
+        async function processLegs(legs, useTransit, time){
             const threshold = parseInt(document.getElementById('transit-threshold').value) * 60 * 1000;
             let spotNum = 0;
-
+            const newLegs = [];
             for (let i = 0; i < activities.length; i++) {
                 if (activities[i].type === 'Spot') {
                     if (spotNum > 0) {
-                        const leg = route.routes[0].legs[spotNum - 1];
-                        const locationCard = document.getElementById(`spot-${spotNum}`);
-
-                        if (!hasFixedDuration(points[spotNum - 1]) && leg.durationMillis > threshold) {
-                            const card = buildTravelCard(spotNum - 1);
-                            locationCard.before(card);
-                            time = await renderTransitSteps(leg, time, card);
+                        const leg = legs[spotNum - 1];
+                        let newLeg = leg;
+                        if (useTransit && !hasFixedDuration(points[spotNum - 1]) && leg.durationMillis > threshold) {
+                            newLeg = await getTransitLeg(leg, time);
+                            newLeg.type = 'Transit';
                         } else {
-                            const durationMillis = getSpotDuration(points[spotNum - 1], leg);
-                            const card = buildTravelCard(spotNum - 1, durationMillis, 'WALKING');
-                            locationCard.before(card);
-
-                            const polyline = new Polyline({ map, path: leg.path });
-                            setPolylineEventBindings(polyline, card);
-                            polylines.push(polyline);
-
-                            time = time.plus({ milliseconds: parseInt(durationMillis) });
+                            newLeg.type = 'Simple';
                         }
+                        const durationMillis = getTransportDuration(points[spotNum - 1], newLeg);
+                        time = time.plus({ milliseconds: parseInt(durationMillis) });
+                        newLegs.push(newLeg);
                     }
                     spotNum++;
                 }
+                activities[i].begTime = time;
                 time = addActivityDuration(time, activities[i]);
+                activities[i].endTime = time;
             }
 
-            return time;
+            return newLegs;
         }
 
-        async function renderTransitSteps(leg, time, card) {
-            const { Polyline } = await google.maps.importLibrary("maps");
+        async function getTransitLeg(leg, time) {
             const transitRoute = await getRoute(
                 { latitude: leg.startLocation.lat, longitude: leg.startLocation.lng },
                 { latitude: leg.endLocation.lat, longitude: leg.endLocation.lng },
@@ -425,17 +392,46 @@
                 'TRANSIT',
                 time
             );
+            return transitRoute.routes[0].legs[0];
+        }
+
+        async function renderRoute(legs, travelMode, startTime) {
+            const { Polyline } = await google.maps.importLibrary("maps");
+            time = startTime;
+            for (let i = 0; i < legs.length; i++) {
+                const leg = legs[i];
+                const locationCard = document.getElementById(`spot-${i+1}`);
+
+                if (leg.type == 'Transit') {
+                    const card = buildTravelCard(i);
+                    locationCard.before(card);
+                    time = await renderTransitSteps(leg, card);
+                } else {
+                    const durationMillis = getTransportDuration(points[i], leg);
+                    const card = buildTravelCard(i, durationMillis, travelMode);
+                    locationCard.before(card);
+
+                    const polyline = new Polyline({ map, path: leg.path });
+                    setPolylineEventBindings(polyline, card);
+                    polylines.push(polyline);
+
+                    time = time.plus({ milliseconds: parseInt(durationMillis) });
+                }
+            }
+        }
+
+        async function renderTransitSteps(leg, card) {
+            const { Polyline } = await google.maps.importLibrary("maps");
 
             let partialDurationMillis = 0;
 
-            transitRoute.routes[0].legs[0].steps.forEach(step => {
+            leg.steps.forEach(step => {
                 if (step.travelMode === 'WALKING') {
                     const polyline = new Polyline({ map, path: step.path });
                     polylines.push(polyline);
                     setPolylineEventBindings(polyline, card);
 
                     partialDurationMillis += step.staticDurationMillis;
-                    time = time.plus({ milliseconds: parseInt(step.staticDurationMillis) });
                 } else if (step.travelMode === 'TRANSIT') {
                     const polyline = new Polyline({ map, path: step.path, strokeColor: 'red' });
                     polylines.push(polyline);
@@ -448,19 +444,14 @@
                     addIconToTravelCard(card, step.transitDetails.transitLine.vehicle.iconURL);
                     addTransitEntryToTravelCard(card, step);
                     setPolylineEventBindings(polyline, card);
-
-                    time = luxon.DateTime.fromJSDate(step.transitDetails.arrivalTime);
                 }
             });
-
             if (partialDurationMillis > 0) {
                 addEntryToTravelCard(card, `...${durationStringMillis(partialDurationMillis)} walking...<br>`);
             }
-
-            return time;
         }
 
-        function getSpotDuration(point, leg) {
+        function getTransportDuration(point, leg) {
             if (Object.hasOwn(point, 'fixedDurationFrom')) {
                 return point.fixedDurationFrom * 3600 * 1000;
             }

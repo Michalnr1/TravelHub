@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Transports;
 using TravelHub.Web.ViewModels.Trips;
@@ -131,9 +132,21 @@ public class DaysController : Controller
                                     ToSpotId = t.ToSpotId,
                                 }).ToList(),
                             }).ToList(),
-
+            PreviousAccommodation = BuildAccommodationBasicViewModel(trip.Days!.Where(d => d.Number == day!.Number - 1).FirstOrDefault()),
+            NextAccommodation = BuildAccommodationBasicViewModel(day)
 
         };
+
+        if (viewModel.PreviousAccommodation != null )
+        {
+            viewModel.Spots.Insert(0, viewModel.PreviousAccommodation);
+        }
+
+        if (viewModel.NextAccommodation != null)
+        {
+            viewModel.NextAccommodation.Order = viewModel.Spots.Count; 
+            viewModel.Spots.Add(viewModel.NextAccommodation);
+        }
 
         ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
 
@@ -143,6 +156,38 @@ public class DaysController : Controller
         ViewData["Longitude"] = lng;
 
         return View(viewModel);
+    }
+
+    private AccommodationBasicViewModel? BuildAccommodationBasicViewModel(Day? day)
+    {
+        if (day == null || day.Accommodation == null) { return null; }
+        Accommodation a = day.Accommodation;
+        return new AccommodationBasicViewModel
+        {
+            Id = a.Id,
+            Name = a.Name,
+            Description = a.Description ?? string.Empty,
+            Duration = a.Duration,
+            DurationString = ConvertDecimalToTimeString(a.Duration),
+            Order = a.Order,
+            CategoryName = a.Category?.Name,
+            TripName = a.Trip?.Name ?? string.Empty,
+            Type = "Spot",
+            TransportsFrom = a.TransportsFrom?.Select(t => new TransportBasicViewModel
+            {
+                Name = t.Name,
+                Duration = t.Duration,
+                FromSpotId = t.FromSpotId,
+                ToSpotId = t.ToSpotId,
+            }).ToList(),
+            DayName = a.Day?.Name,
+            CheckIn = a.CheckIn,
+            CheckInTime = a.CheckInTime,
+            CheckOut = a.CheckOut,
+            CheckOutTime = a.CheckOutTime,
+            Latitude = a.Latitude,
+            Longitude = a.Longitude,
+        };
     }
 
     // GET: Days/Edit/5
