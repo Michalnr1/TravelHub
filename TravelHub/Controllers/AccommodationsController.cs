@@ -392,6 +392,7 @@ public class AccommodationsController : Controller
             CheckOutTime = 10.0m,
             CheckInTimeString = "14:00",
             CheckOutTimeString = "10:00",
+            TripCurrency = trip.CurrencyCode
         };
 
         await PopulateSelectListsForTrip(viewModel, tripId);
@@ -794,6 +795,7 @@ public class AccommodationsController : Controller
             viewModel.CheckOut = accommodation.CheckOut;
             viewModel.CheckInTime = accommodation.CheckInTime;
             viewModel.CheckOutTime = accommodation.CheckOutTime;
+            viewModel.TripCurrency = await _tripService.GetTripCurrencyAsync(accommodation.TripId);
         }
 
         await PopulateSelectLists(viewModel);

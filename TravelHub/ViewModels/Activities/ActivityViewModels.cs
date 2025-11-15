@@ -100,6 +100,7 @@ public class SpotCreateEditViewModel : ActivityCreateEditViewModel
 
     // Select lists dla Expense
     public List<CurrencySelectGroupItem> CurrenciesGroups { get; set; } = new List<CurrencySelectGroupItem>();
+    public CurrencyCode TripCurrency { get; set; }
 
     public Rating? Rating { get; set; }
 }

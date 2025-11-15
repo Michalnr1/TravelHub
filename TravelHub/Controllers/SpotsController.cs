@@ -409,7 +409,8 @@ public class SpotsController : Controller
         {
             TripId = tripId,
             Order = await CalculateNextOrder(dayId),
-            DayId = dayId
+            DayId = dayId,
+            TripCurrency = trip.CurrencyCode
         };
 
         await PopulateSelectListsForTrip(viewModel, tripId);
@@ -623,6 +624,7 @@ public class SpotsController : Controller
             viewModel.Latitude = spot.Latitude;
             // viewModel.Cost = spot.Cost;
             viewModel.Rating = spot.Rating;
+            viewModel.TripCurrency = spot.Trip!.CurrencyCode;
         }
 
         await PopulateSelectLists(viewModel, viewModel.TripId);

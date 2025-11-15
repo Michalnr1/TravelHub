@@ -367,6 +367,7 @@ public class ExpensesController : Controller
 
         var viewModel = await CreateExpenseCreateEditViewModel();
         viewModel.TripId = tripId;
+        viewModel.TripCurrency = trip.CurrencyCode;
 
         // Get people from the trip (assuming you have a way to get trip participants)
         var tripPeople = await GetPeopleFromTrip(tripId);
@@ -447,6 +448,7 @@ public class ExpensesController : Controller
 
         var viewModel = await CreateExpenseCreateEditViewModel();
         viewModel.TripId = tripId;
+        viewModel.TripCurrency = trip.CurrencyCode;
 
         // Get people from the trip
         var tripPeople = await GetPeopleFromTrip(tripId);
@@ -604,6 +606,10 @@ public class ExpensesController : Controller
             {
                 viewModel.SelectedCurrencyCode = expense.ExchangeRate.CurrencyCodeKey;
                 viewModel.ExchangeRateValue = expense.ExchangeRate.ExchangeRateValue;
+            } else
+            {
+                viewModel.SelectedCurrencyCode = expense.Trip!.CurrencyCode;
+                viewModel.ExchangeRateValue = 1;
             }
 
             if (!expense.IsEstimated && string.IsNullOrEmpty(expense.TransferredToId))

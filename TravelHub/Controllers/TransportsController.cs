@@ -325,7 +325,8 @@ public class TransportsController : Controller
 
         var viewModel = new TransportCreateEditViewModel
         {
-            TripId = tripId
+            TripId = tripId,
+            TripCurrency = trip.CurrencyCode
         };
 
         await PopulateSelectListsForTrip(viewModel, tripId);

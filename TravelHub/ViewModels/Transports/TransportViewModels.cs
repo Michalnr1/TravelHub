@@ -90,6 +90,7 @@ public class TransportCreateEditViewModel
     [Display(Name = "Exchange Rate (to Base)")]
     [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]
     public decimal? ExpenseExchangeRateValue { get; set; } = 1.0M;
+    public CurrencyCode TripCurrency {  get; set; }
 
     // Select lists
     public List<TripSelectItem> Trips { get; set; } = new List<TripSelectItem>();
