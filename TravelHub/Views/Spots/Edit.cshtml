@@ -3,6 +3,10 @@
 
 @{
     ViewData["Title"] = "Edit Spot";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? Url.Action("Details", "Trips", new { id = Model.TripId });
+    var apiKey = ViewData["GoogleApiKey"];
+    var startLat = ViewData["Latitude"] ?? Model.Latitude;
+    var startLng = ViewData["Longitude"] ?? Model.Longitude;
 }
 
 <h1>Edit Spot</h1>
@@ -13,102 +17,173 @@
         <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
-            <input type="hidden" asp-for="Order"/>
+            <input type="hidden" asp-for="Order" />
+            <input type="hidden" asp-for="TripId" />
 
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
+            <!-- Sekcja podstawowych danych Spot -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Spot Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
+                        <label asp-for="Name" class="control-label"></label>
+                        <input asp-for="Name" class="form-control" id="name-input" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
 
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
+                    <div class="form-group mb-3">
+                        <label asp-for="Description" class="control-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
 
-            <div class="form-group">
-                <label asp-for="DurationString" class="control-label"></label>
-                <input asp-for="DurationString" class="form-control" type="time" step="300" />
-                <span asp-validation-for="DurationString" class="text-danger"></span>
-            </div>
+                    <div class="form-group mb-3">
+                        <label asp-for="DurationString" class="control-label"></label>
+                        <input asp-for="DurationString" class="form-control" type="time" step="300" />
+                        <span asp-validation-for="DurationString" class="text-danger"></span>
+                    </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="Latitude" class="control-label"></label>
-                        <input asp-for="Latitude" class="form-control" type="number" step="0.0001" />
-                        <span asp-validation-for="Latitude" class="text-danger"></span>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Latitude" class="control-label"></label>
+                                <input asp-for="Latitude" class="form-control" type="number" id="lat-input" step="0.0001" />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Longitude" class="control-label"></label>
+                                <input asp-for="Longitude" class="form-control" type="number" id="lon-input" step="0.0001" />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Rating" class="control-label"></label>
+                        <select asp-for="Rating" class="form-control">
+                            <option value="">-- Select Rating (Optional) --</option>
+                            @foreach (var rating in Enum.GetValues(typeof(Rating)))
+                            {
+                                <option value="@rating" selected="@(rating.Equals(Model.Rating))">@rating</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Rating" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="CategoryId" class="control-label"></label>
+                        <select asp-for="CategoryId" class="form-control">
+                            <option value="">-- Select Category --</option>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category.Id" selected="@(category.Id == Model.CategoryId)">@category.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="DayId" class="control-label"></label>
+                        <select asp-for="DayId" class="form-control">
+                            <option value="">-- No specific day --</option>
+                            @foreach (var day in Model.Days)
+                            {
+                                <option value="@day.Id" selected="@(day.Id == Model.DayId)">@day.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="DayId" class="text-danger"></span>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label asp-for="Longitude" class="control-label"></label>
-                        <input asp-for="Longitude" class="form-control" type="number" step="0.0001" />
-                        <span asp-validation-for="Longitude" class="text-danger"></span>
+            </div>
+
+            <!-- Sekcja Expense -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Estimated Spot Cost (Optional)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> This is an estimated cost for planning purposes. The expense category will be automatically set to match the spot category. You can skip this section if you don't know the cost yet.
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ExpenseValue" class="form-label">Estimated Cost</label>
+                                <input asp-for="ExpenseValue" class="form-control" type="number" step="0.01" />
+                                <span asp-validation-for="ExpenseValue" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ExpenseCurrencyCode" class="form-label">Currency</label>
+                                <select asp-for="ExpenseCurrencyCode" class="form-control" id="currencySelect">
+                                    <option value="">-- Select Currency --</option>
+                                    @{
+                                        var usedCurrencies = Model.CurrenciesGroups.Where(c => c.IsUsed).ToList();
+                                        var allCurrencies = Model.CurrenciesGroups.Where(c => !c.IsUsed).ToList();
+                                    }
+
+                                    @if (usedCurrencies.Any())
+                                    {
+                                        <optgroup label="-- Used Currency (Currency, Rate) --">
+                                            @foreach (var currency in usedCurrencies)
+                                            {
+                                                bool isSelected = (Model.ExpenseCurrencyCode == currency.Key && Model.ExpenseExchangeRateValue == currency.ExchangeRate);
+                                                <option value="@currency.Key"
+                                                        data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                        selected="@isSelected">
+                                                    @currency.DropdownText
+                                                </option>
+                                            }
+                                        </optgroup>
+                                    }
+
+                                    <optgroup label="-- All currencies --">
+                                        @foreach (var currency in allCurrencies)
+                                        {
+                                            bool isSelected = (Model.ExpenseCurrencyCode == currency.Key && Model.ExpenseExchangeRateValue == 1.0M);
+                                            <option value="@currency.Key"
+                                                    selected="@isSelected">
+                                                @currency.DropdownText
+                                            </option>
+                                        }
+                                    </optgroup>
+                                </select>
+                                <span asp-validation-for="ExpenseCurrencyCode" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ExpenseExchangeRateValue" class="form-label">Exchange Rate (to Base)</label>
+                                <input asp-for="ExpenseExchangeRateValue" class="form-control" type="number" step="0.000001" />
+                                <span asp-validation-for="ExpenseExchangeRateValue" class="text-danger"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            @* <div class="form-group">
-                <label asp-for="Cost" class="control-label"></label>
-                <input asp-for="Cost" class="form-control" type="number" step="0.01" />
-                <span asp-validation-for="Cost" class="text-danger"></span>
-            </div> *@
-
-            <div class="form-group">
-                <label asp-for="Rating" class="control-label"></label>
-                <select asp-for="Rating" class="form-control">
-                    <option value="">-- Select Rating (Optional) --</option>
-                    @foreach (var rating in Enum.GetValues(typeof(Rating)))
-                    {
-                        <option value="@rating" selected="@(rating.Equals(Model.Rating))">@rating</option>
-                    }
-                </select>
-                <span asp-validation-for="Rating" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="CategoryId" class="control-label"></label>
-                <select asp-for="CategoryId" class="form-control">
-                    <option value="">-- Select Category --</option>
-                    @foreach (var category in Model.Categories)
-                    {
-                        <option value="@category.Id" selected="@(category.Id == Model.CategoryId)">@category.Name</option>
-                    }
-                </select>
-                <span asp-validation-for="CategoryId" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="TripId" class="control-label"></label>
-                <select asp-for="TripId" class="form-control" id="TripId">
-                    <option value="">-- Select Trip --</option>
-                    @foreach (var trip in Model.Trips)
-                    {
-                        <option value="@trip.Id" selected="@(trip.Id == Model.TripId)">@trip.Name</option>
-                    }
-                </select>
-                <span asp-validation-for="TripId" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="DayId" class="control-label"></label>
-                <select asp-for="DayId" class="form-control" id="DayId">
-                    <option value="">-- Select Day --</option>
-                    @foreach (var day in Model.Days)
-                    {
-                        <option value="@day.Id" data-tripid="@day.TripId" selected="@(day.Id == Model.DayId)">@day.Name</option>
-                    }
-                </select>
-                <span asp-validation-for="DayId" class="text-danger"></span>
             </div>
 
             <div class="form-group mt-3">
-                <input type="submit" value="Save" class="btn btn-primary" />
-                <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">Back to trip</a>
+                <input type="submit" value="Save Changes" class="btn btn-primary" />
+                <a href="@returnUrl" class="btn btn-secondary">Back to Trip</a>
             </div>
         </form>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Map</h5>
+            </div>
+            <div class="card-body">
+                <div class="place-autocomplete-card" id="card"></div>
+                <div id="map" style="height:500px;width:100%;margin-top:10px;"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -116,20 +191,190 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script async
+            src="https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places&callback=initMap">
+    </script>
+
     <script>
-        $(document).ready(function() {
-            // Filter days based on selected trip
-            function filterDays() {
-                var tripId = $('#TripId').val();
-                $('#DayId option').show();
-                if (tripId) {
-                    $('#DayId option[data-tripid!="' + tripId + '"]').hide();
-                    $('#DayId option[value=""]').show();
+        $(document).ready(function () {
+            var $currencySelect = $('#currencySelect');
+            var $exchangeRateInput = $('#ExpenseExchangeRateValue');
+            var tripCurrency = "@Html.Raw(Model.TripCurrency)";
+
+            function setExchangeRate(selectedOption) {
+                var rate = selectedOption.data('rate');
+                if (rate) {
+                    $exchangeRateInput.val(parseFloat(rate).toFixed(6));
+                } else {
+                    fetchExchangeRate(selectedOption.val());
                 }
             }
 
-            $('#TripId').change(filterDays);
-            filterDays(); // Initial filter on page load
+            function fetchExchangeRate(target){
+                $.ajax({
+                  url: "/Expenses/ExchangeRate",
+                  type: "get",
+                  data: {
+                      from: target,
+                      to: tripCurrency
+                  },
+                  success: function( result ) {
+                    $exchangeRateInput.val(result);
+                  }
+                });
+            }
+
+            // Ustaw domyślny kurs po załadowaniu strony tylko jeśli waluta jest wybrana
+            var $initialSelectedOption = $currencySelect.find('option:selected');
+            if ($initialSelectedOption.length > 0 && $initialSelectedOption.val() !== '') {
+                if ($exchangeRateInput.val() === '' || $exchangeRateInput.val() === '0') {
+                    setExchangeRate($initialSelectedOption);
+                }
+            }
+
+            // Obsługa zmiany waluty
+            $currencySelect.on('change', function () {
+                var $selected = $(this).find('option:selected');
+                if ($selected.val() !== '') {
+                    setExchangeRate($selected);
+                }
+            });
         });
+
+        let map;
+
+        let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
+
+        async function initMap() {
+            // Request needed libraries.
+            const { Place } = await google.maps.importLibrary("places");
+            const {AdvancedMarkerElement} = await google.maps.importLibrary("marker");
+
+            // Initialize the map.
+            map = new google.maps.Map(document.getElementById("map"), {
+                    center: center,
+                    zoom: 12,
+                    mapId: 'DEMO_MAP_ID'
+            });
+
+            const placeAutocomplete =
+            new google.maps.places.PlaceAutocompleteElement();
+
+            placeAutocomplete.id = "start";
+            placeAutocomplete.locationBias = {center : center, radius : 5000};
+            const card = document.getElementById("card");
+
+            card.appendChild(placeAutocomplete);
+            map.controls[google.maps.ControlPosition.TOP_LEFT].push(card);
+
+            marker = new AdvancedMarkerElement({
+               map,
+            });
+            infoWindow = new google.maps.InfoWindow({});
+            marker.addListener("click", () => {
+              if (infoWindow.isOpen) {
+                  infoWindow.close();
+              } else {
+                  infoWindow.open(map, marker);
+              }
+            });
+
+            // Set initial marker position if coordinates exist
+            if (@Html.Raw(startLat) && @Html.Raw(startLng)) {
+                marker.position = center;
+                let content =
+                    '<div id="infowindow-content">' +
+                    '<span id="place-displayname" class="title">' +
+                    '@Html.Raw(Model.Name)' +
+                    '</span><br />' +
+                    '<span id="place-coords">' +
+                    @Html.Raw(startLat) + ' ' + @Html.Raw(startLng) +
+                    '</span>' +
+                    '</div>';
+                updateInfoWindow(content, center);
+            }
+
+            placeAutocomplete.addEventListener("gmp-select", async ( {placePrediction} ) => {
+                const place = placePrediction.toPlace();
+                await place.fetchFields({
+                    fields: ["displayName", "formattedAddress", "location"],
+                });
+                if (place.viewport) {
+                    map.fitBounds(place.viewport);
+                } else {
+                    map.setCenter(place.location);
+                    map.setZoom(13);
+                }
+
+                let content =
+                    '<div id="infowindow-content">' +
+                    '<span id="place-displayname" class="title">' +
+                    place.displayName +
+                    '</span><br />' +
+                    '<span id="place-address">' +
+                    place.formattedAddress +
+                    '</span><br />' +
+                    '<span id="place-coords">' +
+                    place.location.lat() + ' ' + place.location.lng() +
+                    '</span>' +
+                    '</div>';
+
+                updateInfoWindow(content, place.location);
+                marker.position = place.location;
+
+                document.getElementById("name-input").value = place.displayName;
+                document.getElementById("lat-input").value = Math.round(place.location.lat() * 10000) / 10000;
+                document.getElementById("lon-input").value = Math.round(place.location.lng() * 10000) / 10000;
+            });
+
+            map.addListener("center_changed", async (event) => {
+                placeAutocomplete.locationBias = {center : map.center, radius : 5000};
+            });
+
+            map.addListener("click", async (mapsMouseEvent) => {
+                if (mapsMouseEvent.placeId){
+                        let place = new Place({
+                            id: mapsMouseEvent.placeId
+                        });
+                        mapsMouseEvent.stop();
+                        await place.fetchFields({ fields: ['displayName'] });
+                        document.getElementById("name-input").value = place.displayName;
+                        let content =
+                            '<div id="infowindow-content">' +
+                            '<span id="place-displayname" class="title">' +
+                            place.displayName +
+                            '</span><br />' +
+                            '<span id="place-coords">' +
+                            mapsMouseEvent.latLng.toJSON().lat + ' ' + mapsMouseEvent.latLng.toJSON().lng +
+                            '</span>' +
+                            '</div>';
+                        updateInfoWindow(content, mapsMouseEvent.latLng);
+                } else {
+                    let content =
+                        '<span id="place-coords">' +
+                        JSON.stringify(mapsMouseEvent.latLng.toJSON().lat, null, 2) +
+                        ", " +
+                        JSON.stringify(mapsMouseEvent.latLng.toJSON().lng, null, 2) +
+                        '</span>' +
+                        '</div>';
+                    updateInfoWindow(content, mapsMouseEvent.latLng);
+                }
+
+                marker.position = mapsMouseEvent.latLng.toJSON();
+                document.getElementById("lat-input").value = Math.round(mapsMouseEvent.latLng.toJSON().lat * 10000) / 10000;
+                document.getElementById("lon-input").value = Math.round(mapsMouseEvent.latLng.toJSON().lng * 10000) / 10000;
+            });
+        }
+
+        function updateInfoWindow(content, center) {
+            infoWindow.setContent(content);
+            infoWindow.setPosition(center);
+            infoWindow.open({
+                map,
+                anchor: marker,
+                shouldFocus: false,
+            });
+        }
     </script>
 }

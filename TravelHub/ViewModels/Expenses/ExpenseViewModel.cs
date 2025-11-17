@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using TravelHub.Domain.Entities;
+using TravelHub.Web.ViewModels.Transports;
 
 namespace TravelHub.Web.ViewModels.Expenses;
 
@@ -8,6 +9,7 @@ public class ExpenseViewModel
     public int Id { get; set; }
     public required string Name { get; set; }
     public decimal Value { get; set; }
+    public decimal EstimatedValue { get; set; }
     public required string PaidByName { get; set; }
     public string? TransferredToName { get; set; }
     public string? CategoryName { get; set; }
@@ -16,11 +18,30 @@ public class ExpenseViewModel
     public CurrencyCode CurrencyCode { get; set; }
     public decimal ExchangeRateValue { get; set; }
 
+    public bool IsEstimated { get; set; }
+    public int Multiplier { get; set; } = 1;
+    public int? SpotId { get; set; }
+    public string? SpotName { get; set; }
+    public int? TransportId { get; set; }
+    public string? TransportName { get; set; }
+
     // Obliczona wartość w walucie podróży
     public decimal ConvertedValue { get; set; }
 
     // Formatowane wartości
     public string FormattedConvertedValue => $"{ConvertedValue:N2}";
+
+    public string StatusBadge
+    {
+        get
+        {
+            if (IsEstimated)
+                return "<span class='badge bg-warning text-dark'><i class='fas fa-clock'></i> Estimated</span>";
+            if (!string.IsNullOrEmpty(TransferredToName))
+                return "<span class='badge bg-info'><i class='fas fa-exchange-alt'></i> Transfer</span>";
+            return "<span class='badge bg-success'><i class='fas fa-check'></i> Actual</span>";
+        }
+    }
 }
 
 public class ExpenseDetailsViewModel
@@ -28,6 +49,7 @@ public class ExpenseDetailsViewModel
     public int Id { get; set; }
     public required string Name { get; set; }
     public decimal Value { get; set; }
+    public decimal EstimatedValue { get; set; }
     public required string PaidByName { get; set; }
     public string? TransferredToName { get; set; }
     public string? CategoryName { get; set; }
@@ -37,6 +59,59 @@ public class ExpenseDetailsViewModel
     public int TripId { get; set; }
     public string? TripName { get; set; }
     public CurrencyCode TripCurrency { get; set; }
+
+    public bool IsEstimated { get; set; }
+    public int Multiplier { get; set; } = 1;
+    public int? SpotId { get; set; }
+    public string? SpotName { get; set; }
+    public int? TransportId { get; set; }
+    public string? TransportName { get; set; }
+    public decimal ExchangeRateValue { get; set; } = 1.0m;
+
+    // Obliczona wartość w walucie podróży
+    public decimal ConvertedValue => Value * ExchangeRateValue;
+    public string FormattedConvertedValue => $"{ConvertedValue:N2} {TripCurrency}";
+
+    public string GetExpenseTypeBadge()
+    {
+        if (IsEstimated)
+            return "<span class='badge bg-warning text-dark'><i class='fas fa-clock'></i> Estimated</span>";
+        if (!string.IsNullOrEmpty(TransferredToName))
+            return "<span class='badge bg-info'><i class='fas fa-exchange-alt'></i> Transfer</span>";
+        return "<span class='badge bg-success'><i class='fas fa-check'></i> Actual</span>";
+    }
+
+    public string GetExpenseTypeDescription()
+    {
+        if (IsEstimated)
+            return "This is a planned/estimated cost for budgeting purposes.";
+        if (!string.IsNullOrEmpty(TransferredToName))
+            return "This is a money transfer between participants.";
+        return "This expense has been actually paid.";
+    }
+
+    public bool HasRelatedEntity => SpotId.HasValue || TransportId.HasValue;
+
+    public string GetRelatedEntityName()
+    {
+        if (SpotId.HasValue) return SpotName ?? "Related Spot";
+        if (TransportId.HasValue) return TransportName ?? "Related Transport";
+        return null;
+    }
+
+    public string GetRelatedEntityType()
+    {
+        if (SpotId.HasValue) return "Spot";
+        if (TransportId.HasValue) return "Transport";
+        return null;
+    }
+
+    public int? GetRelatedEntityId()
+    {
+        if (SpotId.HasValue) return SpotId;
+        if (TransportId.HasValue) return TransportId;
+        return null;
+    }
 }
 
 public class ExpenseParticipantDetail
@@ -93,6 +168,12 @@ public class ExpenseCreateEditViewModel
     public int TripId { get; set; }
     public CurrencyCode TripCurrency { get; set; }
 
+    [Display(Name = "Related Spot")]
+    public int? SpotId { get; set; }
+
+    [Display(Name = "Related Transport")]
+    public int? TransportId { get; set; }
+
     // Helper flag
     public bool IsTransfer => !string.IsNullOrEmpty(TransferredToId);
 
@@ -105,6 +186,8 @@ public class ExpenseCreateEditViewModel
     public List<CategorySelectItem> Categories { get; set; } = new List<CategorySelectItem>();
     public List<PersonSelectItem> People { get; set; } = new List<PersonSelectItem>();
     public List<PersonSelectItem> AllPeople { get; set; } = new List<PersonSelectItem>();
+    public List<SpotSelectItem> Spots { get; set; } = new List<SpotSelectItem>();
+    public List<TransportationTypeSelectItem> Transports { get; set; } = new List<TransportationTypeSelectItem>();
 }
 
 public class ParticipantShareViewModel

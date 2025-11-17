@@ -9,4 +9,6 @@ public interface IExpenseRepository : IGenericRepository<Expense>
     Task<IReadOnlyList<Expense>> GetExpensesByUserIdAsync(string userId);
     Task<IEnumerable<Expense>> GetByTripIdWithParticipantsAsync(int tripId);
     Task<Expense?> GetExpenseByAccommodationIdAsync(int accommodationId);
+    Task<Expense?> GetExpenseForSpotAsync(int spotId);
+    Task<Expense?> GetExpenseForTransportAsync(int transportId);
 }

@@ -161,7 +161,7 @@ namespace TravelHub.Web.Controllers
 
                 return PartialView("_ChatMessagesPartial", messagesVm);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return PartialView("_ChatMessagesPartial", Enumerable.Empty<ChatMessageViewModel>());
             }

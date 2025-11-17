@@ -45,7 +45,7 @@ public class FilesController : Controller
         {
             TempData["ErrorMessage"] = ex.Message;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             TempData["ErrorMessage"] = "There was an error during file upload";
         }

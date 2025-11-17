@@ -216,19 +216,19 @@ public class SpotsController : Controller
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
-        await PopulateSelectLists(viewModel, viewModel.TripId);
+        await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
         return View(viewModel);
     }
 
     // GET: Spots/Edit/5
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int? id, string? returnUrl = null)
     {
         if (id == null)
         {
             return NotFound();
         }
 
-        var spot = await _spotService.GetByIdAsync(id.Value);
+        var spot = await _spotService.GetSpotDetailsAsync(id.Value);
         if (spot == null)
         {
             return NotFound();
@@ -241,13 +241,22 @@ public class SpotsController : Controller
 
         var viewModel = await CreateSpotCreateEditViewModel(spot);
         viewModel.DurationString = ConvertDecimalToTimeString(spot.Duration);
+
+        var trip = await _tripService.GetByIdAsync(spot.TripId);
+        viewModel.TripCurrency = trip.CurrencyCode;
+
+        ViewData["ReturnUrl"] = returnUrl ?? Url.Action("Details", "Trips", new { id = spot.TripId });
+        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
+        ViewData["Latitude"] = spot.Latitude;
+        ViewData["Longitude"] = spot.Longitude;
+
         return View(viewModel);
     }
 
     // POST: Spots/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, SpotCreateEditViewModel viewModel)
+    public async Task<IActionResult> Edit(int id, SpotCreateEditViewModel viewModel, string? returnUrl = null)
     {
         if (id != viewModel.Id)
         {
@@ -307,6 +316,14 @@ public class SpotsController : Controller
 
                 // Aktualizacja Expense
                 await UpdateExpenseForSpot(existingSpot, viewModel);
+
+                TempData["SuccessMessage"] = "Spot updated successfully!";
+
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
+                return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -319,10 +336,17 @@ public class SpotsController : Controller
                     throw;
                 }
             }
-            return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
-        await PopulateSelectLists(viewModel, viewModel.TripId);
+        var trip = await _tripService.GetByIdAsync(viewModel.TripId);
+        viewModel.TripCurrency = trip.CurrencyCode;
+
+        ViewData["ReturnUrl"] = returnUrl;
+        ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
+        ViewData["Latitude"] = viewModel.Latitude;
+        ViewData["Longitude"] = viewModel.Longitude;
+
+        await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
         return View(viewModel);
     }
 
@@ -514,23 +538,23 @@ public class SpotsController : Controller
     [HttpGet]
     public async Task<IActionResult> ExportPdf(int id)
     {
-        var spot = await _spotService.GetByIdAsync(id);
+        var spot = await _spotService.GetSpotDetailsAsync(id);
         if (spot == null)
             return NotFound();
 
         var vm = new SpotDetailsViewModel
         {
             Id = spot.Id,
-            TripName = spot.Trip.Name,
+            TripName = spot.Trip!.Name!,
             Name = spot.Name,
-            Description = spot.Description,
+            Description = spot.Description!,
             Latitude = spot.Latitude,
             Longitude = spot.Longitude,
             Rating = spot.Rating,
             Duration = spot.Duration,
             Order = spot.Order,
-            CategoryName = spot.Category.Name,
-            DayName = spot.Day.Name,
+            CategoryName = spot.Category?.Name,
+            DayName = spot.Day?.Name,
             // fill other properties the Details view expects, e.g. Photos
             Photos = (await _photoService.GetBySpotIdAsync(spot.Id))
                   .Select(p => new PhotoViewModel { Id = p.Id, Name = p.Name, Alt = p.Alt })
@@ -547,7 +571,7 @@ public class SpotsController : Controller
 
     private async Task<string> RenderViewToStringAsync(string viewName, object model)
     {
-        var actionContext = new ActionContext(_httpContextAccessor.HttpContext, this.RouteData, this.ControllerContext.ActionDescriptor);
+        var actionContext = new ActionContext(_httpContextAccessor.HttpContext!, this.RouteData, this.ControllerContext.ActionDescriptor);
 
         using var sw = new StringWriter();
 
@@ -622,12 +646,18 @@ public class SpotsController : Controller
             viewModel.DayId = spot.DayId;
             viewModel.Longitude = spot.Longitude;
             viewModel.Latitude = spot.Latitude;
-            // viewModel.Cost = spot.Cost;
             viewModel.Rating = spot.Rating;
             viewModel.TripCurrency = spot.Trip!.CurrencyCode;
+
+            if (spot.Expense != null)
+            {
+                viewModel.ExpenseValue = spot.Expense.EstimatedValue;
+                viewModel.ExpenseCurrencyCode = spot.Expense.ExchangeRate?.CurrencyCodeKey;
+                viewModel.ExpenseExchangeRateValue = spot.Expense.ExchangeRate?.ExchangeRateValue;
+            }
         }
 
-        await PopulateSelectLists(viewModel, viewModel.TripId);
+        await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
         return viewModel;
     }
 
@@ -675,42 +705,48 @@ public class SpotsController : Controller
 
     private async Task UpdateExpenseForSpot(Spot spot, SpotCreateEditViewModel viewModel)
     {
-        // Tutaj można dodać logikę aktualizacji istniejącego Expense
-        // jeśli będzie potrzebna w przyszłości
-        // Na razie tworzymy tylko nowe Expense, nie aktualizujemy istniejących
-    }
-
-    private async Task PopulateSelectLists(SpotCreateEditViewModel viewModel, int tripId)
-    {
-        // Categories
-        var categories = await _categoryService.GetAllAsync();
-        viewModel.Categories = categories.Select(c => new CategorySelectItem
+        try
         {
-            Id = c.Id,
-            Name = c.Name
-        }).ToList();
+            var existingExpense = await _expenseService.GetExpenseForSpotAsync(spot.Id);
 
-        // Trips
-        var trips = await _tripService.GetAllAsync();
-        viewModel.Trips = trips.Select(t => new TripSelectItem
-        {
-            Id = t.Id,
-            Name = t.Name
-        }).ToList();
+            if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
+            {
+                // Aktualizuj istniejący expense lub utwórz nowy
+                if (existingExpense != null)
+                {
+                    // Pobierz lub utwórz nowy ExchangeRate
+                    var exchangeRateEntry = await _exchangeRateService
+                        .GetOrCreateExchangeRateAsync(
+                            spot.TripId,
+                            viewModel.ExpenseCurrencyCode ?? CurrencyCode.PLN,
+                            viewModel.ExpenseExchangeRateValue ?? 1.0m);
 
-        // Days - filter by selected trip if available
-        var days = await _dayService.GetAllAsync();
-        if (viewModel.TripId > 0)
-        {
-            days = days.Where(d => d.TripId == viewModel.TripId).ToList();
+                    existingExpense.EstimatedValue = viewModel.ExpenseValue.Value;
+                    existingExpense.ExchangeRateId = exchangeRateEntry.Id;
+                    existingExpense.ExchangeRate = exchangeRateEntry;
+
+                    await _expenseService.UpdateAsync(existingExpense);
+                    _logger.LogInformation("Expense updated for spot {SpotId}", spot.Id);
+                }
+                else
+                {
+                    await CreateExpenseForSpot(spot, viewModel);
+                }
+            }
+            else
+            {
+                // Usuń expense jeśli wartość jest pusta lub 0
+                if (existingExpense != null)
+                {
+                    await _expenseService.DeleteAsync(existingExpense.Id);
+                    _logger.LogInformation("Expense deleted for spot {SpotId}", spot.Id);
+                }
+            }
         }
-        viewModel.Days = days.Select(d => new DaySelectItem
+        catch (Exception ex)
         {
-            Id = d.Id,
-            Number = d.Number,
-            Name = d.Name!,
-            TripId = d.TripId
-        }).ToList();
+            _logger.LogError(ex, "Error updating expense for spot {SpotId}", spot.Id);
+        }
     }
 
     private async Task PopulateCurrencySelectList(SpotCreateEditViewModel viewModel, IReadOnlyList<ExchangeRate> usedRates)

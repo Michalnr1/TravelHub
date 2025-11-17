@@ -19,6 +19,8 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
             .Include(e => e.Category)
             .Include(e => e.Trip)
             .Include(e => e.PaidBy)
+            .Include(e => e.Spot)
+            .Include(e => e.Transport)
             .FirstOrDefaultAsync(e => e.Id == expenseId);
     }
 
@@ -50,6 +52,20 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
             .Include(e => e.ExchangeRate)
             .Include(e => e.Participants)
             .FirstOrDefaultAsync(e => e.SpotId == accommodationId);
+    }
+
+    public async Task<Expense?> GetExpenseForSpotAsync(int spotId)
+    {
+        return await _context.Expenses
+            .Include(e => e.ExchangeRate)
+            .FirstOrDefaultAsync(e => e.SpotId == spotId);
+    }
+
+    public async Task<Expense?> GetExpenseForTransportAsync(int transportId)
+    {
+        return await _context.Expenses
+            .Include(e => e.ExchangeRate)
+            .FirstOrDefaultAsync(e => e.TransportId == transportId);
     }
 
     //public async Task<IEnumerable<Expense>> GetByTripIdWithExchangeRatesAsync(int tripId)

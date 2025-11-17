@@ -7,6 +7,7 @@ using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Expenses;
+using TravelHub.Web.ViewModels.Transports;
 
 namespace TravelHub.Web.Controllers;
 
@@ -19,6 +20,8 @@ public class ExpensesController : Controller
     private readonly ITripService _tripService;
     private readonly ITripParticipantService _tripParticipantService;
     private readonly ICurrencyConversionService _currencyConversionService;
+    private readonly ISpotService _spotService;
+    private readonly ITransportService _transportService;
     private readonly UserManager<Person> _userManager;
 
     public ExpensesController(
@@ -28,7 +31,9 @@ public class ExpensesController : Controller
         UserManager<Person> userManager,
         ITripService tripService,
         ITripParticipantService tripParticipantService,
-        ICurrencyConversionService currencyConversionService)
+        ICurrencyConversionService currencyConversionService,
+        ISpotService spotService,
+        ITransportService transportService)
     {
         _expenseService = expenseService;
         _exchangeRateService = exchangeRateService;
@@ -37,6 +42,8 @@ public class ExpensesController : Controller
         _tripService = tripService;
         _tripParticipantService = tripParticipantService;
         _currencyConversionService = currencyConversionService;
+        _spotService = spotService;
+        _transportService = transportService;
     }
 
     // GET: Expenses
@@ -81,6 +88,7 @@ public class ExpensesController : Controller
             Id = expense.Id,
             Name = expense.Name,
             Value = expense.Value,
+            EstimatedValue = expense.EstimatedValue,
             PaidByName = expense.PaidBy?.FirstName + " " + expense.PaidBy?.LastName,
             TransferredToName = expense.TransferredTo?.FirstName + " " + expense.TransferredTo?.LastName,
             CategoryName = expense.Category?.Name,
@@ -89,6 +97,13 @@ public class ExpensesController : Controller
             TripId = expense.TripId,
             TripCurrency = expense.Trip!.CurrencyCode,
             TripName = expense.Trip?.Name,
+            IsEstimated = expense.IsEstimated,
+            Multiplier = expense.Multiplier,
+            SpotId = expense.SpotId,
+            SpotName = expense.Spot?.Name,
+            TransportId = expense.TransportId,
+            TransportName = expense.Transport?.Name,
+            ExchangeRateValue = expense.ExchangeRate!.ExchangeRateValue,
             Participants = expense.Participants?.Select(ep => new ExpenseParticipantDetail
             {
                 FullName = ep.Person?.FirstName + " " + ep.Person?.LastName,
@@ -601,6 +616,8 @@ public class ExpensesController : Controller
             viewModel.TripCurrency = expense.Trip!.CurrencyCode;
             viewModel.IsEstimated = expense.IsEstimated;
             viewModel.Multiplier = expense.Multiplier;
+            viewModel.SpotId = expense.SpotId;
+            viewModel.TransportId = expense.TransportId;
 
             if (expense.ExchangeRate != null)
             {
@@ -714,6 +731,30 @@ public class ExpensesController : Controller
             FullName = $"{p.FirstName} {p.LastName}",
             Email = p.Email!
         }).ToList();
+
+        // Spots
+        if (viewModel.TripId > 0)
+        {
+            var spots = await _spotService.GetSpotsByTripAsync(viewModel.TripId); // Potrzebujesz tej metody
+            viewModel.Spots = spots.Select(s => new SpotSelectItem
+            {
+                Id = s.Id,
+                Name = s.Name,
+                TripId = s.TripId,
+                Coordinates = s.Latitude + " " + s.Longitude
+            }).ToList();
+        }
+
+        // Transports
+        if (viewModel.TripId > 0)
+        {
+            var transports = await _transportService.GetTripTransportsWithDetailsAsync(viewModel.TripId); // Potrzebujesz tej metody
+            viewModel.Transports = transports.Select(t => new TransportationTypeSelectItem
+            {
+                Value = t.Type,
+                Name = t.Name
+            }).ToList();
+        }
     }
 
     private List<ParticipantShareDto> MapSharesToDto(IEnumerable<ParticipantShareViewModel> viewModels)

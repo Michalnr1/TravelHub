@@ -117,15 +117,30 @@ public class TripsController : Controller
                 Id = e.Id,
                 Name = e.Name,
                 Value = e.Value,
+                EstimatedValue = e.EstimatedValue,
                 PaidByName = e.PaidBy != null ? $"{e.PaidBy.FirstName} {e.PaidBy.LastName}" : "Unknown",
                 TransferredToName = e.TransferredTo == null ? null : e.TransferredTo.FirstName + " " + e.TransferredTo.LastName,
                 CategoryName = e.Category?.Name,
                 CurrencyName = e.ExchangeRate?.Name ?? trip.CurrencyCode.GetDisplayName(),
                 CurrencyCode = e.ExchangeRate?.CurrencyCodeKey ?? trip.CurrencyCode,
                 ExchangeRateValue = e.ExchangeRate?.ExchangeRateValue ?? 1m,
-                ConvertedValue = calculation?.ConvertedValue ?? e.Value
+                ConvertedValue = calculation?.ConvertedValue ?? e.Value,
+                IsEstimated = e.IsEstimated,
+                Multiplier = e.Multiplier,
+                SpotId = e.SpotId,
+                SpotName = e.Spot?.Name,
+                TransportId = e.TransportId,
+                TransportName = e.Transport?.Name
             };
         }).ToList();
+
+        var totalActualExpenses = expenseViewModels
+        .Where(e => !e.IsEstimated && string.IsNullOrEmpty(e.TransferredToName))
+        .Sum(e => e.ConvertedValue);
+
+        var totalEstimatedExpenses = expenseViewModels
+            .Where(e => e.IsEstimated)
+            .Sum(e => e.ConvertedValue * e.Multiplier);
 
         var viewModel = new TripDetailViewModel
         {
@@ -136,7 +151,7 @@ public class TripsController : Controller
             EndDate = trip.EndDate,
             IsPrivate = trip.IsPrivate,
             CurrencyCode = trip.CurrencyCode,
-            TotalExpenses = expensesSummary.TotalExpensesInTripCurrency,
+            //TotalExpenses = expensesSummary.TotalExpensesInTripCurrency,
             OwnerId = trip.PersonId,
             OwnerName = $"{trip.Person?.FirstName} {trip.Person?.LastName}",
             IsCurrentUserOwner = UserOwnsTrip(trip),

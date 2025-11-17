@@ -19,4 +19,6 @@ public interface IExpenseService : IGenericService<Expense>
     Task<Expense?> GetExpenseByAccommodationIdAsync(int accommodationId);
     Task<BalanceDto> CalculateBalancesAsync(int tripId);
     Task<BudgetSummaryDto> GetBudgetSummaryAsync(BudgetFilterDto filter);
+    Task<Expense?> GetExpenseForSpotAsync(int spotId);
+    Task<Expense?> GetExpenseForTransportAsync(int transportId);
 }

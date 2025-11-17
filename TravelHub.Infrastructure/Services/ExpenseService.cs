@@ -1,4 +1,5 @@
-﻿using TravelHub.Domain.DTOs;
+﻿using Microsoft.EntityFrameworkCore;
+using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
@@ -320,6 +321,16 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         var expensesInTripCurrency = await ConvertExpensesToTripCurrency(filteredExpenses, trip.CurrencyCode);
 
         return await CalculateBudgetSummary(expensesInTripCurrency, trip, filter);
+    }
+
+    public async Task<Expense?> GetExpenseForSpotAsync(int spotId)
+    {
+        return await _expenseRepository.GetExpenseForSpotAsync(spotId);
+    }
+
+    public async Task<Expense?> GetExpenseForTransportAsync(int transportId)
+    {
+        return await _expenseRepository.GetExpenseForTransportAsync(transportId);
     }
 
     private List<ExpenseParticipant> CalculateAndCreateParticipants(decimal expenseValue, int expenseId, IEnumerable<ParticipantShareDto> participantShares)

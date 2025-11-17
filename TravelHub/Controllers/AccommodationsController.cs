@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Cryptography.Xml;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -153,7 +154,7 @@ public class AccommodationsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        await PopulateSelectLists(viewModel);
+        await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
         return View(viewModel);
     }
 
@@ -165,7 +166,7 @@ public class AccommodationsController : Controller
             return NotFound();
         }
 
-        var accommodation = await _accommodationService.GetByIdAsync(id.Value);
+        var accommodation = await _accommodationService .GetByIdWithDetailsAsync(id.Value);
         if (accommodation == null)
         {
             return NotFound();
@@ -297,7 +298,7 @@ public class AccommodationsController : Controller
         }
 
         // W przypadku błędu, ponownie wypełnij listy i dane widoku
-        await PopulateSelectLists(viewModel);
+        await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
 
         var accommodationForViewData = await _accommodationService.GetByIdAsync(id);
         if (accommodationForViewData != null)
@@ -580,37 +581,23 @@ public class AccommodationsController : Controller
     {
         try
         {
-            // Znajdź istniejący expense dla tego zakwaterowania
             var existingExpense = await _expenseService.GetExpenseByAccommodationIdAsync(accommodation.Id);
 
             if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
             {
-                // Jeśli podano koszt, utwórz lub zaktualizuj expense
-                var currentUser = await _userManager.GetUserAsync(User);
-                if (currentUser == null)
-                {
-                    _logger.LogWarning("Cannot update expense for accommodation: User not found");
-                    return;
-                }
-
-                // Pobierz lub utwórz exchange rate
-                var exchangeRateEntry = await _exchangeRateService
-                    .GetOrCreateExchangeRateAsync(
-                        accommodation.TripId,
-                        viewModel.ExpenseCurrencyCode ?? CurrencyCode.PLN,
-                        viewModel.ExpenseExchangeRateValue ?? 1.0M);
-
+                // Aktualizuj istniejący expense lub utwórz nowy
                 if (existingExpense != null)
                 {
-                    // Aktualizuj istniejący expense
-                    existingExpense.Name = $"{accommodation.Name} (Expense)";
-                    existingExpense.Value = viewModel.ExpenseValue.Value;
-                    existingExpense.PaidById = currentUser.Id;
-                    existingExpense.CategoryId = accommodation.CategoryId;
+                    // Pobierz lub utwórz nowy ExchangeRate
+                    var exchangeRateEntry = await _exchangeRateService
+                        .GetOrCreateExchangeRateAsync(
+                            accommodation.TripId,
+                            viewModel.ExpenseCurrencyCode ?? CurrencyCode.PLN,
+                            viewModel.ExpenseExchangeRateValue ?? 1.0m);
+
+                    existingExpense.EstimatedValue = viewModel.ExpenseValue.Value;
                     existingExpense.ExchangeRateId = exchangeRateEntry.Id;
-                    existingExpense.TripId = accommodation.TripId;
-                    existingExpense.SpotId = accommodation.Id;
-                    existingExpense.IsEstimated = true;
+                    existingExpense.ExchangeRate = exchangeRateEntry;
 
                     await _expenseService.UpdateAsync(existingExpense);
                     _logger.LogInformation("Expense updated for accommodation {AccommodationId}", accommodation.Id);
@@ -796,9 +783,16 @@ public class AccommodationsController : Controller
             viewModel.CheckInTime = accommodation.CheckInTime;
             viewModel.CheckOutTime = accommodation.CheckOutTime;
             viewModel.TripCurrency = await _tripService.GetTripCurrencyAsync(accommodation.TripId);
+
+            if (accommodation.Expense != null)
+            {
+                viewModel.ExpenseValue = accommodation.Expense.EstimatedValue;
+                viewModel.ExpenseCurrencyCode = accommodation.Expense.ExchangeRate!.CurrencyCodeKey;
+                viewModel.ExpenseExchangeRateValue = accommodation.Expense.ExchangeRate!.ExchangeRateValue;
+            }
         }
 
-        await PopulateSelectLists(viewModel);
+        await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
         return viewModel;
     }
 
