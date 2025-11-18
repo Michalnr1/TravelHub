@@ -15,4 +15,11 @@ public interface ITripService : IGenericService<Trip>
     Task<Day> CreateNextDayAsync(int tripId);
     Task<CurrencyCode> GetTripCurrencyAsync(int tripId);
     Task<IEnumerable<Person>> GetAllTripParticipantsAsync(int tripId);
+    Task<Checklist> GetChecklistAsync(int tripId);
+    Task AddChecklistItemAsync(int tripId, string item);
+    Task ToggleChecklistItemAsync(int tripId, string item);
+    Task RemoveChecklistItemAsync(int tripId, string item);
+    Task ReplaceChecklistAsync(int tripId, Checklist newChecklist);
+    Task RenameChecklistItemAsync(int tripId, string oldItem, string newItem);
+    Task AssignParticipantToItemAsync(int tripId, string itemTitle, int? participantId);
 }

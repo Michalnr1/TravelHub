@@ -7,6 +7,7 @@ using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Checklists;
 using TravelHub.Web.ViewModels.Expenses;
 using TravelHub.Web.ViewModels.Transports;
 using TravelHub.Web.ViewModels.Trips;
@@ -1080,6 +1081,119 @@ public class TripsController : Controller
 
         return Ok(countryViewModels);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Checklist(int tripId)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null) return NotFound();
+
+        // map Trip.Checklist and participants to viewmodel
+        var vm = new ChecklistPageViewModel
+        {
+            TripId = tripId,
+            Checklist = trip.Checklist ?? new Checklist(),
+            Participants = trip.Participants.Select(p => new ParticipantVm { Id = p.Id, DisplayName = p.Person?.FirstName + " " + p.Person?.LastName }).ToList()
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignParticipant(int tripId, string itemTitle, int? participantId)
+    {
+        await _tripService.AssignParticipantToItemAsync(tripId, itemTitle, participantId);
+        return RedirectToAction("Checklist", new { tripId });
+    }
+
+    //[HttpGet]
+    //public async Task<IActionResult> Checklist(int tripId)
+    //{
+    //    var checklist = await _tripService.GetChecklistAsync(tripId);
+    //    ViewBag.TripId = tripId;
+    //    return View(checklist);
+    //}
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddChecklistItem(int tripId, string item)
+    {
+        if (string.IsNullOrWhiteSpace(item)) return RedirectToAction("Checklist", new { tripId });
+        await _tripService.AddChecklistItemAsync(tripId, item);
+        return RedirectToAction("Checklist", new { tripId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleChecklistItem(int tripId, string item)
+    {
+        await _tripService.ToggleChecklistItemAsync(tripId, item);
+        return RedirectToAction("Checklist", new { tripId });
+    }
+
+    /// <summary>
+    /// GET: show intermediate edit view for a checklist item.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> EditChecklistItem(int tripId, string item)
+    {
+        // Validate input
+        if (string.IsNullOrEmpty(item))
+            return BadRequest();
+
+        // Optionally check that trip and item exist
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null) return NotFound();
+
+        var model = new EditChecklistItemViewModel
+        {
+            TripId = tripId,
+            OldItem = item,
+            NewItem = item // prefill with current title
+        };
+
+        return View("EditChecklistItem", model);
+    }
+
+    /// <summary>
+    /// POST: commit rename of checklist item.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditChecklistItem(EditChecklistItemViewModel vm)
+    {
+        if (!ModelState.IsValid)
+            return View("EditChecklistItem", vm);
+
+        try
+        {
+            await _tripService.RenameChecklistItemAsync(vm.TripId, vm.OldItem, vm.NewItem);
+            return RedirectToAction("Checklist", new { tripId = vm.TripId });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // show error to user on the same edit page
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View("EditChecklistItem", vm);
+        }
+    }
+
+    // POST via form (non-AJAX)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteChecklistItem(int tripId, string item)
+    {
+        if (string.IsNullOrWhiteSpace(item)) return BadRequest();
+
+        await _tripService.RemoveChecklistItemAsync(tripId, item);
+        return RedirectToAction("Checklist", new { tripId });
+    }
+
 
     private string GetCurrentUserId()
     {

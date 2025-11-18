@@ -663,6 +663,13 @@
        class="btn btn-primary">
         Open Chat
     </a>
+
+    <a asp-controller="Trips"
+       asp-action="Checklist"
+       asp-route-tripId="@Model.Id"
+       class="btn btn-primary">
+        View checklist
+    </a>
 </div>
 
 @section Scripts {

@@ -2,19 +2,23 @@
 
 public class Checklist
 {
-    public Dictionary<string, bool> Items { get; set; } = new();
+    public List<ChecklistItem> Items { get; set; } = new();
 
-    public void AddItem(string item, bool isCompleted = false)
+    public void AddItem(string title, bool isCompleted = false)
     {
-        Items[item] = isCompleted;
+        if (Items.Any(i => i.Title == title))
+            return;
+        Items.Add(new ChecklistItem { Title = title, IsCompleted = isCompleted });
     }
 
-    public void MarkComplete(string item)
+    public void RemoveItem(string title)
     {
-        if (Items.ContainsKey(item))
-            Items[item] = true;
+        var it = Items.FirstOrDefault(i => i.Title == title);
+        if (it != null) Items.Remove(it);
     }
 
-    public int CompletedCount => Items.Count(x => x.Value);
+    public ChecklistItem? Find(string title) => Items.FirstOrDefault(i => i.Title == title);
+
+    public int CompletedCount => Items.Count(x => x.IsCompleted);
     public int TotalCount => Items.Count;
 }

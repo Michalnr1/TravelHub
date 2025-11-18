@@ -1,0 +1,117 @@
+﻿@using TravelHub.Web.ViewModels.Checklists;
+@model ChecklistPageViewModel
+
+<h3>Checklist</h3>
+
+<form method="post" asp-action="AssignParticipant" asp-controller="Trip">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="tripId" value="@Model.TripId" />
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Done</th>
+                <th>Item</th>
+                <th>Assigned</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach(var it in Model.Checklist.Items)
+        {
+            <tr>
+                <td><input type="checkbox" disabled @(it.IsCompleted ? "checked" : "") /></td>
+                <td>@it.Title</td>
+                <td>
+                    @if (it.AssignedParticipantId.HasValue)
+                    {
+                        <span>@it.AssignedParticipantName</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </td>
+                <td>
+                    <!-- Assign form: select participant and submit; each row has its own select + hidden itemTitle -->
+                    <input type="hidden" name="itemTitle" value="@it.Title" />
+                    <select name="participantId" class="form-select d-inline-block" style="width:auto;">
+                        <option value="">(unassign)</option>
+                        @foreach(var p in Model.Participants)
+                        {
+                                <option value="@p.Id" selected="@(it.AssignedParticipantId == p.Id ? "selected" : null)">
+                                    @p.DisplayName
+                                </option>
+                        }
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary">Assign</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</form>
+
+
+
+@* @using TravelHub.Domain.Entities
+
+@model Checklist
+@{
+    var tripId = ViewBag.TripId;
+}
+
+<h3>Checklist</h3>
+
+<ul id="checklist">
+    @foreach (var kv in Model.Items)
+    {
+        <li>
+            <input type="checkbox" class="toggle-item" disabled data-item="@kv.Key" @(kv.Value ? "checked" : "") />
+            <span>@kv.Key</span>
+
+            <form method="post"
+                  asp-controller="Trips"
+                  asp-action="ToggleChecklistItem"
+                  asp-route-tripId="@tripId"
+                  asp-route-item="@kv.Key"
+                  style="display:inline">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn btn-link p-0 m-0">
+                    Toggle
+                </button>
+            </form>
+
+            <!-- Edit link navigates to intermediate edit view (GET) -->
+            <a asp-controller="Trips"
+               asp-action="EditChecklistItem"
+               asp-route-tripId="@tripId"
+               asp-route-item="@kv.Key"
+               class="btn btn-sm btn-link">
+                Edit
+            </a>
+
+            <!-- Delete form (POST) - fallback without JS -->
+            <form method="post" asp-controller="Trips" asp-action="DeleteChecklistItem" asp-route-tripId="@tripId" asp-route-item="@kv.Key" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-link text-danger">Delete</button>
+            </form>
+        </li>
+    }
+</ul>
+
+<form id="addForm" method="post" asp-action="AddChecklistItem" asp-route-tripId="@tripId">
+    <input type="text" name="item" id="newItem" />
+    <button type="submit">Add</button>
+</form>
+
+<div class="mb-3">
+    <!-- Back to Trip details -->
+    <a asp-controller="Trips"
+       asp-action="Details"
+       asp-route-id="@tripId"
+       class="btn btn-secondary">
+        Back to Trip
+    </a>
+</div> *@

@@ -231,4 +231,153 @@ public class TripService : GenericService<Trip>, ITripService
     {
         return await _tripParticipantRepository.GetAllTripParticipantsAsync(tripId);
     }
+
+    public async Task<Checklist> GetChecklistAsync(int tripId)
+    {
+        var trip = await _repository.GetByIdAsync(tripId);
+        if (trip == null) throw new KeyNotFoundException();
+        return trip.Checklist ?? new Checklist();
+    }
+
+    public async Task AddChecklistItemAsync(int tripId, string item)
+    {
+        var trip = await _repository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException();
+        trip.Checklist ??= new Checklist();
+        trip.Checklist.AddItem(item, false);
+
+        await _repository.UpdateAsync(trip);
+    }
+
+    public async Task ToggleChecklistItemAsync(int tripId, string item)
+    {
+        var trip = await _tripRepository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException(nameof(tripId));
+
+        var current = trip.Checklist ?? new Checklist();
+
+        // create deep copy so EF change tracker notices assignment
+        var copy = new Checklist();
+        foreach (var it in current.Items)
+        {
+            copy.Items.Add(new ChecklistItem
+            {
+                Title = it.Title,
+                IsCompleted = it.IsCompleted,
+                AssignedParticipantId = it.AssignedParticipantId,
+                AssignedParticipantName = it.AssignedParticipantName
+            });
+        }
+
+        // find item by title (case-sensitive - adjust if you want case-insensitive)
+        var target = copy.Items.FirstOrDefault(x => x.Title == item);
+
+        if (target != null)
+        {
+            // toggle existing item
+            target.IsCompleted = !target.IsCompleted;
+        }
+        else
+        {
+            // add new item (completed)
+            copy.Items.Add(new ChecklistItem
+            {
+                Title = item,
+                IsCompleted = true
+                // assigned remains null
+            });
+        }
+
+        // assign new instance so EF will persist change
+        trip.Checklist = copy;
+        await _tripRepository.UpdateAsync(trip);
+    }
+
+    public async Task RemoveChecklistItemAsync(int tripId, string item)
+    {
+        var trip = await _repository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException();
+        if (trip.Checklist == null) return;
+        trip.Checklist.RemoveItem(item);
+        await _repository.UpdateAsync(trip);
+    }
+
+    public async Task ReplaceChecklistAsync(int tripId, Checklist newChecklist)
+    {
+        var trip = await _repository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException();
+        trip.Checklist = newChecklist ?? new Checklist();
+        await _repository.UpdateAsync(trip);
+    }
+
+    public async Task RenameChecklistItemAsync(int tripId, string oldItem, string newItem)
+    {
+        if (string.IsNullOrWhiteSpace(newItem))
+            throw new ArgumentException("New title must be provided.", nameof(newItem));
+
+        var trip = await _tripRepository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException(nameof(tripId));
+
+        var current = trip.Checklist ?? new Checklist();
+
+        // deep copy
+        var copy = new Checklist();
+        foreach (var it in current.Items)
+        {
+            copy.Items.Add(new ChecklistItem
+            {
+                Title = it.Title,
+                IsCompleted = it.IsCompleted,
+                AssignedParticipantId = it.AssignedParticipantId,
+                AssignedParticipantName = it.AssignedParticipantName
+            });
+        }
+
+        // find existing by oldTitle
+        var target = copy.Items.FirstOrDefault(x => x.Title == oldItem);
+        if (target == null)
+            throw new KeyNotFoundException("Item to rename not found.");
+
+        // if newTitle equals oldTitle -> nothing to do
+        if (string.Equals(oldItem, newItem, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        // check duplicate (case-sensitive). Use OrdinalIgnoreCase if you want case-insensitive.
+        if (copy.Items.Any(x => x.Title == newItem))
+            throw new InvalidOperationException("An item with the same title already exists.");
+
+        // perform rename (preserve other fields)
+        target.Title = newItem;
+
+        // assign and persist
+        trip.Checklist = copy;
+        await _tripRepository.UpdateAsync(trip);
+    }
+
+    public async Task AssignParticipantToItemAsync(int tripId, string itemTitle, int? participantId)
+    {
+        var trip = await _tripRepository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException();
+        var current = trip.Checklist ?? new Checklist();
+
+        // create deep copy so EF detects change
+        var copy = new Checklist();
+        foreach (var it in current.Items) copy.Items.Add(new ChecklistItem { Title = it.Title, IsCompleted = it.IsCompleted, AssignedParticipantId = it.AssignedParticipantId, AssignedParticipantName = it.AssignedParticipantName });
+
+        var target = copy.Items.FirstOrDefault(i => i.Title == itemTitle);
+        if (target == null) throw new KeyNotFoundException();
+
+        target.AssignedParticipantId = participantId;
+
+        // optionally populate AssignedParticipantName from trip.Participants
+        if (participantId.HasValue)
+        {
+            var p = trip.Participants.FirstOrDefault(x => x.Id == participantId.Value);
+            if (p != null) target.AssignedParticipantName = p.Person?.FirstName + " " + p.Person?.LastName;
+        }
+        else
+        {
+            target.AssignedParticipantName = null;
+        }
+
+        trip.Checklist = copy;
+        await _tripRepository.UpdateAsync(trip);
+    }
+
 }
