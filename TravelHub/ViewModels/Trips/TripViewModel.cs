@@ -68,7 +68,7 @@ public class TripDetailViewModel
     public int PendingInvitationsCount => Participants.Count(p => p.Status == TripParticipantStatus.Pending);
     public int EstimatedExpensesCount => Expenses.Count(e => e.IsEstimated);
     public decimal TotalExpenses => Expenses.Where(e => !e.IsEstimated).Sum(e => e.ConvertedValue);
-    public decimal EstimatedExpensesTotal => Expenses.Where(e => e.IsEstimated).Sum(e => e.ConvertedValue * e.Multiplier);
+    public decimal EstimatedExpensesTotal => Expenses.Where(e => e.IsEstimated).Sum(e => e.ConvertedEstimatedValue * e.Multiplier);
     public decimal CombinedTotal => TotalExpenses + EstimatedExpensesTotal;
 
     // Helper properties

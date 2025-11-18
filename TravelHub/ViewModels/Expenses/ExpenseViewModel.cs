@@ -27,9 +27,11 @@ public class ExpenseViewModel
 
     // Obliczona wartość w walucie podróży
     public decimal ConvertedValue { get; set; }
+    public decimal ConvertedEstimatedValue => EstimatedValue * ExchangeRateValue;
 
     // Formatowane wartości
     public string FormattedConvertedValue => $"{ConvertedValue:N2}";
+    public string FormattedConvertedEstimatedValue => $"{ConvertedEstimatedValue:N2}";
 
     public string StatusBadge
     {
@@ -71,6 +73,8 @@ public class ExpenseDetailsViewModel
     // Obliczona wartość w walucie podróży
     public decimal ConvertedValue => Value * ExchangeRateValue;
     public string FormattedConvertedValue => $"{ConvertedValue:N2} {TripCurrency}";
+    public decimal ConvertedEstimatedValue => EstimatedValue * ExchangeRateValue;
+    public string FormattedConvertedEstimatedValue => $"{ConvertedEstimatedValue:N2} {TripCurrency}";
 
     public string GetExpenseTypeBadge()
     {
