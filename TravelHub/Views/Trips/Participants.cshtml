@@ -55,7 +55,7 @@
                 </div>
 
                 <!-- Lista uczestników -->
-                @if (Model.Participants.Any(p => !p.IsOwner))
+                @if (Model.Participants.Any()) // Ewentualnie filtr do Any(): p => !p.IsOwner
                 {
                     <div class="list-group">
                         @foreach (var participant in Model.Participants.Where(p => !p.IsOwner))

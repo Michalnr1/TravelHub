@@ -46,7 +46,7 @@ public class TripParticipantRepository : GenericRepository<TripParticipant>, ITr
     public async Task<int> GetAcceptedParticipantsCountAsync(int tripId)
     {
         return await _context.TripParticipants
-            .CountAsync(tp => tp.TripId == tripId && tp.Status == TripParticipantStatus.Accepted);
+            .CountAsync(tp => tp.TripId == tripId && (tp.Status == TripParticipantStatus.Accepted || tp.Status == TripParticipantStatus.Owner));
     }
 
     public async Task<IEnumerable<TripParticipant>> GetPendingInvitationsAsync(string personId)
