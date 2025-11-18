@@ -20,6 +20,6 @@ namespace TravelHub.Web.ViewModels.Checklists
         public List<ParticipantVm> Participants { get; set; } = new();
     }
 
-    public class ParticipantVm { public int Id { get; set; } public string DisplayName { get; set; } = ""; }
+    public class ParticipantVm { public string? Id { get; set; } public string DisplayName { get; set; } = ""; }
 
 }

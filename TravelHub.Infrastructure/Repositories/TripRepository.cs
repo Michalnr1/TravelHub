@@ -64,4 +64,12 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
         //}
         throw new NotImplementedException();
     }
+
+    public async Task<Trip?> GetByIdWithParticipantsAsync(int id)
+    {
+        return await _context.Trips
+            .Include(t => t.Participants)
+                .ThenInclude(tp => tp.Person)
+            .FirstOrDefaultAsync(t => t.Id == id);
+    }
 }

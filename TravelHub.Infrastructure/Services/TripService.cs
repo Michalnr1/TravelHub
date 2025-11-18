@@ -250,7 +250,7 @@ public class TripService : GenericService<Trip>, ITripService
 
     public async Task ToggleChecklistItemAsync(int tripId, string item)
     {
-        var trip = await _tripRepository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException(nameof(tripId));
+        var trip = await _tripRepository.GetByIdWithParticipantsAsync(tripId) ?? throw new KeyNotFoundException(nameof(tripId));
 
         var current = trip.Checklist ?? new Checklist();
 
@@ -311,7 +311,7 @@ public class TripService : GenericService<Trip>, ITripService
         if (string.IsNullOrWhiteSpace(newItem))
             throw new ArgumentException("New title must be provided.", nameof(newItem));
 
-        var trip = await _tripRepository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException(nameof(tripId));
+        var trip = await _tripRepository.GetByIdWithParticipantsAsync(tripId) ?? throw new KeyNotFoundException(nameof(tripId));
 
         var current = trip.Checklist ?? new Checklist();
 
@@ -351,33 +351,50 @@ public class TripService : GenericService<Trip>, ITripService
         await _tripRepository.UpdateAsync(trip);
     }
 
-    public async Task AssignParticipantToItemAsync(int tripId, string itemTitle, int? participantId)
+    public async Task AssignParticipantToItemAsync(int tripId, string itemTitle, string? participantId)
     {
-        var trip = await _tripRepository.GetByIdAsync(tripId) ?? throw new KeyNotFoundException();
+        var trip = await _tripRepository.GetByIdWithParticipantsAsync(tripId) ?? throw new KeyNotFoundException();
         var current = trip.Checklist ?? new Checklist();
 
-        // create deep copy so EF detects change
+        // deep copy
         var copy = new Checklist();
-        foreach (var it in current.Items) copy.Items.Add(new ChecklistItem { Title = it.Title, IsCompleted = it.IsCompleted, AssignedParticipantId = it.AssignedParticipantId, AssignedParticipantName = it.AssignedParticipantName });
+        foreach (var it in current.Items)
+            copy.Items.Add(new ChecklistItem
+            {
+                Title = it.Title,
+                IsCompleted = it.IsCompleted,
+                AssignedParticipantId = it.AssignedParticipantId,
+                AssignedParticipantName = it.AssignedParticipantName
+            });
 
         var target = copy.Items.FirstOrDefault(i => i.Title == itemTitle);
         if (target == null) throw new KeyNotFoundException();
 
-        target.AssignedParticipantId = participantId;
-
-        // optionally populate AssignedParticipantName from trip.Participants
-        if (participantId.HasValue)
+        // if participantId is null or empty -> unassign
+        if (string.IsNullOrWhiteSpace(participantId))
         {
-            var p = trip.Participants.FirstOrDefault(x => x.Id == participantId.Value);
-            if (p != null) target.AssignedParticipantName = p.Person?.FirstName + " " + p.Person?.LastName;
+            target.AssignedParticipantId = null;
+            target.AssignedParticipantName = null;
         }
         else
         {
-            target.AssignedParticipantName = null;
+            // optional: validate participant belongs to trip
+            var participant = trip.Participants?.FirstOrDefault(p => (p.Id.ToString() ?? p.PersonId) == participantId);
+            if (participant == null)
+                throw new InvalidOperationException("Participant does not belong to this trip.");
+
+            target.AssignedParticipantId = participantId;
+            target.AssignedParticipantName = participant.Person != null
+                ? $"{participant.Person.FirstName} {participant.Person.LastName}"
+                : participant.PersonId ?? participantId;
         }
 
         trip.Checklist = copy;
         await _tripRepository.UpdateAsync(trip);
     }
 
+    public async Task<Trip?> GetByIdWithParticipantsAsync(int tripId)
+    {
+        return await _tripRepository.GetByIdWithParticipantsAsync(tripId);
+    }
 }

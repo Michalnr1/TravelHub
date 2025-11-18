@@ -1085,7 +1085,8 @@ public class TripsController : Controller
     [HttpGet]
     public async Task<IActionResult> Checklist(int tripId)
     {
-        var trip = await _tripService.GetByIdAsync(tripId);
+        //var trip = await _tripService.GetByIdAsync(tripId);
+        var trip = await _tripService.GetByIdWithParticipantsAsync(tripId);
         if (trip == null) return NotFound();
 
         // map Trip.Checklist and participants to viewmodel
@@ -1093,16 +1094,17 @@ public class TripsController : Controller
         {
             TripId = tripId,
             Checklist = trip.Checklist ?? new Checklist(),
-            Participants = trip.Participants.Select(p => new ParticipantVm { Id = p.Id, DisplayName = p.Person?.FirstName + " " + p.Person?.LastName }).ToList()
+            Participants = trip.Participants.Select(p => new ParticipantVm { Id = p.Id.ToString(), DisplayName = p.Person?.FirstName + " " + p.Person?.LastName }).ToList()
         };
-
+        ViewBag.TripId = tripId;
         return View(vm);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AssignParticipant(int tripId, string itemTitle, int? participantId)
+    public async Task<IActionResult> AssignParticipant(int tripId, string itemTitle, string? participantId)
     {
+        participantId = string.IsNullOrWhiteSpace(participantId) ? null : participantId;
         await _tripService.AssignParticipantToItemAsync(tripId, itemTitle, participantId);
         return RedirectToAction("Checklist", new { tripId });
     }

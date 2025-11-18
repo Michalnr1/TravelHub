@@ -21,5 +21,6 @@ public interface ITripService : IGenericService<Trip>
     Task RemoveChecklistItemAsync(int tripId, string item);
     Task ReplaceChecklistAsync(int tripId, Checklist newChecklist);
     Task RenameChecklistItemAsync(int tripId, string oldItem, string newItem);
-    Task AssignParticipantToItemAsync(int tripId, string itemTitle, int? participantId);
+    Task AssignParticipantToItemAsync(int tripId, string itemTitle, string? participantId);
+    Task<Trip?> GetByIdWithParticipantsAsync(int id);
 }
