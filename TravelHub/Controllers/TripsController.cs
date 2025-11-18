@@ -656,6 +656,7 @@ public class TripsController : Controller
                 trip.IsPrivate = viewModel.IsPrivate;
 
                 await _tripService.UpdateAsync(trip);
+                // Nie koniecznie potrzebne
                 await _tripParticipantService.AddOwnerAsync(trip.Id, trip.PersonId);
 
                 TempData["SuccessMessage"] = "Trip updated successfully!";

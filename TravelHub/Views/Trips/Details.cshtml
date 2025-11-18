@@ -383,15 +383,15 @@
                                             <span class="badge @(expense.IsEstimated ? "bg-warning text-dark" : "bg-success")">
                                                 @if (expense.IsEstimated)
                                                 {
-                                                    @expense.EstimatedValue.ToString("F2") @(" " + expense.CurrencyName)
+                                                    @expense.EstimatedValue.ToString("F2") @(" " + expense.CurrencyCode)
                                                 }
                                                 else
                                                 {
-                                                    @expense.Value.ToString("F2") @(" " + expense.CurrencyName)
+                                                    @expense.Value.ToString("F2") @(" " + expense.CurrencyCode)
                                                 }
                                                 @if (expense.IsEstimated && expense.Multiplier > 1)
                                                 {
-                                                    <text>(Total: @((expense.Value * expense.Multiplier).ToString("F2")) @expense.CurrencyName)</text>
+                                                    <text>(Total: @((expense.EstimatedValue * expense.Multiplier).ToString("F2")) @expense.CurrencyCode)</text>
                                                 }
                                             </span>
                                             @if (!string.IsNullOrEmpty(expense.CategoryName))
