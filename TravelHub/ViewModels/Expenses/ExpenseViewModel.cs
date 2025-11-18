@@ -100,14 +100,14 @@ public class ExpenseDetailsViewModel
     {
         if (SpotId.HasValue) return SpotName ?? "Related Spot";
         if (TransportId.HasValue) return TransportName ?? "Related Transport";
-        return null;
+        return "";
     }
 
     public string GetRelatedEntityType()
     {
         if (SpotId.HasValue) return "Spot";
         if (TransportId.HasValue) return "Transport";
-        return null;
+        return "";
     }
 
     public int? GetRelatedEntityId()

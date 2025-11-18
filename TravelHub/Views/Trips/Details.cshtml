@@ -391,7 +391,7 @@
                                                 }
                                                 @if (expense.IsEstimated && expense.Multiplier > 1)
                                                 {
-                                                    <text>(Total: @((expense.Value * expense.Multiplier).ToString("F2")) @expense.CurrencyCode)</text>
+                                                    <text>(Total: @((expense.EstimatedValue * expense.Multiplier).ToString("F2")) @expense.CurrencyCode)</text>
                                                 }
                                             </span>
                                             @if (!string.IsNullOrEmpty(expense.CategoryName))
