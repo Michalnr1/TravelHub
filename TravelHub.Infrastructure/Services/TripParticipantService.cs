@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces;
 using TravelHub.Domain.Interfaces.Repositories;
@@ -158,17 +159,25 @@ public class TripParticipantService : GenericService<TripParticipant>, ITripPart
 
     public async Task<TripParticipant> AddOwnerAsync(int tripId, string personId)
     {
-        var tripParticipant = new TripParticipant
+        var owner = await _tripParticipantRepository.GetByTripAndPersonAsync(tripId, personId);
+        if (owner == null)
         {
-            TripId = tripId,
-            PersonId = personId,
-            Status = TripParticipantStatus.Owner,
-            JoinedAt = DateTime.UtcNow
-        };
+            var tripParticipant = new TripParticipant
+            {
+                TripId = tripId,
+                PersonId = personId,
+                Status = TripParticipantStatus.Owner,
+                JoinedAt = DateTime.UtcNow
+            };
 
-        var result = await _tripParticipantRepository.AddAsync(tripParticipant);
+            var result = await _tripParticipantRepository.AddAsync(tripParticipant);
 
-        return result;
+            return result;
+        }
+        else
+        {
+            return owner;
+        }
     }
 
 
