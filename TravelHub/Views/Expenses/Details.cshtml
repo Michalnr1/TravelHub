@@ -33,7 +33,7 @@
                     <dd class="col-sm-9">@Model.Name</dd>
 
                     <dt class="col-sm-3">Total Amount</dt>
-                    <dd class="col-sm-9">@Model.Value.ToString("F2") @Model.CurrencyName</dd>
+                    <dd class="col-sm-9">@Model.Value.ToString("F2") @Model.CurrencyKey</dd>
 
                     <dt class="col-sm-3">Paid By</dt>
                     <dd class="col-sm-9">@Model.PaidByName</dd>
@@ -133,7 +133,7 @@
                                                 <span class="badge bg-success ms-2">Paid</span>
                                             }
                                         </td>
-                                        <td class="text-end fw-bold">@participant.ShareAmount.ToString("F2") @Model.CurrencyName</td>
+                                        <td class="text-end fw-bold">@participant.ShareAmount.ToString("F2") @Model.CurrencyKey</td>
                                         <td class="text-end">@participant.SharePercentage.ToString("F1")%</td>
                                         <td class="text-end">
                                             <div class="progress" style="height: 20px; width: 100px; margin-left: auto;">
@@ -152,7 +152,7 @@
                             <tfoot class="table-group-divider">
                                 <tr class="fw-bold">
                                     <td>Total</td>
-                                    <td class="text-end">@Model.Value.ToString("F2") @Model.CurrencyName</td>
+                                    <td class="text-end">@Model.Value.ToString("F2") @Model.CurrencyKey</td>
                                     <td class="text-end">100%</td>
                                     <td class="text-end">
                                         <div class="progress" style="height: 20px; width: 100px; margin-left: auto;">
@@ -249,7 +249,7 @@
 
                 <div class="d-flex justify-content-between mb-2">
                     <strong>Total Amount:</strong>
-                    <span class="fw-bold">@Model.Value.ToString("F2") @Model.CurrencyName</span>
+                    <span class="fw-bold">@(Model.IsEstimated? Model.EstimatedValue.ToString("F2") : Model.Value.ToString("F2")) @Model.CurrencyKey</span>
                 </div>
 
                 <div class="d-flex justify-content-between mb-2">
@@ -261,7 +261,7 @@
                 {
                     <div class="d-flex justify-content-between mb-2">
                         <strong>Average Share:</strong>
-                        <span>@((Model.Value / Model.Participants.Count).ToString("F2")) @Model.CurrencyName</span>
+                        <span>@((Model.Value / Model.Participants.Count).ToString("F2")) @Model.CurrencyKey</span>
                     </div>
                 }
 
@@ -369,7 +369,7 @@
                                         var label = context.label || '';
                                         var value = context.parsed;
                                         var percentage = (value / @Model.Value * 100).toFixed(1);
-                                        return label + ': ' + value + ' @Model.CurrencyName' + ' (' + percentage + '%)';
+                                        return label + ': ' + value + ' @Model.CurrencyKey' + ' (' + percentage + '%)';
                                     }
                                 }
                             },
