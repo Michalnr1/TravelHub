@@ -27,6 +27,7 @@ public class AccommodationRepository : GenericRepository<Accommodation>, IAccomm
             .Include(a => a.Day)
             .Include(a => a.Photos)
             .Include(a => a.Expense)
+                .ThenInclude(e => e!.ExchangeRate)
             .FirstOrDefaultAsync();
     }
 }

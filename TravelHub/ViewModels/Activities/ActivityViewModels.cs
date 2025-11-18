@@ -29,6 +29,7 @@ public class ActivityDetailsViewModel
     public string DurationString { get; set; } = "00:00";
     public int Order { get; set; }
     public string? CategoryName { get; set; }
+    public decimal StartTime { get; set; }
     public required string TripName { get; set; }
     public int TripId { get; set; }
     public string? DayName { get; set; }
@@ -99,6 +100,7 @@ public class SpotCreateEditViewModel : ActivityCreateEditViewModel
 
     // Select lists dla Expense
     public List<CurrencySelectGroupItem> CurrenciesGroups { get; set; } = new List<CurrencySelectGroupItem>();
+    public CurrencyCode TripCurrency { get; set; }
 
     public Rating? Rating { get; set; }
 }

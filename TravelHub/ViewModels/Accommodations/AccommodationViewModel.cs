@@ -117,6 +117,7 @@ public class AccommodationCreateEditViewModel
     [Display(Name = "Exchange rate (to base)")]
     [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]
     public decimal? ExpenseExchangeRateValue { get; set; } = 1.0M;
+    public CurrencyCode TripCurrency {  get; set; }
 
     // Select lists
     public List<CategorySelectItem> Categories { get; set; } = new List<CategorySelectItem>();

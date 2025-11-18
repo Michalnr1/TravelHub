@@ -122,7 +122,7 @@ public class TransportsController : Controller
             if (viewModel.FromSpotId == viewModel.ToSpotId)
             {
                 ModelState.AddModelError("", "From spot and To spot cannot be the same.");
-                await PopulateSelectLists(viewModel);
+                await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
                 return View(viewModel);
             }
 
@@ -148,12 +148,12 @@ public class TransportsController : Controller
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
-        await PopulateSelectLists(viewModel);
+        await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
         return View(viewModel);
     }
 
     // GET: Transports/Edit/5
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int? id, string? returnUrl = null)
     {
         if (id == null)
         {
@@ -172,31 +172,17 @@ public class TransportsController : Controller
         }
 
         var viewModel = await CreateTransportCreateEditViewModel(transport);
-
-        var spots = await _spotService.GetAllAsync();
-        //var trips = await _tripService.GetAllAsync();
-
-        viewModel.SpotSelectList = spots.Select(s => new SelectListItem
-        {
-            Value = s.Id.ToString(),
-            Text = $"{s.Name} ({s.Latitude}, {s.Longitude})"
-        });
-
-        //viewModel.TripSelectList = trips.Select(t => new SelectListItem
-        //{
-        //    Value = t.Id.ToString(),
-        //    Text = t.Name
-        //});
-
-
         viewModel.DurationString = ConvertDecimalToTimeString(transport.Duration);
+
+        ViewData["ReturnUrl"] = returnUrl ?? Url.Action("Details", "Trips", new { id = transport.TripId });
+
         return View(viewModel);
     }
 
     // POST: Transports/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, TransportCreateEditViewModel viewModel)
+    public async Task<IActionResult> Edit(int id, TransportCreateEditViewModel viewModel, string? returnUrl = null)
     {
         if (id != viewModel.Id)
         {
@@ -208,16 +194,16 @@ public class TransportsController : Controller
             return Forbid();
         }
 
+        // Check if FromSpot and ToSpot are different
+        if (viewModel.FromSpotId == viewModel.ToSpotId)
+        {
+            ModelState.AddModelError("", "From spot and To spot cannot be the same.");
+            await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
+            return View(viewModel);
+        }
+
         if (ModelState.IsValid)
         {
-            // Check if FromSpot and ToSpot are different
-            if (viewModel.FromSpotId == viewModel.ToSpotId)
-            {
-                ModelState.AddModelError("", "From spot and To spot cannot be the same.");
-                await PopulateSelectLists(viewModel);
-                return View(viewModel);
-            }
-
             try
             {
                 viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
@@ -238,6 +224,10 @@ public class TransportsController : Controller
 
                 await _transportService.UpdateAsync(existingTransport);
 
+                await UpdateExpenseForTransport(existingTransport, viewModel);
+
+                TempData["SuccessMessage"] = "Transport updated successfully!";
+
                 // Aktualizacja Expense jeśli istnieje i zmieniono dane
                 await UpdateExpenseForTransport(existingTransport, viewModel);
             }
@@ -255,7 +245,7 @@ public class TransportsController : Controller
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
-        await PopulateSelectLists(viewModel);
+        await PopulateSelectListsForTrip(viewModel, viewModel.TripId);
         return View(viewModel);
     }
 
@@ -325,7 +315,8 @@ public class TransportsController : Controller
 
         var viewModel = new TransportCreateEditViewModel
         {
-            TripId = tripId
+            TripId = tripId,
+            TripCurrency = trip.CurrencyCode
         };
 
         await PopulateSelectListsForTrip(viewModel, tripId);
@@ -447,9 +438,48 @@ public class TransportsController : Controller
 
     private async Task UpdateExpenseForTransport(Transport transport, TransportCreateEditViewModel viewModel)
     {
-        // Tutaj można dodać logikę aktualizacji istniejącego Expense
-        // jeśli będzie potrzebna w przyszłości
-        // Na razie tworzymy tylko nowe Expense, nie aktualizujemy istniejących
+        try
+        {
+            var existingExpense = await _expenseService.GetExpenseForTransportAsync(transport.Id);
+
+            if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
+            {
+                // Aktualizuj istniejący expense lub utwórz nowy
+                if (existingExpense != null)
+                {
+                    // Pobierz lub utwórz nowy ExchangeRate
+                    var exchangeRateEntry = await _exchangeRateService
+                        .GetOrCreateExchangeRateAsync(
+                            transport.TripId,
+                            viewModel.ExpenseCurrencyCode ?? CurrencyCode.PLN,
+                            viewModel.ExpenseExchangeRateValue ?? 1.0m);
+
+                    existingExpense.EstimatedValue = viewModel.ExpenseValue.Value;
+                    existingExpense.ExchangeRateId = exchangeRateEntry.Id;
+                    existingExpense.ExchangeRate = exchangeRateEntry;
+
+                    await _expenseService.UpdateAsync(existingExpense);
+                    _logger.LogInformation("Expense updated for transport {TransportId}", transport.Id);
+                }
+                else
+                {
+                    await CreateExpenseForTransport(transport, viewModel);
+                }
+            }
+            else
+            {
+                // Usuń expense jeśli wartość jest pusta lub 0
+                if (existingExpense != null)
+                {
+                    await _expenseService.DeleteAsync(existingExpense.Id);
+                    _logger.LogInformation("Expense deleted for transport {TransportId}", transport.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating expense for transport {TransportId}", transport.Id);
+        }
     }
 
     private async Task PopulateSelectListsForTrip(TransportCreateEditViewModel viewModel, int tripId)
@@ -572,13 +602,20 @@ public class TransportsController : Controller
             viewModel.Name = transport.Name;
             viewModel.Type = transport.Type;
             viewModel.Duration = transport.Duration;
-            // viewModel.Cost = transport.Cost;
             viewModel.TripId = transport.TripId;
             viewModel.FromSpotId = transport.FromSpotId;
             viewModel.ToSpotId = transport.ToSpotId;
-        }
+            viewModel.TripCurrency = transport.Trip!.CurrencyCode;
 
-        await PopulateSelectLists(viewModel);
+            if (transport.Expense != null)
+            {
+                viewModel.ExpenseValue = transport.Expense.EstimatedValue;
+                viewModel.ExpenseCurrencyCode = transport.Expense.ExchangeRate!.CurrencyCodeKey;
+                viewModel.ExpenseExchangeRateValue = transport.Expense.ExchangeRate!.ExchangeRateValue;
+            }
+
+            await PopulateSelectListsForTrip(viewModel, transport.TripId);
+        }
         return viewModel;
     }
 

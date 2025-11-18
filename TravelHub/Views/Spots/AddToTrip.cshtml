@@ -148,7 +148,6 @@
                                         @foreach (var currency in allCurrencies)
                                         {
                                             <option value="@currency.Key"
-                                                    data-rate="@currency.ExchangeRate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                                     selected="@(Model.ExpenseCurrencyCode == currency.Key && Model.ExpenseExchangeRateValue == 1.0M)">
                                                 @currency.DropdownText
                                             </option>
@@ -202,14 +201,29 @@
         $(document).ready(function () {
             var $currencySelect = $('#currencySelect');
             var $exchangeRateInput = $('#ExpenseExchangeRateValue');
+            var tripCurrency = "@Html.Raw(Model.TripCurrency)";
 
             function setExchangeRate(selectedOption) {
                 var rate = selectedOption.data('rate');
                 if (rate) {
                     $exchangeRateInput.val(parseFloat(rate).toFixed(6));
                 } else {
-                    $exchangeRateInput.val('1.000000');
+                    fetchExchangeRate(selectedOption.val());
                 }
+            }
+
+            function fetchExchangeRate(target){
+                $.ajax({
+                  url: "/Expenses/ExchangeRate",
+                  type: "get",
+                  data: {
+                      from: target,
+                      to: tripCurrency
+                  },
+                  success: function( result ) {
+                    $exchangeRateInput.val(result);
+                  }
+                });
             }
 
             // Ustaw domyślny kurs po załadowaniu strony tylko jeśli waluta jest wybrana

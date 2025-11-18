@@ -1,4 +1,5 @@
-﻿using TravelHub.Domain.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
 

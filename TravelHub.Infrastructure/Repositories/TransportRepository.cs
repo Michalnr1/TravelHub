@@ -27,6 +27,8 @@ public class TransportRepository : GenericRepository<Transport>, ITransportRepos
             .Include(t => t.Trip)
             .Include(t => t.FromSpot)
             .Include(t => t.ToSpot)
+            .Include(t => t.Expense)
+                .ThenInclude(e => e!.ExchangeRate)
             .FirstOrDefaultAsync();
     }
 

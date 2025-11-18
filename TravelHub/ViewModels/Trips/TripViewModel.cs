@@ -66,7 +66,10 @@ public class TripDetailViewModel
     public int ExpensesCount => Expenses.Count;
     public int ParticipantsCount => Participants.Count(p => p.Status == TripParticipantStatus.Accepted);
     public int PendingInvitationsCount => Participants.Count(p => p.Status == TripParticipantStatus.Pending);
-    public decimal TotalExpenses { get; set; }
+    public int EstimatedExpensesCount => Expenses.Count(e => e.IsEstimated);
+    public decimal TotalExpenses => Expenses.Where(e => !e.IsEstimated).Sum(e => e.ConvertedValue);
+    public decimal EstimatedExpensesTotal => Expenses.Where(e => e.IsEstimated).Sum(e => e.ConvertedValue * e.Multiplier);
+    public decimal CombinedTotal => TotalExpenses + EstimatedExpensesTotal;
 
     // Helper properties
     public int Duration => (EndDate - StartDate).Days + 1;
@@ -79,8 +82,10 @@ public class TripDetailViewModel
     public bool CanEdit => IsCurrentUserOwner;
     public bool CanManageParticipants => IsCurrentUserOwner;
 
-    // Formatowana wartość z walutą
+    // Formatowane wartości
     public string FormattedTotalExpenses => $"{TotalExpenses:N2} {CurrencyCode}";
+    public string FormattedEstimatedExpensesTotal => $"{EstimatedExpensesTotal:N2} {CurrencyCode}";
+    public string FormattedCombinedTotal => $"{CombinedTotal:N2} {CurrencyCode}";
 }
 
 public class CreateTripViewModel
