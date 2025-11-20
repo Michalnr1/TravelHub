@@ -5,6 +5,7 @@ public class Photo
     public int Id { get; set; }
     public required string Name { get; set; }
     public string? Alt { get; set; } // Alt text for the photo
+    public required string FilePath { get; set; }
     // public Rating Rating { get; set; }
 
     // Foreign Key for Spot

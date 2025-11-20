@@ -18,8 +18,8 @@ using DinkToPdf.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-//var connectionString = builder.Configuration.GetConnectionString("LocalConnection");
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("LocalConnection");
 
 // Connection to SQL Server configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -94,6 +94,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IAccommodationRepository, AccommodationRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
+builder.Services.AddScoped<IBlogRepository, BlogRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<IDayRepository, DayRepository>();
@@ -115,21 +116,24 @@ builder.Services.AddScoped<IChatRepository, ChatRepository>();
 builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
 builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IDayService, DayService>();
 builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IFriendRequestService, FriendRequestService>();
 builder.Services.AddScoped<IFriendshipService, FriendshipService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ISpotService, SpotService>();
 builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<ITripParticipantService, TripParticipantService>();
 builder.Services.AddScoped<ITripService, TripService>();
-builder.Services.AddScoped<IPhotoService, PhotoService>();
-builder.Services.AddScoped<IFileService, FileService>();
-builder.Services.AddScoped<IPdfService, PdfService>();
-builder.Services.AddScoped<IChatService, ChatService>();
 
 builder.Services.AddRazorPages();
 

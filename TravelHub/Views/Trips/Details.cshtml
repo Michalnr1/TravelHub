@@ -28,6 +28,27 @@
         <a asp-controller="Trips" asp-action="FlightSearch" asp-route-Id="@Model.Id" class="btn btn-success">Flight search</a>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
         <a asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary">View on Map</a>
+        @if ((bool)ViewData["HasBlog"]!)
+        {
+            <!-- Blog istnieje - normalny przycisk -->
+            <a asp-controller="Blog" asp-action="Index" asp-route-tripId="@Model.Id" class="btn btn-primary">
+                <i class="fas fa-blog"></i> Trip Blog
+            </a>
+        }
+        else if ((bool)ViewData["IsOwner"]!)
+        {
+            <!-- Użytkownik jest właścicielem - przycisk do tworzenia bloga -->
+            <a asp-controller="Blog" asp-action="CreateBlog" asp-route-tripId="@Model.Id" class="btn btn-outline-primary">
+                <i class="fas fa-plus"></i> Create Blog
+            </a>
+        }
+        else
+        {
+            <!-- Użytkownik nie jest właścicielem - przycisk nieaktywny -->
+            <button class="btn btn-outline-secondary" disabled title="Only trip owner can create a blog">
+                <i class="fas fa-blog"></i> No Blog Available
+            </button>
+        }
         <a asp-action="MyTrips" class="btn btn-outline-secondary">Back to List</a>
     </div>
 </div>

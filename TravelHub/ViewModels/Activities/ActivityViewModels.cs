@@ -110,6 +110,7 @@ public class PhotoViewModel
     public int Id { get; set; }
     public string? Name { get; set; }
     public string? Alt { get; set; }
+    public required string FilePath { get; set; }
 }
 
 public class FileViewModel

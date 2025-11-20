@@ -413,6 +413,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasKey(p => p.Id);
             entity.Property(p => p.Name).IsRequired().HasMaxLength(255);
             entity.Property(p => p.Alt).HasMaxLength(500);
+            entity.Property(p => p.FilePath).HasMaxLength(1000);
 
             // 1:N relationship with Spot
             entity.HasOne(p => p.Spot)

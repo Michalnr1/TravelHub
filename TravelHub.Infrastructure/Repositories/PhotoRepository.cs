@@ -25,4 +25,18 @@ public class PhotoRepository : GenericRepository<Photo>, IPhotoRepository
             .Include(p => p.Post)
             .ToListAsync();
     }
+
+    public async Task<IReadOnlyList<Photo>> GetByPostIdAsync(int postId)
+    {
+        return await _context.Photos
+            .Where(p => p.PostId == postId)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Photo>> GetByCommentIdAsync(int commentId)
+    {
+        return await _context.Photos
+            .Where(p => p.CommentId == commentId)
+            .ToListAsync();
+    }
 }
