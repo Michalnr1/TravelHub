@@ -186,7 +186,7 @@
                                     </div>
 
                                     <!-- Comment Content -->
-                                    <p class="card-text">@comment.Content</p>
+                                    <div class="card-text comment-content">@Html.Raw(comment.Content)</div>
 
                                     <!-- Comment Photos -->
                                     @if (comment.Photos.Any())
@@ -239,10 +239,10 @@
                             <input type="hidden" name="PostId" value="@Model.Id" />
 
                             <div class="mb-3">
-                                <label for="Content" class="form-label">Comment *</label>
-                                <textarea name="Content" class="form-control" rows="4"
-                                          placeholder="Write your comment..." required></textarea>
-                                <div class="form-text">Required field</div>
+                                <label for="CommentContent" class="form-label">Content *</label>
+                                <div id="commentEditor" style="height: 150px;"></div>
+                                <textarea name="Content" id="CommentContent" class="form-control d-none"></textarea>
+                                <span class="text-danger" id="commentContentValidation"></span>
                             </div>
 
                             <div class="mb-3">
@@ -350,6 +350,38 @@
 
 @section Scripts {
     <script>
+        var commentQuill = new Quill('#commentEditor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'header': 1 }, { 'header': 2 }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'script': 'sub'}, { 'script': 'super' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'direction': 'rtl' }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'font': [] }],
+                    [{ 'align': [] }],
+                    ['link'],
+                    ['clean']
+                ]
+            },
+            placeholder: 'Write your comment...',
+            theme: 'snow'
+        });
+
+        // Synchronizacja edytora komentarza z textarea
+        commentQuill.on('text-change', function() {
+            document.getElementById('CommentContent').value = commentQuill.root.innerHTML;
+        });
+
+        // Ustawienie pustej początkowej wartości dla komentarza
+        document.getElementById('CommentContent').value = '';
+
         // Photo preview for comment form
         document.getElementById('commentPhotos').addEventListener('change', function(e) {
             const preview = document.getElementById('photoPreview');
