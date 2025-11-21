@@ -6,6 +6,7 @@ public class Blog
     public required string Name { get; set; }
     public string? Description { get; set; }
     public string? Catalog { get; set; }
+    public bool IsPrivate { get; set; } = true;
 
     // Foreign Key for Owner
     public required string OwnerId { get; set; }

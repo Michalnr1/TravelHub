@@ -1,7 +1,7 @@
-﻿@model TravelHub.Web.ViewModels.Blog.CreateBlogViewModel
+﻿@model TravelHub.Web.ViewModels.Blog.EditBlogViewModel
 
 @{
-    ViewData["Title"] = "Create Blog for Trip";
+    ViewData["Title"] = "Edit Blog";
 }
 
 <div class="container">
@@ -9,14 +9,11 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title mb-0">Create Blog for Trip: @Model.TripName</h4>
+                    <h4 class="card-title mb-0">Edit Blog: @Model.Name</h4>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted mb-4">
-                        Create a blog to share experiences, photos, and stories from your trip with other participants.
-                    </p>
-
-                    <form asp-action="CreateBlog" method="post">
+                    <form asp-action="EditBlog" method="post">
+                        <input type="hidden" asp-for="Id" />
                         <input type="hidden" asp-for="TripId" />
                         <input type="hidden" asp-for="TripName" />
 
@@ -24,21 +21,18 @@
                             <label asp-for="Name" class="form-label">Blog Name *</label>
                             <input asp-for="Name" class="form-control" />
                             <span asp-validation-for="Name" class="text-danger"></span>
-                            <div class="form-text">This will be the main title of your trip blog.</div>
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="Description" class="form-label">Description</label>
                             <textarea asp-for="Description" class="form-control" rows="3"></textarea>
                             <span asp-validation-for="Description" class="text-danger"></span>
-                            <div class="form-text">Optional description for your blog.</div>
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="Catalog" class="form-label">Category</label>
                             <input asp-for="Catalog" class="form-control" />
                             <span asp-validation-for="Catalog" class="text-danger"></span>
-                            <div class="form-text">Optional category for organizing your blog.</div>
                         </div>
 
                         <div class="mb-3">
@@ -55,8 +49,8 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="@Url.Action("Details", "Trips", new { id = Model.TripId })" class="btn btn-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-primary">Create Blog</button>
+                            <a href="@Url.Action("Index", "Blog", new { tripId = Model.TripId })" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
                         </div>
                     </form>
                 </div>

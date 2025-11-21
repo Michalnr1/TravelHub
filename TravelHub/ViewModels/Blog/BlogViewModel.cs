@@ -9,8 +9,10 @@ public class BlogViewModel
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Catalog { get; set; }
+    public bool IsPrivate { get; set; } = true;
     public int TripId { get; set; }
     public string TripName { get; set; } = string.Empty;
+    public required string OwnerId { get; set; }
     public List<PostViewModel> Posts { get; set; } = new();
 }
 
@@ -28,6 +30,31 @@ public class CreateBlogViewModel
 
     [StringLength(50, ErrorMessage = "Catalog cannot be longer than 50 characters")]
     public string? Catalog { get; set; }
+
+    [Required(ErrorMessage = "Please select blog visibility")]
+    [Display(Name = "Blog Visibility")]
+    public bool IsPrivate { get; set; } = true;
+}
+
+public class EditBlogViewModel
+{
+    public int Id { get; set; }
+    public int TripId { get; set; }
+    public string TripName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Blog name is required")]
+    [StringLength(100, ErrorMessage = "Blog name cannot be longer than 100 characters")]
+    public string Name { get; set; } = string.Empty;
+
+    [StringLength(500, ErrorMessage = "Description cannot be longer than 500 characters")]
+    public string? Description { get; set; }
+
+    [StringLength(50, ErrorMessage = "Catalog cannot be longer than 50 characters")]
+    public string? Catalog { get; set; }
+
+    [Required(ErrorMessage = "Blog visibility is required")]
+    [Display(Name = "Blog Visibility")]
+    public bool IsPrivate { get; set; }
 }
 
 public class PostViewModel

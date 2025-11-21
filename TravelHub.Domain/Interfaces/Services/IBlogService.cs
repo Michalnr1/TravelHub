@@ -1,4 +1,5 @@
-﻿using TravelHub.Domain.Entities;
+﻿using TravelHub.Domain.DTOs;
+using TravelHub.Domain.Entities;
 
 namespace TravelHub.Domain.Interfaces.Services;
 
@@ -8,4 +9,6 @@ public interface IBlogService : IGenericService<Blog>
     Task<Blog?> GetWithPostsAsync(int id);
     Task<IReadOnlyList<Blog>> GetByOwnerIdAsync(string ownerId);
     Task<bool> CanUserAccessBlogAsync(int blogId, string userId);
+    Task<List<PublicBlogInfoDto>> GetPublicBlogsAsync();
+    Task<List<CountryWithBlogCountDto>> GetCountriesWithPublicBlogsAsync();
 }

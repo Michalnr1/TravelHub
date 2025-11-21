@@ -18,6 +18,8 @@ public class BlogRepository : GenericRepository<Blog>, IBlogRepository
                 .ThenInclude(p => p.Author)
             .Include(b => b.Posts)
                 .ThenInclude(p => p.Photos)
+            .Include(b => b.Posts)
+                .ThenInclude(p => p.Comments)
             .FirstOrDefaultAsync(b => b.TripId == tripId);
     }
 
@@ -43,6 +45,19 @@ public class BlogRepository : GenericRepository<Blog>, IBlogRepository
         return await _context.Blogs
             .Include(b => b.Trip)
             .Where(b => b.OwnerId == ownerId)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Blog>> GetPublicBlogsWithDetailsAsync()
+    {
+        return await _context.Blogs
+            .Include(b => b.Trip)
+            .Include(b => b.Posts)
+                .ThenInclude(p => p.Comments)
+            .Include(b => b.Posts)
+                .ThenInclude(p => p.Photos)
+            .Where(b => !b.IsPrivate)
+            .AsNoTracking()
             .ToListAsync();
     }
 }

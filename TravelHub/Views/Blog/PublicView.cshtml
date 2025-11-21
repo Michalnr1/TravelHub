@@ -1,4 +1,4 @@
-﻿@model TravelHub.Web.ViewModels.Blog.BlogViewModel
+﻿@model TravelHub.Web.ViewModels.Blog.PublicBlogViewModel
 
 @{
     ViewData["Title"] = Model.Name;
@@ -7,40 +7,31 @@
 <div class="container">
     <div class="row">
         <div class="col-12">
-            <h1>@Model.Name</h1>
-            @if (!string.IsNullOrEmpty(Model.Description))
-            {
-                <p class="lead">@Model.Description</p>
-            }
-            <p class="text-muted">
-                Blog for trip: @Model.TripName |
-                <span class="badge @(Model.IsPrivate ? "bg-danger" : "bg-success")">
-                    @(Model.IsPrivate ? "Private" : "Public")
-                </span>
-            </p>
-        </div>
-        <div>
-            @if (User.Identity!.IsAuthenticated && Model.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
-            {
-                <a href="@Url.Action("EditBlog", new { id = Model.Id })" class="btn btn-outline-secondary">
-                    <i class="fas fa-cog me-2"></i>Edit Blog
-                </a>
-            }
-            @* <a href="@Url.Action("PublicBlogs")" class="btn btn-outline-info ms-2">
-                <i class="fas fa-globe me-2"></i>Browse Public Blogs
-            </a> *@
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h1>@Model.Name</h1>
+                    @if (!string.IsNullOrEmpty(Model.Description))
+                    {
+                        <p class="lead">@Model.Description</p>
+                    }
+                    <p class="text-muted">
+                        Blog for trip: @Model.TripName |
+                        <span class="badge bg-success">
+                            <i class="fas fa-globe me-1"></i>Public Blog
+                        </span>
+                    </p>
+                </div>
+                <div>
+                    <a href="@Url.Action("PublicBlogs")" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Public Blogs
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="row mt-4">
         <div class="col-md-8">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>Posts</h2>
-                <a href="@Url.Action("CreatePost", new { blogId = Model.Id })" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> New Post
-                </a>
-            </div>
-
             @if (Model.Posts.Any())
             {
                 foreach (var post in Model.Posts)
@@ -48,7 +39,7 @@
                     <div class="card mb-4">
                         <div class="card-body">
                             <h3 class="card-title">
-                                <a href="@Url.Action("Post", new { id = post.Id })" class="text-decoration-none">
+                                <a href="@Url.Action("PublicPost", new { id = post.Id })" class="text-decoration-none">
                                     @post.Title
                                 </a>
                             </h3>
@@ -89,7 +80,7 @@
             else
             {
                 <div class="alert alert-info">
-                    <p>No posts in this blog yet. Be the first to add a post!</p>
+                    <p>No posts in this blog yet.</p>
                 </div>
             }
         </div>
@@ -101,14 +92,21 @@
                 </div>
                 <div class="card-body">
                     <p><strong>Trip:</strong> @Model.TripName</p>
-                    <p>
-                        <strong>Visibility:</strong>
-                        <span class="badge @(Model.IsPrivate ? "bg-danger" : "bg-success")">
-                            @(Model.IsPrivate ? "Private" : "Public")
-                        </span>
-                    </p>
+                    <p><strong>Visibility:</strong> <span class="badge bg-success">Public</span></p>
                     <p><strong>Number of Posts:</strong> @Model.Posts.Count</p>
                     <p><strong>Number of Comments:</strong> @Model.Posts.Sum(p => p.Comments.Count)</p>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>About Public Blogs</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        This is a public travel blog. You can read posts and comments but cannot add new content.
+                        To participate in discussions, you need to be a trip participant.
+                    </p>
                 </div>
             </div>
         </div>

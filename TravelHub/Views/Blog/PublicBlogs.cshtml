@@ -1,0 +1,206 @@
+﻿@model TravelHub.Web.ViewModels.Blog.PublicBlogsViewModel
+
+@{
+    ViewData["Title"] = "Public Travel Blogs";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1>Public Travel Blogs</h1>
+            <p class="lead text-muted">Discover travel stories and experiences from around the world</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="countryFilter" class="form-label">Filter by Country</label>
+                            <select id="countryFilter" name="countryCode" class="form-select" onchange="this.form.submit()">
+                                <option value="">All Countries</option>
+                                @foreach (var country in Model.AvailableCountries)
+                                {
+                                    <option value="@country.Code" selected="@(Model.SelectedCountryCode == country.Code)">
+                                        @country.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="searchFilter" class="form-label">Search</label>
+                            <input type="text" id="searchFilter" name="searchTerm" class="form-control"
+                                   placeholder="Search blogs..." value="@Model.SearchTerm" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i>Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Count -->
+    @if (!string.IsNullOrEmpty(Model.SelectedCountryCode) || !string.IsNullOrEmpty(Model.SearchTerm))
+    {
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-filter me-2"></i>
+                    Showing @Model.Blogs.Count() public blogs
+                    @if (!string.IsNullOrEmpty(Model.SelectedCountryCode))
+                    {
+                        var country = Model.AvailableCountries.FirstOrDefault(c => c.Code == Model.SelectedCountryCode);
+                        <text>from <strong>@country?.Name</strong></text>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                    {
+                        <text>matching "<strong>@Model.SearchTerm</strong>"</text>
+                    }
+                    <a href="@Url.Action("PublicBlogs")" class="btn btn-sm btn-outline-info ms-2">Clear Filters</a>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Blogs Grid -->
+    @if (Model.Blogs.Any())
+    {
+        <div class="row">
+            @foreach (var blog in Model.Blogs)
+            {
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">@blog.Name</h5>
+                            <span class="badge bg-success">
+                                <i class="fas fa-globe me-1"></i>Public
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            @if (!string.IsNullOrEmpty(blog.Description))
+                            {
+                                <p class="card-text">@blog.Description</p>
+                            }
+
+                            <div class="mb-3">
+                                <strong>Trip:</strong> @blog.TripName<br>
+                                <strong>Posts:</strong> @blog.PostsCount<br>
+                                <strong>Comments:</strong> @blog.CommentsCount
+                            </div>
+
+                            @if (blog.Countries.Any())
+                            {
+                                <div class="mb-3">
+                                    <strong>Countries:</strong>
+                                    <div class="mt-1">
+                                        @foreach (var country in blog.Countries.Take(3))
+                                        {
+                                            <span class="badge bg-light text-dark me-1 mb-1">@country</span>
+                                        }
+                                        @if (blog.Countries.Count > 3)
+                                        {
+                                            <span class="badge bg-secondary">+@(blog.Countries.Count - 3) more</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(blog.Catalog))
+                            {
+                                <div class="mb-3">
+                                    <strong>Category:</strong>
+                                    <span class="badge bg-primary">@blog.Catalog</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer">
+                            <a href="@Url.Action("PublicView", "Blog", new { id = blog.Id })" class="btn btn-primary btn-sm">
+                                <i class="fas fa-book-open me-1"></i>Read Blog
+                            </a>
+                            <small class="text-muted ms-2">
+                                Last post: @blog.LatestPostDate?.ToString("MM/dd/yyyy")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-blog fa-4x text-muted mb-3"></i>
+                    <h3>No public blogs found</h3>
+                    <p class="text-muted">
+                        @if (!string.IsNullOrEmpty(Model.SelectedCountryCode) || !string.IsNullOrEmpty(Model.SearchTerm))
+                        {
+                            <text>Try adjusting your filters to see more results.</text>
+                        }
+                        else
+                        {
+                            <text>There are no public blogs available at the moment.</text>
+                        }
+                    </p>
+                    @if (!string.IsNullOrEmpty(Model.SelectedCountryCode) || !string.IsNullOrEmpty(Model.SearchTerm))
+                    {
+                        <a href="@Url.Action("PublicBlogs")" class="btn btn-primary">View All Public Blogs</a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Statistics -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Blog Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h3 class="text-primary">@Model.TotalBlogs</h3>
+                            <p class="text-muted mb-0">Total Public Blogs</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-success">@Model.TotalPosts</h3>
+                            <p class="text-muted mb-0">Total Posts</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-info">@Model.TotalCountries</h3>
+                            <p class="text-muted mb-0">Countries Covered</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-warning">@Model.TotalComments</h3>
+                            <p class="text-muted mb-0">Total Comments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-submit form when country changes
+        document.getElementById('countryFilter').addEventListener('change', function() {
+            this.form.submit();
+        });
+    </script>
+}

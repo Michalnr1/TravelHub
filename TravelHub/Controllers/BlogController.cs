@@ -40,6 +40,7 @@ public class BlogController : Controller
         _logger = logger;
     }
 
+    // GET: Blog/5
     [HttpGet]
     public async Task<IActionResult> Index(int tripId)
     {
@@ -79,8 +80,10 @@ public class BlogController : Controller
             Name = blog.Name,
             Description = blog.Description,
             Catalog = blog.Catalog,
+            IsPrivate = blog.IsPrivate,
             TripId = blog.TripId,
             TripName = blog.Trip?.Name ?? string.Empty,
+            OwnerId = blog.OwnerId,
             Posts = blog.Posts.Select(p => new PostViewModel
             {
                 Id = p.Id,
@@ -93,7 +96,7 @@ public class BlogController : Controller
                 BlogId = p.BlogId,
                 DayId = p.DayId,
                 DayName = p.Day?.Name,
-                Comments = p.Comments.Select(c => new CommentViewModel
+                Comments = p.Comments.OrderBy(c => c.CreationDate).Select(c => new CommentViewModel
                 {
                     Id = c.Id,
                     Content = c.Content,
@@ -123,6 +126,7 @@ public class BlogController : Controller
         return View(viewModel);
     }
 
+    // GET: Blog/CreateBlog/5
     [HttpGet]
     public async Task<IActionResult> CreateBlog(int tripId)
     {
@@ -154,6 +158,7 @@ public class BlogController : Controller
         return View(viewModel);
     }
 
+    // POST: Blog/CreateBlog/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateBlog(CreateBlogViewModel model)
@@ -184,6 +189,7 @@ public class BlogController : Controller
             Name = model.Name,
             Description = model.Description,
             Catalog = model.Catalog,
+            IsPrivate = model.IsPrivate,
             OwnerId = currentUserId!,
             TripId = model.TripId
         };
@@ -194,6 +200,84 @@ public class BlogController : Controller
         return RedirectToAction("Index", new { tripId = model.TripId });
     }
 
+    // GET: Blog/EditBlog/5
+    [HttpGet]
+    public async Task<IActionResult> EditBlog(int id)
+    {
+        var blog = await _blogService.GetByIdAsync(id);
+        if (blog == null)
+        {
+            return NotFound();
+        }
+
+        var currentUserId = _userManager.GetUserId(User);
+        if (blog.OwnerId != currentUserId)
+        {
+            return Forbid();
+        }
+
+        var viewModel = new EditBlogViewModel
+        {
+            Id = blog.Id,
+            Name = blog.Name,
+            Description = blog.Description,
+            Catalog = blog.Catalog,
+            IsPrivate = blog.IsPrivate,
+            TripId = blog.TripId,
+            TripName = blog.Trip?.Name ?? "Unknown Trip"
+        };
+
+        return View(viewModel);
+    }
+
+    // POST: Blog/EditBlog/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditBlog(int id, EditBlogViewModel model)
+    {
+        if (id != model.Id)
+        {
+            return NotFound();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var existingBlog = await _blogService.GetByIdAsync(id);
+        if (existingBlog == null)
+        {
+            return NotFound();
+        }
+
+        var currentUserId = _userManager.GetUserId(User);
+        if (existingBlog.OwnerId != currentUserId)
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            existingBlog.Name = model.Name;
+            existingBlog.Description = model.Description;
+            existingBlog.Catalog = model.Catalog;
+            existingBlog.IsPrivate = model.IsPrivate;
+
+            await _blogService.UpdateAsync(existingBlog);
+
+            TempData["Success"] = "Blog updated successfully!";
+            return RedirectToAction("Index", new { tripId = existingBlog.TripId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating blog {BlogId}", id);
+            ModelState.AddModelError("", "An error occurred while updating the blog.");
+            return View(model);
+        }
+    }
+
+    // GET: Blog/Post/5
     [HttpGet]
     public async Task<IActionResult> Post(int id)
     {
@@ -233,6 +317,7 @@ public class BlogController : Controller
                 Id = c.Id,
                 Content = c.Content,
                 CreationDate = c.CreationDate,
+                EditDate = c.EditDate,
                 AuthorName = $"{c.Author?.FirstName} {c.Author?.LastName}",
                 AuthorId = c.AuthorId,
                 Photos = c.Photos.Select(ph => new PhotoViewModel
@@ -249,6 +334,7 @@ public class BlogController : Controller
         return View(viewModel);
     }
 
+    // GET: Blog/CreatePost/5
     [HttpGet]
     public async Task<IActionResult> CreatePost(int blogId)
     {
@@ -287,6 +373,7 @@ public class BlogController : Controller
         return View(viewModel);
     }
 
+    // POST: Blog/CreatePost/5
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreatePost(CreatePostViewModel model)
@@ -634,5 +721,192 @@ public class BlogController : Controller
 
         TempData["SuccessMessage"] = "Photo deleted successfully!";
         return RedirectToAction("EditComment", new { id = commentId });
+    }
+
+    // GET: Blog/PublicBlogs
+    [HttpGet]
+    public async Task<IActionResult> PublicBlogs(string? countryCode, string? searchTerm)
+    {
+        var publicBlogs = await _blogService.GetPublicBlogsAsync();
+
+        // Apply country filter
+        if (!string.IsNullOrEmpty(countryCode))
+        {
+            publicBlogs = publicBlogs.Where(b => b.Countries.Any(c => c.Code == countryCode)).ToList();
+        }
+
+        // Apply search filter
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            var search = searchTerm.ToLower();
+            publicBlogs = publicBlogs.Where(b =>
+                b.Name.ToLower().Contains(search) ||
+                b.Description?.ToLower().Contains(search) == true ||
+                b.TripName.ToLower().Contains(search) ||
+                b.Catalog?.ToLower().Contains(search) == true
+            ).ToList();
+        }
+
+        var availableCountries = await _blogService.GetCountriesWithPublicBlogsAsync();
+
+        var viewModel = new PublicBlogsViewModel
+        {
+            Blogs = publicBlogs.Select(b => new PublicBlogItemViewModel
+            {
+                Id = b.Id,
+                Name = b.Name,
+                Description = b.Description,
+                Catalog = b.Catalog,
+                TripName = b.TripName,
+                TripId = b.TripId,
+                PostsCount = b.PostsCount,
+                CommentsCount = b.CommentsCount,
+                Countries = b.Countries.Select(c => c.Name).ToList(),
+                LatestPostId = b.LatestPostId,
+                LatestPostDate = b.LatestPostDate
+            }).ToList(),
+            AvailableCountries = availableCountries.Select(c => new CountryViewModel
+            {
+                Code = c.Code,
+                Name = c.Name,
+                BlogCount = c.BlogCount
+            }).ToList(),
+            SelectedCountryCode = countryCode,
+            SearchTerm = searchTerm,
+            TotalBlogs = publicBlogs.Count,
+            TotalPosts = publicBlogs.Sum(b => b.PostsCount),
+            TotalComments = publicBlogs.Sum(b => b.CommentsCount),
+            TotalCountries = availableCountries.Count
+        };
+
+        return View(viewModel);
+    }
+
+    // GET: Blog/PublicView/5
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> PublicView(int id)
+    {
+        var blog = await _blogService.GetWithPostsAsync(id);
+        if (blog == null)
+        {
+            return NotFound();
+        }
+
+        // Sprawdź czy blog jest publiczny
+        if (blog.IsPrivate)
+        {
+            return Forbid();
+        }
+
+        var viewModel = new PublicBlogViewModel
+        {
+            Id = blog.Id,
+            Name = blog.Name,
+            Description = blog.Description,
+            Catalog = blog.Catalog,
+            TripName = blog.Trip?.Name ?? string.Empty,
+            TripId = blog.TripId,
+            IsPrivate = blog.IsPrivate,
+            Posts = blog.Posts.Select(p => new PublicPostViewModel
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Content = p.Content,
+                CreationDate = p.CreationDate,
+                EditDate = p.EditDate,
+                AuthorName = $"{p.Author?.FirstName} {p.Author?.LastName}",
+                AuthorId = p.AuthorId,
+                DayId = p.DayId,
+                DayName = p.Day?.Name,
+                Photos = p.Photos.Select(ph => new PhotoViewModel
+                {
+                    Id = ph.Id,
+                    Name = ph.Name,
+                    Alt = ph.Alt,
+                    FilePath = ph.FilePath
+                }).ToList(),
+                Comments = p.Comments.OrderBy(c => c.CreationDate).Select(c => new PublicCommentViewModel
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    CreationDate = c.CreationDate,
+                    EditDate = c.EditDate,
+                    AuthorName = $"{c.Author?.FirstName} {c.Author?.LastName}",
+                    AuthorId = c.AuthorId,
+                    Photos = c.Photos.Select(ph => new PhotoViewModel
+                    {
+                        Id = ph.Id,
+                        Name = ph.Name,
+                        Alt = ph.Alt,
+                        FilePath = ph.FilePath
+                    }).ToList()
+                }).ToList()
+            }).ToList()
+        };
+
+        return View(viewModel);
+    }
+
+    // GET: Blog/PublicPost/5
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> PublicPost(int id)
+    {
+        var post = await _postService.GetWithDetailsAsync(id);
+        if (post == null)
+        {
+            return NotFound();
+        }
+
+        // Sprawdź czy blog jest publiczny
+        if (post.Blog?.IsPrivate == true)
+        {
+            return Forbid();
+        }
+
+        var viewModel = new PublicPostViewModel
+        {
+            Id = post.Id,
+            Title = post.Title,
+            Content = post.Content,
+            CreationDate = post.CreationDate,
+            EditDate = post.EditDate,
+            AuthorName = $"{post.Author?.FirstName} {post.Author?.LastName}",
+            AuthorId = post.AuthorId,
+            BlogId = post.BlogId,
+            DayId = post.DayId,
+            DayName = post.Day?.Name,
+            Photos = post.Photos.Select(ph => new PhotoViewModel
+            {
+                Id = ph.Id,
+                Name = ph.Name,
+                Alt = ph.Alt,
+                FilePath = ph.FilePath
+            }).ToList(),
+            Comments = post.Comments.Select(c => new PublicCommentViewModel
+            {
+                Id = c.Id,
+                Content = c.Content,
+                CreationDate = c.CreationDate,
+                EditDate = c.EditDate,
+                AuthorName = $"{c.Author?.FirstName} {c.Author?.LastName}",
+                AuthorId = c.AuthorId,
+                Photos = c.Photos.Select(ph => new PhotoViewModel
+                {
+                    Id = ph.Id,
+                    Name = ph.Name,
+                    Alt = ph.Alt,
+                    FilePath = ph.FilePath
+                }).ToList()
+            }).ToList()
+        };
+
+        ViewBag.TripId = post.Blog?.TripId;
+        ViewBag.BlogId = post.BlogId;
+        ViewBag.BlogName = post.Blog?.Name;
+        ViewBag.IsPublicView = true;
+
+        return View(viewModel);
     }
 }
