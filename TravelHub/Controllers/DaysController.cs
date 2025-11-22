@@ -8,6 +8,7 @@ using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Transports;
 using TravelHub.Web.ViewModels.Trips;
+using TravelHub.Domain.DTOs;
 
 namespace TravelHub.Web.Controllers;
 
@@ -19,6 +20,7 @@ public class DaysController : Controller
     private readonly ITripParticipantService _tripParticipantService;
     private readonly IActivityService _activityService;
     private readonly UserManager<Person> _userManager;
+    private readonly IRouteOptimizationService _routeOptimizationService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<DaysController> _logger;
 
@@ -27,6 +29,7 @@ public class DaysController : Controller
         ITripParticipantService tripParticipantService,
         ILogger<DaysController> logger,
         UserManager<Person> userManager,
+        IRouteOptimizationService routeOptimizationService,
         IConfiguration configuration,
         IActivityService activityService)
     {
@@ -35,6 +38,7 @@ public class DaysController : Controller
         _tripParticipantService = tripParticipantService;
         _logger = logger;
         _userManager = userManager;
+        _routeOptimizationService = routeOptimizationService;
         _configuration = configuration;
         _activityService = activityService;
     }
@@ -146,7 +150,7 @@ public class DaysController : Controller
 
         if (viewModel.NextAccommodation != null)
         {
-            viewModel.NextAccommodation.Order = viewModel.Spots.Count; 
+            viewModel.NextAccommodation.Order = viewModel.Spots.Count + 1; 
             viewModel.Spots.Add(viewModel.NextAccommodation);
         }
 
@@ -448,6 +452,88 @@ public class DaysController : Controller
         return View(viewModel);
     }
 
+    public async Task<IActionResult> RouteOptimization(int id, int? fixedFirst, int? fixedLast)
+    {
+        Day? day = await _dayService.GetDayWithDetailsAsync(id);
+        if (day == null)
+        {
+            return NotFound();
+        }
+
+        var trip = await _tripService.GetTripWithDetailsAsync(day!.TripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        Day? previousDay = trip.Days!.Where(d => d.Number == day!.Number - 1).FirstOrDefault();
+
+        Spot? firstSpot = null;
+        if (fixedFirst != null)
+        {
+            firstSpot = day.Activities.Where(a => a is Spot && a.Id == fixedFirst).Cast<Spot>().FirstOrDefault();
+        }
+        else if (previousDay != null)
+        {
+            firstSpot = previousDay.Accommodation;
+        }
+
+        Spot? lastSpot = null;
+        if (fixedLast != null)
+        {
+            lastSpot = day.Activities.Where(a => a is Spot && a.Id == fixedLast).Cast<Spot>().FirstOrDefault();
+        }
+        else
+        {
+            lastSpot = day.Accommodation;
+        }
+
+        List<RouteOptimizationSpot> spots = day.Activities.Where(a => a is Spot).Where(a => a.Id != fixedFirst && a.Id != fixedLast).Cast<Spot>().Select(a => new RouteOptimizationSpot
+                                                                                                                {
+                                                                                                                    Id = a.Id,
+                                                                                                                    StartTime = a.StartTime,
+                                                                                                                    Duration = a.Duration,
+                                                                                                                    Order = a.Order,
+                                                                                                                    Type = "Spot",
+                                                                                                                    Latitude = a.Latitude,
+                                                                                                                    Longitude = a.Longitude,
+                                                                                                                }).ToList();
+
+        List<RouteOptimizationActivity> otherActivities = day.Activities.Where(a => a is not Spot).Select(a => new RouteOptimizationActivity
+                                                                                                                {
+                                                                                                                    Id = a.Id,
+                                                                                                                    StartTime = a.StartTime,
+                                                                                                                    Duration = a.Duration,
+                                                                                                                    Order = a.Order,
+                                                                                                                    Type = "Activity"
+                                                                                                                }).ToList();
+
+        RouteOptimizationSpot? first = firstSpot == null ? null : new RouteOptimizationSpot
+        {
+            Id = firstSpot.Id,
+            StartTime = firstSpot.StartTime,
+            Duration = firstSpot.Duration,
+            Order = firstSpot.Order,
+            Type = "Spot",
+            Latitude = firstSpot.Latitude,
+            Longitude = firstSpot.Longitude,
+        };
+        RouteOptimizationSpot? end = lastSpot == null ? null : new RouteOptimizationSpot
+        {
+            Id = lastSpot.Id,
+            StartTime = lastSpot.StartTime,
+            Duration = lastSpot.Duration,
+            Order = lastSpot.Order,
+            Type = "Spot",
+            Latitude = lastSpot.Latitude,
+            Longitude = lastSpot.Longitude,
+        };
+
+        List<ActivityOrder> result = await _routeOptimizationService.GetActivityOrderSuggestion(spots, otherActivities, first, end, new List<Transport>(), "WALK"); 
+
+        return Ok(result);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateActivityOrder([FromBody] UpdateActivityOrderRequest request)
@@ -476,18 +562,6 @@ public class DaysController : Controller
             _logger.LogError(ex, "Error updating activity order for day {DayId}", request?.DayId);
             return Json(new { success = false, message = "Error updating order" });
         }
-    }
-
-    public class UpdateActivityOrderRequest
-    {
-        public int DayId { get; set; }
-        public List<ActivityOrder> Activities { get; set; } = new();
-    }
-
-    public class ActivityOrder
-    {
-        public int ActivityId { get; set; }
-        public int Order { get; set; }
     }
 
     private string GetCurrentUserId()

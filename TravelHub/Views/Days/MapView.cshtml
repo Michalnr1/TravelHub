@@ -185,6 +185,9 @@
             <button id="order-apply" class="btn btn-outline-primary text-start" onclick="applyActivityOrder()">
                 Apply order change
             </button>
+            <button id="optimize" class="btn btn-outline-primary text-start" onclick="getOptimizedActivityOrders()">
+                Optimize!
+            </button>
         </div>
     </div>
 </div>
@@ -207,7 +210,11 @@
         //Get user defined route durations
         fillFixedDurations(points);
 
+        let otherActivities = JSON.parse('@Json.Serialize(Model.Activities)')
         let activities = JSON.parse('@Json.Serialize(allActivities)');
+        console.log(points);
+        console.log(otherActivities);
+        console.log(activities);
         let previousAccommodation = JSON.parse('@Json.Serialize(Model.PreviousAccommodation)');
         let nextAccommodation = JSON.parse('@Json.Serialize(Model.NextAccommodation)');
         let involvesCheckout = previousAccommodation != null && (nextAccommodation == null || previousAccommodation.id != nextAccommodation.id);
@@ -787,6 +794,7 @@
                 clearPolylines();
                 clearTravelCards();
                 clearWarnings();
+                routeInfoWindow.close();
 
                 const items = container.querySelectorAll('.activity-item');
 
@@ -875,6 +883,84 @@
                 });
             }
         });
+
+        function getOptimizedActivityOrders() {
+            fetch('@Url.Action("RouteOptimization", "Days", new {id = Model.Id})', {
+                method: 'GET',
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                displayOptimizedActivityOrder(data);
+            })
+            .catch(error => {
+                console.error('Error updating order:', error);
+                // Optional: show error message to user and revert order
+            });
+        }
+
+        function displayOptimizedActivityOrder(data) {
+            const container = document.getElementById('activitiesContainer');
+
+            // Sort API data by order just to be safe
+            const sorted = [...data].sort((a, b) => a.order - b.order);
+
+            // Build lookup for fast access
+            const orderMap = new Map();
+            sorted.forEach(o => orderMap.set(o.activityId, o.order));
+
+            // --- REORDER DOM ---
+            const items = Array.from(container.querySelectorAll('.activity-item'));
+
+            items.sort((a, b) => {
+                const idA = parseInt(a.dataset.activityId);
+                const idB = parseInt(b.dataset.activityId);
+                return orderMap.get(idA) - orderMap.get(idB);
+            });
+
+            // Re-append in correct order
+            items.forEach(item => container.appendChild(item));
+
+
+            // --- UPDATE ACTIVITIES ARRAY ---
+            activities.sort((a, b) => orderMap.get(a.id) - orderMap.get(b.id));
+            activities.forEach(a => a.order = orderMap.get(a.id));
+
+
+            // --- UPDATE POINTS (spots only) ---
+            let newPoints = [];
+            let spotCounter = 0;
+
+            items.forEach(item => {
+                const id = parseInt(item.dataset.activityId);
+                const point = points.find(p => p.id === id);
+
+                if (point) {
+                    newPoints.push(point);
+                    newPoints[spotCounter].order = spotCounter + 1;
+                    point.glyphLabel.innerText = spotCounter + 1;
+                    spotCounter++;
+                }
+            });
+
+            points = newPoints;
+
+            // --- RESET MAP & ROUTE DISPLAY ---
+            clearPolylines();
+            clearTravelCards();
+            clearWarnings();
+            routeInfoWindow.close();
+
+            // recompute fixed durations based on new order
+            fillFixedDurations(points);
+
+            // Disable apply button since this is already a preview
+            document.getElementById('order-apply').disabled = false;
+        }
 
         function applyActivityOrder() {
             if (isUpdating) return;

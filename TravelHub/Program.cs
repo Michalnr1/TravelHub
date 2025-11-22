@@ -58,6 +58,7 @@ builder.Services.AddScoped<IReverseGeocodingService, ReverseGeocodingService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
+builder.Services.AddScoped<IRouteOptimizationService, RouteOptimizationService>();
 
 // Identity
 builder.Services.AddIdentity<Person, IdentityRole>(options =>  // ← Person!
