@@ -19,6 +19,7 @@ public class DaysController : Controller
     private readonly ITripService _tripService;
     private readonly ITripParticipantService _tripParticipantService;
     private readonly IActivityService _activityService;
+    private readonly ITransportService _transportService;
     private readonly UserManager<Person> _userManager;
     private readonly IRouteOptimizationService _routeOptimizationService;
     private readonly IConfiguration _configuration;
@@ -27,6 +28,7 @@ public class DaysController : Controller
     public DaysController(IDayService dayService,
         ITripService tripService,
         ITripParticipantService tripParticipantService,
+        ITransportService transportService,
         ILogger<DaysController> logger,
         UserManager<Person> userManager,
         IRouteOptimizationService routeOptimizationService,
@@ -36,6 +38,7 @@ public class DaysController : Controller
         _dayService = dayService;
         _tripService = tripService;
         _tripParticipantService = tripParticipantService;
+        _activityService = activityService;
         _logger = logger;
         _userManager = userManager;
         _routeOptimizationService = routeOptimizationService;
@@ -452,7 +455,7 @@ public class DaysController : Controller
         return View(viewModel);
     }
 
-    public async Task<IActionResult> RouteOptimization(int id, int? fixedFirst, int? fixedLast)
+    public async Task<IActionResult> RouteOptimization(int id, int? fixedFirst, int? fixedLast, double startTime = 8, string travelMode = "WALK")
     {
         Day? day = await _dayService.GetDayWithDetailsAsync(id);
         if (day == null)
@@ -508,6 +511,14 @@ public class DaysController : Controller
                                                                                                                     Type = "Activity"
                                                                                                                 }).ToList();
 
+        List<RouteOptimizationTransport> transports = trip.Transports.Select(t => new RouteOptimizationTransport
+                                                                            {
+                                                                                FromSpotId = t.FromSpotId,
+                                                                                ToSpotId = t.ToSpotId,
+                                                                                Duration = t.Duration,
+                                                                            }).ToList();
+        
+
         RouteOptimizationSpot? first = firstSpot == null ? null : new RouteOptimizationSpot
         {
             Id = firstSpot.Id,
@@ -529,7 +540,7 @@ public class DaysController : Controller
             Longitude = lastSpot.Longitude,
         };
 
-        List<ActivityOrder> result = await _routeOptimizationService.GetActivityOrderSuggestion(spots, otherActivities, first, end, new List<Transport>(), "WALK"); 
+        List<ActivityOrder> result = await _routeOptimizationService.GetActivityOrderSuggestion(spots, otherActivities, first, end, transports, travelMode, (decimal)startTime); 
 
         return Ok(result);
     }

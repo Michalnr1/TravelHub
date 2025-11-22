@@ -1,0 +1,77 @@
+﻿@model TravelHub.Web.ViewModels.Trips.TripDetailViewModel
+@{
+    var tripId = Model?.Id ?? (int?)ViewData["TripId"];
+    var isOwner = ViewData["IsOwner"] as bool? ?? false;
+    var hasBlog = ViewData["HasBlog"] as bool? ?? false;
+}
+
+@if (tripId.HasValue)
+{
+    <div class="trip-sidebar">
+        <div class="sidebar-section">
+            <h6 class="sidebar-title">Trip Tools</h6>
+            <div class="d-grid gap-2">
+                <a href="@Url.Action("Balances", "Expenses", new { tripId = tripId.Value })" class="btn btn-info btn-sm">
+                    <i class="fas fa-balance-scale"></i> Balance Sheet
+                </a>
+                <a href="@Url.Action("Index", "BudgetSummary", new { tripId = tripId.Value })" class="btn btn-info btn-sm">
+                    <i class="fas fa-chart-pie"></i> Budget Summary
+                </a>
+                <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#countriesModal">
+                    <i class="fas fa-globe"></i> View Countries
+                </button>
+                <a asp-controller="Trips" asp-action="FlightSearch" asp-route-Id="@tripId.Value" class="btn btn-success btn-sm">
+                    <i class="fas fa-plane"></i> Flight Search
+                </a>
+                <a asp-controller="Trips" asp-action="Checklist" asp-route-tripId="@tripId.Value" class="btn btn-primary btn-sm">
+                    <i class="fas fa-tasks"></i> Checklist
+                </a>
+                <a asp-controller="Chat" asp-action="Index" asp-route-tripId="@tripId.Value" class="btn btn-primary btn-sm">
+                    <i class="fas fa-comments"></i> Trip Chat
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h6 class="sidebar-title">Blog</h6>
+            <div class="d-grid gap-2">
+                @if (hasBlog)
+                {
+                    <a asp-controller="Blog" asp-action="Index" asp-route-tripId="@tripId.Value" class="btn btn-primary btn-sm">
+                        <i class="fas fa-blog"></i> Trip Blog
+                    </a>
+                }
+                else if (isOwner)
+                {
+                    <a asp-controller="Blog" asp-action="CreateBlog" asp-route-tripId="@tripId.Value" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-plus"></i> Create Blog
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-outline-secondary btn-sm" disabled title="Only trip owner can create a blog">
+                        <i class="fas fa-blog"></i> No Blog Available
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h6 class="sidebar-title">Navigation</h6>
+            <div class="d-grid gap-2">
+                <a asp-action="MapView" asp-route-id="@tripId.Value" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-map"></i> View on Map
+                </a>
+                @if (isOwner)
+                {
+                    <a asp-action="Edit" asp-route-id="@tripId.Value" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-edit"></i> Edit Trip
+                    </a>
+                }
+                <a asp-action="MyTrips" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+}
