@@ -76,15 +76,15 @@ public class ExpenseDetailsViewModel
     public decimal AdditionalFee { get; set; } = 0;
     public decimal PercentageFee { get; set; } = 0;
 
+    // Obliczona opłata całkowita
+    public decimal TotalFee => AdditionalFee + (Value * ExchangeRateValue * PercentageFee / 100);
+    public string FormattedTotalFee => $"{TotalFee:N2} {TripCurrency}";
+
     // Obliczona wartość w walucie podróży
-    public decimal ConvertedValue => Value * ExchangeRateValue;
+    public decimal ConvertedValue => Value * ExchangeRateValue + TotalFee;
     public string FormattedConvertedValue => $"{ConvertedValue:N2} {TripCurrency}";
     public decimal ConvertedEstimatedValue => EstimatedValue * ExchangeRateValue;
     public string FormattedConvertedEstimatedValue => $"{ConvertedEstimatedValue:N2} {TripCurrency}";
-
-    // Obliczona opłata całkowita
-    public decimal TotalFee => AdditionalFee + (ConvertedValue * PercentageFee / 100);
-    public string FormattedTotalFee => $"{TotalFee:N2} {TripCurrency}";
 
     public string GetExpenseTypeBadge()
     {

@@ -1206,7 +1206,6 @@ public class TripsController : Controller
         return RedirectToAction("Checklist", new { tripId });
     }
 
-
     private string GetCurrentUserId()
     {
         return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");

@@ -126,16 +126,9 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
     public async Task<TripExpensesSummaryDto> CalculateTripExpensesInTripCurrencyAsync(int tripId, CurrencyCode tripCurrency)
     {
-        //var expenses = await _expenseRepository.GetByTripIdWithExchangeRatesAsync(tripId);
         var expenses = await _expenseRepository.GetByTripIdWithParticipantsAsync(tripId);
-        var tripExchangeRates = await _exchangeRateService.GetTripExchangeRatesAsync(tripId);
 
-        var tripBaseRate = tripExchangeRates.FirstOrDefault(er => er.CurrencyCodeKey == tripCurrency);
-
-        var summary = new TripExpensesSummaryDto
-        {
-            TripCurrency = tripCurrency
-        };
+        var summary = new TripExpensesSummaryDto();
 
         foreach (var expense in expenses)
         {
@@ -144,75 +137,77 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             if (expenseCurrency == tripCurrency)
             {
                 // Ta sama waluta - bez konwersji
-                var finalValue = expense.Value + CalculateFees(expense, expense.Value);
-                summary.TotalExpensesInTripCurrency += finalValue;
+                var finalValue = 0m;
+                if (expense.IsEstimated)
+                {
+                    finalValue = expense.EstimatedValue;
+                }
+                else
+                {
+                    finalValue = expense.Value;
+                }
+                finalValue += CalculateFees(expense, expense.Value);
                 summary.ExpenseCalculations.Add(new ExpenseCalculationDto
                 {
                     ExpenseId = expense.Id,
-                    OriginalValue = expense.Value,
-                    OriginalCurrency = expenseCurrency,
-                    TargetCurrency = tripCurrency,
-                    ExchangeRate = 1m,
-                    ConvertedValue = finalValue,
-                    AdditionalFee = expense.AdditionalFee,
-                    PercentageFee = expense.PercentageFee,
-                    TotalFee = finalValue - expense.Value
+                    ConvertedValue = finalValue
                 });
                 continue;
             }
 
             // Konwersja waluty
             var expenseRate = expense.ExchangeRate;
-            if (expenseRate == null || tripBaseRate == null)
+            if (expenseRate == null)
             {
                 // Brak kursów - traktujemy jako 1:1
-                var finalValue = expense.Value + CalculateFees(expense, expense.Value);
-                summary.TotalExpensesInTripCurrency += finalValue;
+                var finalValue = 0m;
+                if (expense.IsEstimated)
+                {
+                    finalValue = expense.EstimatedValue;
+                }
+                else
+                {
+                    finalValue = expense.Value;
+                }
+                finalValue += CalculateFees(expense, expense.Value);
                 summary.ExpenseCalculations.Add(new ExpenseCalculationDto
                 {
                     ExpenseId = expense.Id,
-                    OriginalValue = expense.Value,
-                    OriginalCurrency = expenseCurrency,
-                    TargetCurrency = tripCurrency,
-                    ExchangeRate = 1m,
-                    ConvertedValue = finalValue,
-                    AdditionalFee = expense.AdditionalFee,
-                    PercentageFee = expense.PercentageFee,
-                    TotalFee = finalValue - expense.Value
+                    ConvertedValue = finalValue
                 });
                 continue;
             }
 
-            // Oblicz przelicznik: waluta_podróży = waluta_wydatku * (kurs_wydatku / kurs_podróży)
-            var conversionRate = expenseRate.ExchangeRateValue / tripBaseRate.ExchangeRateValue;
-            var convertedValue = expense.Value * conversionRate;
+            // Oblicz przelicznik
+            var conversionRate = expenseRate.ExchangeRateValue;
+            var convertedValue = 0m;
+            if (expense.IsEstimated)
+            {
+                convertedValue = conversionRate * expense.EstimatedValue;
+            }
+            else
+            {
+                convertedValue = conversionRate * expense.Value;
+            }
 
             // Dolicz opłaty do przeliczonej kwoty
             var finalValueWithFees = convertedValue + CalculateFees(expense, convertedValue);
 
-            summary.TotalExpensesInTripCurrency += finalValueWithFees;
             summary.ExpenseCalculations.Add(new ExpenseCalculationDto
             {
                 ExpenseId = expense.Id,
-                OriginalValue = expense.Value,
-                OriginalCurrency = expenseCurrency,
-                TargetCurrency = tripCurrency,
-                ExchangeRate = conversionRate,
-                ConvertedValue = finalValueWithFees,
-                AdditionalFee = expense.AdditionalFee,
-                PercentageFee = expense.PercentageFee,
-                TotalFee = finalValueWithFees - convertedValue
+                ConvertedValue = finalValueWithFees
             });
         }
 
         return summary;
     }
 
-    public async Task<decimal> GetTotalExpensesInCurrencyAsync(int tripId, CurrencyCode targetCurrency)
-    {
-        var summary = await CalculateTripExpensesInTripCurrencyAsync(tripId, targetCurrency);
-        return summary.TotalExpensesInTripCurrency;
-    }
+    //public async Task<decimal> GetTotalExpensesInCurrencyAsync(int tripId, CurrencyCode targetCurrency)
+    //{
+    //    var summary = await CalculateTripExpensesInTripCurrencyAsync(tripId, targetCurrency);
+    //    return summary.TotalExpensesInTripCurrency;
+    //}
 
     public async Task<Expense?> GetExpenseByAccommodationIdAsync(int accommodationId)
     {

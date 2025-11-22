@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TravelHub.Domain.Entities;
+using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Repositories;
@@ -433,5 +434,107 @@ public class TripService : GenericService<Trip>, ITripService
     {
         var blog = await _blogRepository.GetByTripIdAsync(tripId);
         return blog != null;
+    }
+
+    public async Task<IEnumerable<PublicTripDto>> SearchPublicTripsAsync(PublicTripSearchCriteriaDto criteria)
+    {
+        var allPublicTrips = await _tripRepository.GetPublicTripsAsync();
+
+        var filteredTrips = allPublicTrips.AsEnumerable();
+
+        // Filtrowanie po frazie wyszukiwania (nazwa podróży lub nazwy miejsc)
+        if (!string.IsNullOrEmpty(criteria.SearchTerm))
+        {
+            var searchTerm = criteria.SearchTerm.ToLower();
+            filteredTrips = filteredTrips.Where(t =>
+                t.Name.ToLower().Contains(searchTerm) ||
+                GetAllSpotsFromTrip(t).Any(s => s.Name.ToLower().Contains(searchTerm))
+            );
+        }
+
+        // Filtrowanie po kraju
+        if (!string.IsNullOrEmpty(criteria.CountryCode))
+        {
+            filteredTrips = filteredTrips.Where(t =>
+                GetAllSpotsFromTrip(t).Any(s => s.CountryCode == criteria.CountryCode)
+            );
+        }
+
+        // Filtrowanie po długości podróży (w dniach)
+        if (criteria.MinDays.HasValue || criteria.MaxDays.HasValue)
+        {
+            filteredTrips = filteredTrips.Where(t => {
+                var duration = (t.EndDate - t.StartDate).Days + 1;
+
+                if (criteria.MinDays.HasValue && criteria.MaxDays.HasValue)
+                    return duration >= criteria.MinDays.Value && duration <= criteria.MaxDays.Value;
+                else if (criteria.MinDays.HasValue)
+                    return duration >= criteria.MinDays.Value;
+                else if (criteria.MaxDays.HasValue)
+                    return duration <= criteria.MaxDays.Value;
+                else
+                    return true;
+            });
+        }
+
+        return filteredTrips
+            .OrderBy(t => t.Name)
+            .Select(trip => MapToPublicTripDto(trip))
+            .ToList();
+    }
+
+    public async Task<IEnumerable<Country>> GetAvailableCountriesForPublicTripsAsync()
+    {
+        return await _tripRepository.GetCountriesForPublicTripsAsync();
+    }
+
+    public int CountAllSpotsInTrip(Trip trip)
+    {
+        return GetAllSpotsFromTrip(trip).Count();
+    }
+
+    public List<string> GetUniqueCountriesFromTrip(Trip trip)
+    {
+        var countries = new HashSet<string>();
+
+        foreach (var spot in GetAllSpotsFromTrip(trip).Where(s => !string.IsNullOrEmpty(s.CountryName)))
+        {
+            countries.Add(spot.CountryName!);
+        }
+
+        return countries.OrderBy(c => c).ToList();
+    }
+
+    // Metoda pomocnicza do pobierania wszystkich miejsc z podróży
+    private IEnumerable<Spot> GetAllSpotsFromTrip(Trip trip)
+    {
+        var spotsFromTrip = trip.Activities.OfType<Spot>();
+        var spotsFromDays = trip.Days.SelectMany(d => d.Activities.OfType<Spot>());
+
+        // Łączymy i usuwamy duplikaty po ID
+        return spotsFromTrip
+            .Concat(spotsFromDays)
+            .GroupBy(s => s.Id)
+            .Select(g => g.First())
+            .ToList();
+    }
+
+    private PublicTripDto MapToPublicTripDto(Trip trip)
+    {
+        var ownerName = !trip.Person!.IsPrivate
+            ? $"{trip.Person.FirstName} {trip.Person.LastName}"
+            : null;
+
+        return new PublicTripDto
+        {
+            Id = trip.Id,
+            Name = trip.Name,
+            StartDate = trip.StartDate,
+            EndDate = trip.EndDate,
+            OwnerName = ownerName,
+            Countries = GetUniqueCountriesFromTrip(trip),
+            SpotsCount = CountAllSpotsInTrip(trip),
+            ParticipantsCount = trip.Participants?.Count(p => p.Status == TripParticipantStatus.Accepted || p.Status == TripParticipantStatus.Owner) ?? 0
+        };
     }
 }

@@ -1,4 +1,4 @@
-﻿@model TravelHub.Web.ViewModels.Trips.TripDetailViewModel
+﻿@model TravelHub.Web.ViewModels.TripsSearch.PublicTripDetailViewModel
 
 @{
     ViewData["Title"] = "Trip Details";
@@ -7,49 +7,18 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>@Model.Name</h1>
     <div>
-        <form asp-action="AddDay" asp-route-id="@Model.Id" method="post" style="display:inline;">
-            <button type="submit" class="btn btn-success">Add Day</button>
-            @Html.AntiForgeryToken()
-        </form>
-        <a asp-action="AddGroup" asp-route-id="@Model.Id" class="btn btn-success">Add Group</a>
-        <a asp-controller="Accommodations" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Accommodation</a>
-        <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Expense</a>
-        <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Activity</a>
-        <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Spot</a>
-        <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">Add Transport</a>
-        <a href="@Url.Action("Balances", "Expenses", new { tripId = Model.Id })" class="btn btn-info">
-            <i class="fas fa-balance-scale"></i> Balance Sheet
+        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#countriesModal">
+            <i class="fas fa-globe"></i> View Countries
+        </button>
+        <a asp-controller="Trips" asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary">
+            <i class="fas fa-map"></i> View on Map
         </a>
-        <a href="@Url.Action("Index", "BudgetSummary", new { tripId = Model.Id })" class="btn btn-info">
+        <a href="#" class="btn btn-info" disabled title="Budget summary coming soon">
             <i class="fas fa-chart-pie"></i> Budget Summary
         </a>
-
-        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#countriesModal"><i class="fas fa-globe"></i> View Countries</button>
-        <a asp-controller="Trips" asp-action="FlightSearch" asp-route-Id="@Model.Id" class="btn btn-success"><i class="fas fa-plane"></i> Flight search</a>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit Trip</a>
-        <a asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary"><i class="fas fa-map"></i> View on Map</a>
-        @if ((bool)ViewData["HasBlog"]!)
-        {
-            <!-- Blog istnieje - normalny przycisk -->
-            <a asp-controller="Blog" asp-action="Index" asp-route-tripId="@Model.Id" class="btn btn-primary">
-                <i class="fas fa-blog"></i> Trip Blog
-            </a>
-        }
-        else if ((bool)ViewData["IsOwner"]!)
-        {
-            <!-- Użytkownik jest właścicielem - przycisk do tworzenia bloga -->
-            <a asp-controller="Blog" asp-action="CreateBlog" asp-route-tripId="@Model.Id" class="btn btn-outline-primary">
-                <i class="fas fa-plus"></i> Create Blog
-            </a>
-        }
-        else
-        {
-            <!-- Użytkownik nie jest właścicielem - przycisk nieaktywny -->
-            <button class="btn btn-outline-secondary" disabled title="Only trip owner can create a blog">
-                <i class="fas fa-blog"></i> No Blog Available
-            </button>
-        }
-        <a asp-action="MyTrips" class="btn btn-outline-secondary">Back to List</a>
+        <a asp-action="Search" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Search
+        </a>
     </div>
 </div>
 
@@ -93,16 +62,21 @@
                         }
                     </div>
                 </div>
-                @if (Model.EstimatedExpensesTotal > 0)
-                {
-                    <div class="row mt-2">
-                        <div class="col-12">
+                <div class="row mt-2">
+                    <div class="col-md-4">
+                        <strong>Owner:</strong> @Model.OwnerDisplay
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Participants:</strong> @Model.ParticipantsCount
+                    </div>
+                    <div class="col-md-4">
+                        @if (Model.EstimatedExpensesTotal > 0)
+                        {
                             <strong>Combined Total:</strong>
                             <span class="fw-bold">@Model.FormattedCombinedTotal</span>
-                            <small class="text-muted ms-2">(Actual + Estimated)</small>
-                        </div>
+                        }
                     </div>
-                }
+                </div>
             </div>
         </div>
     </div>
@@ -168,12 +142,8 @@
 <div class="row mt-4">
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <div class="card-header bg-light">
                 <h5 class="card-title mb-0">Days (@Model.NormalDaysCount)</h5>
-                <form asp-action="AddDay" asp-route-id="@Model.Id" method="post" style="display:inline;">
-                    <button type="submit" class="btn btn-sm btn-success">Add Day</button>
-                    @Html.AntiForgeryToken()
-                </form>
             </div>
             <div class="card-body">
                 @{
@@ -184,7 +154,7 @@
                     <div class="list-group">
                         @foreach (var day in normalDays)
                         {
-                            <div class="list-group-item list-group-item-action">
+                            <div class="list-group-item">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1 text-primary">@day.DisplayName</h6>
@@ -192,12 +162,8 @@
                                         <br>
                                         <small>Activities: @day.ActivitiesCount</small>
                                     </div>
-                                    <div class="btn-group" role="group">
-                                        <a asp-controller="Days" asp-action="Details" asp-route-id="@day.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                        @* <a asp-controller="Days" asp-action="Edit" asp-route-id="@day.Id" class="btn btn-sm btn-outline-secondary">Edit</a> *@
-                                        <form asp-controller="Days" asp-action="Delete" asp-route-id="@day.Id" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this day?')">Delete</button>
-                                        </form>
+                                    <div>
+                                        <a asp-controller="Days" asp-action="PublicDetails" asp-route-id="@day.Id" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
                                 </div>
                             </div>
@@ -214,9 +180,8 @@
 
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <div class="card-header bg-light">
                 <h5 class="card-title mb-0">Groups (@Model.GroupsCount)</h5>
-                <a asp-action="AddGroup" asp-route-id="@Model.Id" class="btn btn-sm btn-success">Add Group</a>
             </div>
             <div class="card-body">
                 @{
@@ -227,7 +192,7 @@
                     <div class="list-group">
                         @foreach (var group in groups)
                         {
-                            <div class="list-group-item list-group-item-action">
+                            <div class="list-group-item">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="mb-1 text-info">@group.DisplayName</h6>
@@ -235,12 +200,8 @@
                                         <br>
                                         <small>Activities: @group.ActivitiesCount</small>
                                     </div>
-                                    <div class="btn-group" role="group">
-                                        <a asp-controller="Days" asp-action="Details" asp-route-id="@group.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a asp-controller="Days" asp-action="EditGroup" asp-route-id="@group.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <form asp-controller="Days" asp-action="Delete" asp-route-id="@group.Id" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this group?')">Delete</button>
-                                        </form>
+                                    <div>
+                                        <a asp-controller="Days" asp-action="PublicDetails" asp-route-id="@group.Id" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
                                 </div>
                             </div>
@@ -261,9 +222,8 @@
     <!-- Accommodations -->
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="card-title mb-0">Accommodations (@Model.AccommodationsCount)</h5>
-                <a asp-controller="Accommodations" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Accommodation</a>
             </div>
             <div class="card-body">
                 @if (Model.Accommodations.Any())
@@ -278,7 +238,6 @@
                                         <p class="mb-1 small text-muted">@accommodation.Description</p>
                                         <div class="small">
                                             <span class="badge bg-light text-dark">@accommodation.DurationString</span>
-                                            @* <span class="badge bg-warning">$@accommodation.Cost</span> *@
                                             @if (!string.IsNullOrEmpty(accommodation.CategoryName))
                                             {
                                                 <span class="badge bg-secondary">@accommodation.CategoryName</span>
@@ -293,12 +252,8 @@
                                             </small>
                                         </div>
                                     </div>
-                                    <div class="btn-group ms-2 flex-shrink-0">
-                                        <a asp-controller="Accommodations" asp-action="Details" asp-route-id="@accommodation.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a asp-controller="Accommodations" asp-action="Edit" asp-route-id="@accommodation.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <form asp-controller="Accommodations" asp-action="Delete" asp-route-id="@accommodation.Id" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this accommodation?')">Delete</button>
-                                        </form>
+                                    <div>
+                                        <a asp-controller="Accommodations" asp-action="PublicDetails" asp-route-id="@accommodation.Id" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
                                 </div>
                             </div>
@@ -308,7 +263,6 @@
                 else
                 {
                     <p class="text-muted">No accommodations added to this trip yet.</p>
-                    <a asp-controller="Accommodations" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Accommodation</a>
                 }
             </div>
         </div>
@@ -317,7 +271,7 @@
     <!-- Expenses -->
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="card-title mb-0">
                     Expenses (@Model.ExpensesCount)
                     @if (Model.EstimatedExpensesCount > 0)
@@ -325,21 +279,6 @@
                         <span class="badge bg-warning text-dark">@Model.EstimatedExpensesCount estimated</span>
                     }
                 </h5>
-                <div class="btn-group">
-                    <div class="dropdown me-2">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="expenseFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-filter"></i> Filter
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="expenseFilterDropdown">
-                            <li><a class="dropdown-item expense-filter" href="#" data-filter="all">All Expenses</a></li>
-                            <li><a class="dropdown-item expense-filter" href="#" data-filter="actual">Actual Expenses</a></li>
-                            <li><a class="dropdown-item expense-filter" href="#" data-filter="estimated">Estimated Expenses</a></li>
-                            <li><a class="dropdown-item expense-filter" href="#" data-filter="transfers">Transfers</a></li>
-                        </ul>
-                    </div>
-                    <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success rounded">Add Expense</a>
-                    <a asp-controller="Expenses" asp-action="AddTransferToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-info rounded">Add Transfer</a>
-                </div>
             </div>
             <div class="card-body">
                 @if (Model.Expenses.Any())
@@ -368,11 +307,10 @@
                     </div>
 
                     <!-- Expenses List -->
-                    <div class="list-group" id="expensesList">
+                    <div class="list-group">
                         @foreach (var expense in Model.Expenses)
                         {
-                            <div class="list-group-item expense-item @(expense.IsEstimated ? "estimated" : "actual") @(string.IsNullOrEmpty(expense.TransferredToName) ? "" : "transfer")"
-                                 data-expense-type="@(expense.IsEstimated ? "estimated" : string.IsNullOrEmpty(expense.TransferredToName) ? "actual" : "transfer")">
+                            <div class="list-group-item @(expense.IsEstimated ? "estimated" : "actual")">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
                                         <div class="d-flex align-items-center mb-1">
@@ -385,12 +323,6 @@
                                                     {
                                                         <span class="ms-1">×@expense.Multiplier</span>
                                                     }
-                                                </span>
-                                            }
-                                            else if (!string.IsNullOrEmpty(expense.TransferredToName))
-                                            {
-                                                <span class="badge bg-info">
-                                                    <i class="fas fa-exchange-alt"></i> Transfer
                                                 </span>
                                             }
                                             else
@@ -419,34 +351,13 @@
                                             {
                                                 <span class="badge bg-secondary">@expense.CategoryName</span>
                                             }
-                                            <span class="badge bg-primary">Paid by: @expense.PaidByName</span>
-                                            @if (!string.IsNullOrEmpty(expense.TransferredToName))
-                                            {
-                                                <span class="badge bg-info">To: @expense.TransferredToName</span>
-                                            }
+                                            <!-- UKRYTE: PaidByName -->
+                                            <!-- UKRYTE: TransferredToName -->
                                         </div>
-                                    </div>
-                                    <div class="btn-group ms-2 flex-shrink-0">
-                                        <a asp-controller="Expenses" asp-action="Details" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-primary rounded" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a asp-controller="Expenses" asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-secondary rounded" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form asp-controller="Expenses" asp-action="Delete" asp-route-id="@expense.Id" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded" onclick="return confirm('Are you sure you want to delete this expense?')" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
                                     </div>
                                 </div>
                             </div>
                         }
-                    </div>
-
-                    <!-- No Results Message (hidden by default) -->
-                    <div id="noExpensesMessage" class="alert alert-info mt-3" style="display: none;">
-                        <i class="fas fa-info-circle"></i> No expenses match the selected filter.
                     </div>
 
                     <!-- Summary Footer -->
@@ -478,14 +389,6 @@
                     <div class="text-center py-4">
                         <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
                         <p class="text-muted">No expenses added to this trip yet.</p>
-                        <div class="btn-group">
-                            <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-success">
-                                <i class="fas fa-plus"></i> Add Expense
-                            </a>
-                            <a asp-controller="Expenses" asp-action="AddTransferToTrip" asp-route-tripId="@Model.Id" class="btn btn-info">
-                                <i class="fas fa-exchange-alt"></i> Add Transfer
-                            </a>
-                        </div>
                     </div>
                 }
             </div>
@@ -497,9 +400,8 @@
     <!-- Activities -->
     <div class="col-md-4">
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="card-title mb-0">Activities (@Model.ActivitiesCount)</h5>
-                <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Activity</a>
             </div>
             <div class="card-body">
                 @if (Model.Activities.Any())
@@ -524,12 +426,8 @@
                                             }
                                         </div>
                                     </div>
-                                    <div class="btn-group ms-2 flex-shrink-0">
-                                        <a asp-controller="Activities" asp-action="Details" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a asp-controller="Activities" asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <form asp-controller="Activities" asp-action="Delete" asp-route-id="@activity.Id" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this activity?')">Delete</button>
-                                        </form>
+                                    <div>
+                                        <a asp-controller="Activities" asp-action="PublicDetails" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
                                 </div>
                             </div>
@@ -539,7 +437,6 @@
                 else
                 {
                     <p class="text-muted">No activities added to this trip yet.</p>
-                    <a asp-controller="Activities" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Activity</a>
                 }
             </div>
         </div>
@@ -548,9 +445,8 @@
     <!-- Spots -->
     <div class="col-md-4">
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="card-title mb-0">Spots (@Model.SpotsCount)</h5>
-                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
             </div>
             <div class="card-body">
                 @if (Model.Spots.Any())
@@ -565,7 +461,6 @@
                                         <p class="mb-1 small text-muted">@spot.Description</p>
                                         <div class="small">
                                             <span class="badge bg-light text-dark">@spot.DurationString</span>
-                                            @* <span class="badge bg-warning">$@spot.Cost</span> *@
                                             @if (!string.IsNullOrEmpty(spot.CategoryName))
                                             {
                                                 <span class="badge bg-secondary">@spot.CategoryName</span>
@@ -576,12 +471,8 @@
                                             </small>
                                         </div>
                                     </div>
-                                    <div class="btn-group ms-2 flex-shrink-0">
-                                        <a asp-controller="Spots" asp-action="Details" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a asp-controller="Spots" asp-action="Edit" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <form asp-controller="Spots" asp-action="Delete" asp-route-id="@spot.Id" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this spot?')">Delete</button>
-                                        </form>
+                                    <div>
+                                        <a asp-controller="Spots" asp-action="PublicDetails" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
                                 </div>
                             </div>
@@ -591,7 +482,6 @@
                 else
                 {
                     <p class="text-muted">No spots added to this trip yet.</p>
-                    <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
                 }
             </div>
         </div>
@@ -600,9 +490,8 @@
     <!-- Transports -->
     <div class="col-md-4">
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="card-title mb-0">Transports (@Model.TransportsCount)</h5>
-                <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Transport</a>
             </div>
             <div class="card-body">
                 @if (Model.Transports.Any())
@@ -617,19 +506,14 @@
                                         <div class="small">
                                             <span class="badge bg-light text-dark">@transport.DurationString</span>
                                             <span class="badge bg-secondary">@transport.Type</span>
-                                            @* <span class="badge bg-warning">$@transport.Cost</span> *@
                                         </div>
                                         <div class="small text-muted">
                                             <div>From: @transport.FromSpotName</div>
                                             <div>To: @transport.ToSpotName</div>
                                         </div>
                                     </div>
-                                    <div class="btn-group ms-2 flex-shrink-0">
-                                        <a asp-controller="Transports" asp-action="Details" asp-route-id="@transport.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a asp-controller="Transports" asp-action="Edit" asp-route-id="@transport.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <form asp-controller="Transports" asp-action="Delete" asp-route-id="@transport.Id" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this transport?')">Delete</button>
-                                        </form>
+                                    <div>
+                                        <a asp-controller="Transports" asp-action="PublicDetails" asp-route-id="@transport.Id" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
                                 </div>
                             </div>
@@ -639,7 +523,6 @@
                 else
                 {
                     <p class="text-muted">No transports added to this trip yet.</p>
-                    <a asp-controller="Transports" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Transport</a>
                 }
             </div>
         </div>
@@ -676,78 +559,9 @@
     </div>
 </div>
 
-<div class="mt-3">
-    <!-- CHAT button: navigates to ChatController.Index?tripId={Model.Id} -->
-    <a asp-controller="Chat"
-       asp-action="Index"
-       asp-route-tripId="@Model.Id"
-       class="btn btn-primary">
-        Open Chat
-    </a>
-
-    <a asp-controller="Trips"
-       asp-action="Checklist"
-       asp-route-tripId="@Model.Id"
-       class="btn btn-primary">
-        View checklist
-    </a>
-</div>
-
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const expenseItems = document.querySelectorAll('.expense-item');
-            const noExpensesMessage = document.getElementById('noExpensesMessage');
-            const filterButtons = document.querySelectorAll('.expense-filter');
-
-            function filterExpenses(filterType) {
-                let visibleCount = 0;
-                
-                expenseItems.forEach(item => {
-                    const isVisible = filterType === 'all' || item.classList.contains(filterType);
-                    
-                    if (isVisible) {
-                        item.style.display = 'block';
-                        visibleCount++;
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-
-                // Show/hide no results message
-                if (visibleCount === 0 && filterType !== 'all') {
-                    noExpensesMessage.style.display = 'block';
-                } else {
-                    noExpensesMessage.style.display = 'none';
-                }
-
-                // Update active filter button
-                filterButtons.forEach(btn => {
-                    if (btn.getAttribute('data-filter') === filterType) {
-                        btn.classList.add('active');
-                    } else {
-                        btn.classList.remove('active');
-                    }
-                });
-            }
-
-            // Add click events to filter buttons
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const filterType = this.getAttribute('data-filter');
-                    filterExpenses(filterType);
-                    
-                    // Update dropdown button text
-                    const dropdownButton = document.getElementById('expenseFilterDropdown');
-                    const filterText = this.textContent;
-                    dropdownButton.innerHTML = `<i class="fas fa-filter"></i> ${filterText}`;
-                });
-            });
-
-            // Initialize with all expenses shown
-            filterExpenses('all');
-
             const countriesModal = document.getElementById('countriesModal');
 
             countriesModal.addEventListener('show.bs.modal', function() {
@@ -815,22 +629,8 @@
             background-color: #fffbf0;
         }
 
-        .expense-item.transfer {
-            border-left: 4px solid #0dcaf0;
-            background-color: #f0f9ff;
-        }
-
         .expense-item.actual {
             border-left: 4px solid #198754;
-        }
-
-        .dropdown-item.active {
-            background-color: #0d6efd;
-            color: white;
-        }
-
-        .btn-group .btn {
-            margin-right: 2px;
         }
     </style>
 }

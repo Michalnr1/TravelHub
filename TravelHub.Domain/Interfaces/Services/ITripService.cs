@@ -1,4 +1,5 @@
 ﻿using TravelHub.Domain.Entities;
+using TravelHub.Domain.DTOs;
 
 namespace TravelHub.Domain.Interfaces.Services;
 
@@ -25,4 +26,8 @@ public interface ITripService : IGenericService<Trip>
     Task<Trip?> GetByIdWithParticipantsAsync(int id);
     Task<Blog?> GetOrCreateBlogForTripAsync(int tripId, string userId);
     Task<bool> HasBlogAsync(int tripId);
+    Task<IEnumerable<PublicTripDto>> SearchPublicTripsAsync(PublicTripSearchCriteriaDto criteria);
+    Task<IEnumerable<Country>> GetAvailableCountriesForPublicTripsAsync();
+    int CountAllSpotsInTrip(Trip trip);
+    List<string> GetUniqueCountriesFromTrip(Trip trip);
 }

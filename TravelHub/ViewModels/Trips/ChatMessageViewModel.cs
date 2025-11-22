@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using TravelHub.Domain.DTOs;
 
+namespace TravelHub.Web.ViewModels.Trips;
+
 // ViewModel used to render messages in the UI
 public class ChatMessageViewModel
 {

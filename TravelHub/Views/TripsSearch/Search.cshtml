@@ -1,0 +1,235 @@
+﻿@using TravelHub.Web.ViewModels.TripsSearch
+@model PublicTripSearchViewModel
+
+@{
+    ViewData["Title"] = "Discover Public Trips";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4 mb-4">
+                <i class="fas fa-search me-2"></i>Discover Public Trips
+            </h1>
+            <p class="lead text-muted mb-5">
+                Explore amazing travel experiences shared by our community
+            </p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter me-2"></i>Search Filters
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        @Html.AntiForgeryToken()
+
+                        <div class="col-md-3">
+                            <label for="SearchTerm" class="form-label">Search</label>
+                            <input type="text" id="SearchTerm" name="SearchTerm" class="form-control"
+                                   placeholder="Trip name or places..." value="@Model.SearchTerm" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="SelectedCountryCode" class="form-label">Country</label>
+                            <select id="SelectedCountryCode" name="SelectedCountryCode" class="form-select">
+                                <option value="">All Countries</option>
+                                @foreach (var country in Model.AvailableCountries)
+                                {
+                                    <option value="@country.Code" selected="@(Model.SelectedCountryCode == country.Code)">
+                                        @country.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="MinDays" class="form-label">Min Days</label>
+                            <input type="number" id="MinDays" name="MinDays" class="form-control"
+                                   placeholder="1" min="1" max="365" value="@Model.MinDays" />
+                        </div>
+
+                        <div class="col-md-2">
+                            <label for="MaxDays" class="form-label">Max Days</label>
+                            <input type="number" id="MaxDays" name="MaxDays" class="form-control"
+                                   placeholder="365" min="1" max="365" value="@Model.MaxDays" />
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i>Search
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Count -->
+    @if (Model.HasFilters)
+    {
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-filter me-2"></i>
+                    Showing @Model.Trips.Count public trips
+                    @if (!string.IsNullOrEmpty(Model.SelectedCountryCode))
+                    {
+                        var country = Model.AvailableCountries.FirstOrDefault(c => c.Code == Model.SelectedCountryCode);
+                        <text>in <strong>@country?.Name</strong></text>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                    {
+                        <text>matching "<strong>@Model.SearchTerm</strong>"</text>
+                    }
+                    @if (Model.MinDays.HasValue || Model.MaxDays.HasValue)
+                    {
+                        <text>
+                            with duration
+                            @if (Model.MinDays.HasValue && Model.MaxDays.HasValue)
+                            {
+                                <text>between <strong>@Model.MinDays</strong> and <strong>@Model.MaxDays</strong> days</text>
+                            }
+                            else if (Model.MinDays.HasValue)
+                            {
+                                <text>of at least <strong>@Model.MinDays</strong> days</text>
+                            }
+                            else
+                            {
+                                <text>up to <strong>@Model.MaxDays</strong> days</text>
+                            }
+                        </text>
+                    }
+                    <a href="@Url.Action("Search")" class="btn btn-sm btn-outline-info ms-2">Clear Filters</a>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Trips Grid -->
+    @if (Model.Trips.Any())
+    {
+        <div class="row">
+            @foreach (var trip in Model.Trips)
+            {
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">@trip.Name</h5>
+                            <span class="badge bg-success">
+                                <i class="fas fa-globe me-1"></i>Public
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>Duration:</strong> @trip.DurationDisplay<br>
+                                <strong>Dates:</strong> @trip.DateRange<br>
+                                <strong>Owner:</strong>
+                                @if (trip.IsOwnerPublic)
+                                {
+                                    @trip.OwnerName
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        <i class="fas fa-user-secret me-1"></i>Private User
+                                    </span>
+                                }
+                            </div>
+
+                            @if (trip.Countries.Any())
+                            {
+                                <div class="mb-3">
+                                    <strong>Countries visited:</strong>
+                                    <div class="mt-1">
+                                        @foreach (var country in trip.Countries.Take(3))
+                                        {
+                                            <span class="badge bg-light text-dark me-1 mb-1">@country</span>
+                                        }
+                                        @if (trip.Countries.Count > 3)
+                                        {
+                                            <span class="badge bg-secondary">+@(trip.Countries.Count - 3) more</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="mb-3">
+                                <strong>Statistics:</strong><br>
+                                <span class="text-muted">
+                                    <i class="fas fa-map-marker-alt me-1"></i>@trip.SpotsCount spots •
+                                    <i class="fas fa-users me-1"></i>@trip.ParticipantsCount participants
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    @if (trip.IsOwnerPublic)
+                                    {
+                                        <text>Created by @trip.OwnerName</text>
+                                    }
+                                    else
+                                    {
+                                        <text>Created by private user</text>
+                                    }
+                                </small>
+                                <a asp-controller="TripsSearch" asp-action="Details" asp-route-id="@trip.Id" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (Model.HasFilters)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-route fa-4x text-muted mb-3"></i>
+                    <h3>No public trips found</h3>
+                    <p class="text-muted">
+                        Try adjusting your search criteria to see more results.
+                    </p>
+                    <a href="@Url.Action("Search")" class="btn btn-primary">View All Public Trips</a>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-route fa-4x text-muted mb-3"></i>
+                    <h3>No public trips available</h3>
+                    <p class="text-muted">
+                        There are no public trips shared by the community at the moment.
+                    </p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Optional: Auto-submit form when country changes
+        document.getElementById('SelectedCountryCode')?.addEventListener('change', function() {
+            this.form.submit();
+        });
+    </script>
+}

@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using TravelHub.Domain.Entities;
+﻿using TravelHub.Domain.Entities;
 
 namespace TravelHub.Domain.Interfaces.Repositories;
 
@@ -12,4 +10,6 @@ public interface ITripRepository : IGenericRepository<Trip>
     Task<IReadOnlyList<Trip>> GetAllWithUserAsync();
     Task AddCountryToTrip(int id, Country country);
     Task<Trip?> GetByIdWithParticipantsAsync(int id);
+    Task<IEnumerable<Trip>> GetPublicTripsAsync();
+    Task<IEnumerable<Country>> GetCountriesForPublicTripsAsync();
 }
