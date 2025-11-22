@@ -6,6 +6,8 @@ namespace TravelHub.Web.ViewModels.Checklists
     {
         public int TripId { get; set; }
 
+        public int ActivityId { get; set; }
+
         // original item key (old name)
         public string OldItem { get; set; } = string.Empty;
 
@@ -16,6 +18,7 @@ namespace TravelHub.Web.ViewModels.Checklists
     public class ChecklistPageViewModel
     {
         public int TripId { get; set; }
+        public int ActivityId { get; set; }
         public Checklist Checklist { get; set; } = new();
         public List<ParticipantVm> Participants { get; set; } = new();
     }
