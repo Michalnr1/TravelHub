@@ -260,7 +260,7 @@ public class TripsSearchController : Controller
             EstimatedExpensesTotal = totalEstimatedExpenses, // Suma wydatków szacowanych
 
             // Statystyki uczestników (tylko liczba)
-            ParticipantsCount = trip.Participants?.Count(p => p.Status == TripParticipantStatus.Accepted || p.Status == TripParticipantStatus.Owner) ?? 0
+            ParticipantsCount = trip.Participants?.Count(p => (p.Status == TripParticipantStatus.Accepted || p.Status == TripParticipantStatus.Owner)) ?? 0
         };
 
         return View(viewModel);
