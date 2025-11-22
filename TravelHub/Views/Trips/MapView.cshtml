@@ -1,10 +1,21 @@
-﻿@model TravelHub.Web.ViewModels.Trips.TripDetailViewModel
+﻿@using TravelHub.Web.ViewModels.Activities;
+@model TravelHub.Web.ViewModels.Trips.TripDetailViewModel
 
 @{
     ViewData["Title"] = "Trip Details";
     var apiKey = ViewData["GoogleApiKey"];
     var startLat = ViewData["Latitude"];
     var startLng = ViewData["Longitude"];
+    var allSpots = new List<SpotDetailsViewModel>();
+    allSpots.AddRange(Model.Spots);
+    allSpots.AddRange(Model.Accommodations.Select(a => new SpotDetailsViewModel
+    {
+        TripName = Model.Name,
+        Name = a.Name,
+        Latitude = a.Latitude,
+        Longitude = a.Longitude,
+        Description = a.Description ?? string.Empty
+    }));
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -127,13 +138,13 @@
                 <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
             </div>
             <div class="card-body">
-                @if (Model.Spots.Any())
+                @if (allSpots.Any())
                 {
                     <div class="list-group">
                         @{
                             int i = 0;
                         }
-                        @foreach (var spot in Model.Spots)
+                        @foreach (var spot in allSpots)
                         {
                             <div class="list-group-item" id="spot-@i">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -188,7 +199,7 @@
     <script>
         let map;
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
-        let points = @Json.Serialize(Model.Spots);
+        let points = @Json.Serialize(allSpots);
         //alert(JSON.stringify(points));
 
         async function initMap() {
