@@ -1,0 +1,64 @@
+﻿@model TravelHub.Web.ViewModels.Blog.EditBlogViewModel
+
+@{
+    ViewData["Title"] = "Edit Blog";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">Edit Blog: @Model.Name</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="EditBlog" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="TripId" />
+                        <input type="hidden" asp-for="TripName" />
+
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Blog Name *</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Catalog" class="form-label">Category</label>
+                            <input asp-for="Catalog" class="form-control" />
+                            <span asp-validation-for="Catalog" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="IsPrivate" class="form-label">Blog Visibility *</label>
+                            <select asp-for="IsPrivate" class="form-select">
+                                <option value="true">Private</option>
+                                <option value="false">Public</option>
+                            </select>
+                            <span asp-validation-for="IsPrivate" class="text-danger"></span>
+                            <div class="form-text">
+                                <strong>Private:</strong> Only trip participants can view this blog<br>
+                                <strong>Public:</strong> Anyone can view this blog
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="@Url.Action("Index", "Blog", new { tripId = Model.TripId })" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

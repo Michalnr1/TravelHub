@@ -18,6 +18,9 @@ public class ExpenseViewModel
     public CurrencyCode CurrencyCode { get; set; }
     public decimal ExchangeRateValue { get; set; }
 
+    public decimal AdditionalFee { get; set; } = 0;
+    public decimal PercentageFee { get; set; } = 0;
+
     public bool IsEstimated { get; set; }
     public int Multiplier { get; set; } = 1;
     public int? SpotId { get; set; }
@@ -70,11 +73,18 @@ public class ExpenseDetailsViewModel
     public string? TransportName { get; set; }
     public decimal ExchangeRateValue { get; set; } = 1.0m;
 
+    public decimal AdditionalFee { get; set; } = 0;
+    public decimal PercentageFee { get; set; } = 0;
+
     // Obliczona wartość w walucie podróży
     public decimal ConvertedValue => Value * ExchangeRateValue;
     public string FormattedConvertedValue => $"{ConvertedValue:N2} {TripCurrency}";
     public decimal ConvertedEstimatedValue => EstimatedValue * ExchangeRateValue;
     public string FormattedConvertedEstimatedValue => $"{ConvertedEstimatedValue:N2} {TripCurrency}";
+
+    // Obliczona opłata całkowita
+    public decimal TotalFee => AdditionalFee + (ConvertedValue * PercentageFee / 100);
+    public string FormattedTotalFee => $"{TotalFee:N2} {TripCurrency}";
 
     public string GetExpenseTypeBadge()
     {
@@ -166,6 +176,17 @@ public class ExpenseCreateEditViewModel
     [Display(Name = "Multiplier (for estimated expenses)")]
     [Range(1, int.MaxValue, ErrorMessage = "Multiplier must be at least 1")]
     public int Multiplier { get; set; } = 1;
+
+    [Display(Name = "Include Currency Conversion Fees")]
+    public bool IncludeFees { get; set; } = false;
+
+    [Display(Name = "Additional Fee")]
+    [Range(0.00, double.MaxValue, ErrorMessage = "Additional fee must be greater than or equal to 0")]
+    public decimal AdditionalFee { get; set; } = 0;
+
+    [Display(Name = "Percentage Fee")]
+    [Range(0.00, 100.00, ErrorMessage = "Percentage fee must be between 0 and 100")]
+    public decimal PercentageFee { get; set; } = 0;
 
     [Required(ErrorMessage = "Trip is required")]
     [Display(Name = "Trip")]

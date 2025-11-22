@@ -253,7 +253,16 @@ public class TripsController : Controller
             Expenses = expenseViewModels
         };
 
-            return View(viewModel);
+        // Sprawdź czy blog istnieje i przekaż do widoku
+        var hasBlog = await _tripService.HasBlogAsync(id);
+        ViewData["HasBlog"] = hasBlog;
+
+        // Sprawdź czy użytkownik jest właścicielem
+        var currentUserId = _userManager.GetUserId(User);
+        var isOwner = trip.PersonId == currentUserId;
+        ViewData["IsOwner"] = isOwner;
+
+        return View(viewModel);
     }
 
     // GET: Trips/Participants/5

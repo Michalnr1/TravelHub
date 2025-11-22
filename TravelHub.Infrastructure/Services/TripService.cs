@@ -14,12 +14,14 @@ public class TripService : GenericService<Trip>, ITripService
     private readonly IDayRepository _dayRepository;
     private readonly IAccommodationService _accommodationService;
     private readonly ITripParticipantRepository _tripParticipantRepository;
+    private readonly IBlogRepository _blogRepository;
     private readonly ILogger<TripService> _logger;
 
     public TripService(ITripRepository tripRepository,
         IDayRepository dayRepository,
         IAccommodationService accommodationService,
         ITripParticipantRepository tripParticipantRepository,
+        IBlogRepository blogRepository,
         ILogger<TripService> logger)
         : base(tripRepository)
     {
@@ -27,6 +29,7 @@ public class TripService : GenericService<Trip>, ITripService
         _dayRepository = dayRepository;
         _accommodationService = accommodationService;
         _tripParticipantRepository = tripParticipantRepository;
+        _blogRepository = blogRepository;
         _logger = logger;
     }
 
@@ -396,5 +399,39 @@ public class TripService : GenericService<Trip>, ITripService
     public async Task<Trip?> GetByIdWithParticipantsAsync(int tripId)
     {
         return await _tripRepository.GetByIdWithParticipantsAsync(tripId);
+    }
+
+    public async Task<Blog?> GetOrCreateBlogForTripAsync(int tripId, string userId)
+    {
+        var trip = await _tripRepository.GetByIdAsync(tripId);
+        if (trip == null)
+            return null;
+
+        // Sprawdź czy użytkownik jest właścicielem tripa
+        if (trip.PersonId != userId)
+            return null;
+
+        // Sprawdź czy blog już istnieje
+        var existingBlog = await _blogRepository.GetByTripIdAsync(tripId);
+        if (existingBlog != null)
+            return existingBlog;
+
+        // Utwórz nowy blog
+        var blog = new Blog
+        {
+            Name = $"{trip.Name} - Blog",
+            Description = $"Blog for trip: {trip.Name}",
+            OwnerId = userId,
+            TripId = tripId,
+            Catalog = "travel"
+        };
+
+        return await _blogRepository.AddAsync(blog);
+    }
+
+    public async Task<bool> HasBlogAsync(int tripId)
+    {
+        var blog = await _blogRepository.GetByTripIdAsync(tripId);
+        return blog != null;
     }
 }

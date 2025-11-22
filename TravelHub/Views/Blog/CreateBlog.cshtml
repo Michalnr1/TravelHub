@@ -1,0 +1,70 @@
+﻿@model TravelHub.Web.ViewModels.Blog.CreateBlogViewModel
+
+@{
+    ViewData["Title"] = "Create Blog for Trip";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">Create Blog for Trip: @Model.TripName</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Create a blog to share experiences, photos, and stories from your trip with other participants.
+                    </p>
+
+                    <form asp-action="CreateBlog" method="post">
+                        <input type="hidden" asp-for="TripId" />
+                        <input type="hidden" asp-for="TripName" />
+
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Blog Name *</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                            <div class="form-text">This will be the main title of your trip blog.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                            <div class="form-text">Optional description for your blog.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Catalog" class="form-label">Category</label>
+                            <input asp-for="Catalog" class="form-control" />
+                            <span asp-validation-for="Catalog" class="text-danger"></span>
+                            <div class="form-text">Optional category for organizing your blog.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="IsPrivate" class="form-label">Blog Visibility *</label>
+                            <select asp-for="IsPrivate" class="form-select">
+                                <option value="true">Private</option>
+                                <option value="false">Public</option>
+                            </select>
+                            <span asp-validation-for="IsPrivate" class="text-danger"></span>
+                            <div class="form-text">
+                                <strong>Private:</strong> Only trip participants can view this blog<br>
+                                <strong>Public:</strong> Anyone can view this blog
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="@Url.Action("Details", "Trips", new { id = Model.TripId })" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Create Blog</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

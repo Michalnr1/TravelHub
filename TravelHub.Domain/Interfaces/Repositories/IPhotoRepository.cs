@@ -7,4 +7,7 @@ public interface IPhotoRepository : IGenericRepository<Photo>
     Task<IReadOnlyList<Photo>> GetPhotosBySpotIdAsync(int spotId);
 
     Task<IReadOnlyList<Photo>> GetPhotosByPostIdAsync(int postId);
+
+    // Blog
+    Task<IReadOnlyList<Photo>> GetByCommentIdAsync(int commentId);
 }

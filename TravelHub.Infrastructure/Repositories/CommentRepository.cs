@@ -12,16 +12,17 @@ public class CommentRepository : GenericRepository<Comment>, ICommentRepository
 
     public async Task<IReadOnlyList<Comment>> GetCommentsByPostIdAsync(int postId)
     {
-        return await _context.Set<Comment>()
-            .Where(c => c.PostId == postId)
+        return await _context.Comments
             .Include(c => c.Author)
-            .OrderBy(c => c.CreationDate) // Sortowanie chronologiczne
+            .Include(c => c.Photos)
+            .Where(c => c.PostId == postId)
+            .OrderBy(c => c.CreationDate)
             .ToListAsync();
     }
 
     public async Task<Comment?> GetByIdWithDetailsAsync(int id)
     {
-        return await _context.Set<Comment>()
+        return await _context.Comments
             .Where(c => c.Id == id)
             .Include(c => c.Author)
             .Include(c => c.Photos)
@@ -30,9 +31,9 @@ public class CommentRepository : GenericRepository<Comment>, ICommentRepository
 
     public async Task<IReadOnlyList<Comment>> GetCommentsByAuthorIdAsync(string authorId)
     {
-        return await _context.Set<Comment>()
-            .Where(c => c.AuthorId == authorId)
+        return await _context.Comments
             .Include(c => c.Post)
+            .Where(c => c.AuthorId == authorId)
             .OrderByDescending(c => c.CreationDate)
             .ToListAsync();
     }

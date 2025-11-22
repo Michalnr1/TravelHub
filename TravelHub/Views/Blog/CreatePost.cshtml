@@ -1,0 +1,195 @@
+﻿@model TravelHub.Web.ViewModels.Blog.CreatePostViewModel
+
+@{
+    ViewData["Title"] = "New Post";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1>New Post</h1>
+
+            <form asp-action="CreatePost" method="post" enctype="multipart/form-data">
+                <input type="hidden" asp-for="BlogId" />
+
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label">Title *</label>
+                    <input asp-for="Title" class="form-control" placeholder="Enter post title" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Content" class="form-label">Content *</label>
+                    <div id="editor" style="height: 300px;"></div>
+                    <textarea asp-for="Content" id="Content" class="form-control d-none"></textarea>
+                    <span asp-validation-for="Content" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="DayId" class="form-label">Trip Day (optional)</label>
+                    <select asp-for="DayId" class="form-control">
+                        <option value="">-- Select Day --</option>
+                        @foreach (var day in Model.Days.OrderBy(d => d.Number))
+                        {
+                            <option value="@day.Id">
+                                @if (string.IsNullOrEmpty(day.Name))
+                                {
+                                    <text>Day @day.Number</text>
+                                }
+                                else
+                                {
+                                    <text>@day.Name (Day @day.Number)</text>
+                                }
+                            </option>
+                        }
+                    </select>
+                    <div class="form-text">You can link this post to a specific trip day.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Photos" class="form-label">Photos (optional)</label>
+                    <input asp-for="Photos" class="form-control" type="file" multiple accept="image/*" />
+                    <div class="form-text">You can add up to 10 photos. Supported formats: JPG, PNG, WebP. Max 5MB per photo.</div>
+                </div>
+
+                <!-- Photo Preview -->
+                <div id="photoPreview" class="row mb-3" style="display: none;"></div>
+
+                <div class="mb-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Publish Post
+                    </button>
+                    <a href="@Url.Action("Index", "Blog", new { tripId = ViewBag.TripId })" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'header': 1 }, { 'header': 2 }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'script': 'sub'}, { 'script': 'super' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'direction': 'rtl' }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'font': [] }],
+                    [{ 'align': [] }],
+                    ['link'],
+                    ['clean']
+                ]
+            },
+            placeholder: 'Write your post content...',
+            theme: 'snow'
+        });
+
+        // Synchronizacja z textarea
+        quill.on('text-change', function() {
+            document.getElementById('Content').value = quill.root.innerHTML;
+        });
+
+        // Ustawienie początkowej wartości
+        var initialContent = document.getElementById('Content').value;
+        if (initialContent) {
+            quill.root.innerHTML = initialContent;
+        }
+
+        // Photo preview functionality
+        document.getElementById('Photos').addEventListener('change', function(e) {
+            const preview = document.getElementById('photoPreview');
+            preview.innerHTML = '';
+            preview.style.display = 'none';
+
+            const files = e.target.files;
+            if (files.length > 0) {
+                preview.style.display = 'flex';
+                preview.classList.add('row', 'g-2');
+
+                for (let i = 0; i < Math.min(files.length, 10); i++) {
+                    const file = files[i];
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const col = document.createElement('div');
+                            col.className = 'col-6 col-md-4 col-lg-3';
+                            col.innerHTML = `
+                                <div class="card">
+                                    <img src="${e.target.result}" class="card-img-top"
+                                         style="height: 120px; object-fit: cover;" alt="Preview">
+                                    <div class="card-body p-2">
+                                        <small class="text-muted d-block text-truncate">${file.name}</small>
+                                        <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                                    </div>
+                                </div>
+                            `;
+                            preview.appendChild(col);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
+            }
+        });
+
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const title = this.querySelector('input[name="Title"]');
+            const content = this.querySelector('textarea[name="Content"]');
+
+            if (!title.value.trim()) {
+                e.preventDefault();
+                title.focus();
+                alert('Please enter post title.');
+                return;
+            }
+
+            if (!content.value.trim()) {
+                e.preventDefault();
+                content.focus();
+                alert('Please enter post content.');
+                return;
+            }
+
+            // Check number of photos
+            const photoInput = document.getElementById('Photos');
+            if (photoInput.files.length > 10) {
+                e.preventDefault();
+                alert('You can add maximum 10 photos.');
+                return;
+            }
+        });
+    </script>
+
+    <style>
+        .card-img-top {
+            object-fit: cover;
+        }
+
+        .text-truncate {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #photoPreview .card {
+            transition: transform 0.2s ease-in-out;
+        }
+
+            #photoPreview .card:hover {
+                transform: scale(1.05);
+            }
+    </style>
+}

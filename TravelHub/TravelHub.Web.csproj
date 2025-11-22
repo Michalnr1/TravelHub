@@ -9,6 +9,8 @@
   <ItemGroup>
     <Folder Include="Areas\Identity\Data\" />
     <Folder Include="wwwroot\files\spots\" />
+    <Folder Include="wwwroot\images\comments\" />
+    <Folder Include="wwwroot\images\posts\" />
     <Folder Include="wwwroot\images\spots\" />
   </ItemGroup>
 

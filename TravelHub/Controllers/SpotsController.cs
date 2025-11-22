@@ -151,7 +151,8 @@ public class SpotsController : Controller
         {
             Id = p.Id,
             Name = p.Name,
-            Alt = p.Alt
+            Alt = p.Alt,
+            FilePath = p.FilePath
         }).ToList();
 
         var files = await _fileService.GetBySpotIdAsync(spot.Id);
@@ -555,10 +556,15 @@ public class SpotsController : Controller
             Order = spot.Order,
             CategoryName = spot.Category?.Name,
             DayName = spot.Day?.Name,
-            // fill other properties the Details view expects, e.g. Photos
             Photos = (await _photoService.GetBySpotIdAsync(spot.Id))
-                  .Select(p => new PhotoViewModel { Id = p.Id, Name = p.Name, Alt = p.Alt })
-                  .ToList()
+              .Select(p => new PhotoViewModel
+              {
+                  Id = p.Id,
+                  Name = p.Name,
+                  Alt = p.Alt,
+                  FilePath = p.FilePath
+              })
+              .ToList()
         };
 
         // Render the view to HTML string

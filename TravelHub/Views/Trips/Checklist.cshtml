@@ -96,7 +96,7 @@
     </tbody>
 </table>
 
-<!-- Add new item form (separate, not nested inside table form) -->
+<!-- Add new item form -->
 <form id="addForm" method="post" asp-controller="Trips" asp-action="AddChecklistItem" asp-route-tripId="@tripId">
     @Html.AntiForgeryToken()
     <input type="text" name="item" id="newItem" />
@@ -112,67 +112,3 @@
         Back to Trip
     </a>
 </div>
-
-
-@* @using TravelHub.Domain.Entities
-
-@model Checklist
-@{
-    var tripId = ViewBag.TripId;
-}
-
-<h3>Checklist</h3>
-
-<ul id="checklist">
-    @foreach (var kv in Model.Items)
-    {
-        <li>
-            <input type="checkbox" class="toggle-item" disabled data-item="@kv.Key" @(kv.Value ? "checked" : "") />
-            <span>@kv.Key</span>
-
-            <form method="post"
-                  asp-controller="Trips"
-                  asp-action="ToggleChecklistItem"
-                  asp-route-tripId="@tripId"
-                  asp-route-item="@kv.Key"
-                  style="display:inline">
-
-                @Html.AntiForgeryToken()
-
-                <button type="submit" class="btn btn-link p-0 m-0">
-                    Toggle
-                </button>
-            </form>
-
-            <!-- Edit link navigates to intermediate edit view (GET) -->
-            <a asp-controller="Trips"
-               asp-action="EditChecklistItem"
-               asp-route-tripId="@tripId"
-               asp-route-item="@kv.Key"
-               class="btn btn-sm btn-link">
-                Edit
-            </a>
-
-            <!-- Delete form (POST) - fallback without JS -->
-            <form method="post" asp-controller="Trips" asp-action="DeleteChecklistItem" asp-route-tripId="@tripId" asp-route-item="@kv.Key" style="display:inline;">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-sm btn-link text-danger">Delete</button>
-            </form>
-        </li>
-    }
-</ul>
-
-<form id="addForm" method="post" asp-action="AddChecklistItem" asp-route-tripId="@tripId">
-    <input type="text" name="item" id="newItem" />
-    <button type="submit">Add</button>
-</form>
-
-<div class="mb-3">
-    <!-- Back to Trip details -->
-    <a asp-controller="Trips"
-       asp-action="Details"
-       asp-route-id="@tripId"
-       class="btn btn-secondary">
-        Back to Trip
-    </a>
-</div> *@

@@ -1,12 +1,13 @@
-﻿using System.Text;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Extensions;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Checklists;
 
 namespace TravelHub.Web.Controllers;
 
@@ -461,6 +462,115 @@ public class ActivitiesController : Controller
 
         TempData["SuccessMessage"] = $"{activityType.FirstCharToUpper()} removed from day successfully!";
         return RedirectToAction("Details", "Days", new { id = dayId });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ChecklistActivity(int activityId)
+    {
+        var activity = await _activityService.GetActivityWithTripAndParticipantsAsync(activityId);
+        if (activity == null) return NotFound();
+
+        var trip = activity.Trip ?? throw new InvalidOperationException("Activity must have a Trip for participants.");
+
+        var participantsVm = trip.Participants?.Select(tp => new ParticipantVm
+        {
+            Id = tp.Id.ToString() ?? tp.PersonId ?? "",
+            DisplayName = tp.Person != null ? $"{tp.Person.FirstName} {tp.Person.LastName}" : (tp.PersonId ?? "")
+        }).ToList() ?? new List<ParticipantVm>();
+
+        var vm = new ChecklistPageViewModel
+        {
+            ActivityId = activity.Id,
+            TripId = trip.Id,
+            Checklist = activity.Checklist ?? new Checklist(),
+            Participants = participantsVm
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddChecklistItem(int activityId, string item)
+    {
+        if (string.IsNullOrWhiteSpace(item)) return RedirectToAction("ChecklistActivity", new { activityId });
+        await _activityService.AddChecklistItemAsync(activityId, item);
+        return RedirectToAction("ChecklistActivity", new { activityId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleChecklistItem(int activityId, string item)
+    {
+        await _activityService.ToggleChecklistItemAsync(activityId, item);
+        return RedirectToAction("ChecklistActivity", new { activityId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignParticipant(int activityId, string itemTitle, string? participantId)
+    {
+        participantId = string.IsNullOrWhiteSpace(participantId) ? null : participantId;
+        await _activityService.AssignParticipantToItemAsync(activityId, itemTitle, participantId);
+        return RedirectToAction("ChecklistActivity", new { activityId });
+    }
+
+    /// <summary>
+    /// GET: show intermediate edit view for a checklist item.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> EditChecklistItem(int activityId, string item)
+    {
+        // Validate input
+        if (string.IsNullOrEmpty(item))
+            return BadRequest();
+
+        var activity = await _activityService.GetByIdAsync(activityId);
+        if (activity == null) return NotFound();
+
+        var model = new EditChecklistItemViewModel
+        {
+            ActivityId = activityId,
+            OldItem = item,
+            NewItem = item // prefill with current title
+        };
+
+        return View("EditChecklistItemActivity", model);
+    }
+
+    /// <summary>
+    /// POST: commit rename of checklist item.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditChecklistItem(EditChecklistItemViewModel vm)
+    {
+        if (!ModelState.IsValid)
+            return View("EditChecklistItemActivity", vm);
+
+        try
+        {
+            await _activityService.RenameChecklistItemAsync(vm.ActivityId, vm.OldItem, vm.NewItem);
+            return RedirectToAction("ChecklistActivity", new { activityId = vm.ActivityId });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // show error to user on the same edit page
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View("EditChecklistItemActivity", vm);
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteChecklistItem(int activityId, string item)
+    {
+        await _activityService.RemoveChecklistItemAsync(activityId, item);
+        return RedirectToAction("ChecklistActivity", new { activityId });
     }
 
     private async Task PopulateSelectListsForTrip(ActivityCreateEditViewModel viewModel, int tripId)

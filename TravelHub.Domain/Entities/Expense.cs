@@ -8,6 +8,8 @@ public class Expense
     public required string Name { get; set; }
     public bool IsEstimated { get; set; }
     public int Multiplier { get; set; } = 1;
+    public decimal AdditionalFee { get; set; } = 0;
+    public decimal PercentageFee { get; set; } = 0;
 
     // Foreign Key for the person who paid
     public required string PaidById { get; set; }
