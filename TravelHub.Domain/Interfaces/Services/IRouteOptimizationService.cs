@@ -11,5 +11,5 @@ namespace TravelHub.Domain.Interfaces.Services;
 
 public interface IRouteOptimizationService
 {
-    Task<List<ActivityOrder>> GetActivityOrderSuggestion(List<RouteOptimizationSpot> spots, List<RouteOptimizationActivity> otherActivities, RouteOptimizationSpot? start, RouteOptimizationSpot? end, List<Transport> transports, string travelMode);
+    Task<List<ActivityOrder>> GetActivityOrderSuggestion(List<RouteOptimizationSpot> spots, List<RouteOptimizationActivity> otherActivities, RouteOptimizationSpot? start, RouteOptimizationSpot? end, List<Transport> transports, string travelMode, decimal startTime);
 }

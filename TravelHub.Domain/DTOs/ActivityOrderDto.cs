@@ -23,7 +23,7 @@ public record RouteOptimizationActivity
     public int Id { get; set; }
     public decimal Duration { get; set; }
     public int Order { get; set; }
-    public decimal StartTime { get; set; }
+    public decimal? StartTime { get; set; }
     public required string Type { get; set; } //Activity or Spot
 }
 

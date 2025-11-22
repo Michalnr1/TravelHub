@@ -452,7 +452,7 @@ public class DaysController : Controller
         return View(viewModel);
     }
 
-    public async Task<IActionResult> RouteOptimization(int id, int? fixedFirst, int? fixedLast)
+    public async Task<IActionResult> RouteOptimization(int id, int? fixedFirst, int? fixedLast, double startTime = 8)
     {
         Day? day = await _dayService.GetDayWithDetailsAsync(id);
         if (day == null)
@@ -529,7 +529,7 @@ public class DaysController : Controller
             Longitude = lastSpot.Longitude,
         };
 
-        List<ActivityOrder> result = await _routeOptimizationService.GetActivityOrderSuggestion(spots, otherActivities, first, end, new List<Transport>(), "WALK"); 
+        List<ActivityOrder> result = await _routeOptimizationService.GetActivityOrderSuggestion(spots, otherActivities, first, end, new List<Transport>(), "WALK", (decimal)startTime); 
 
         return Ok(result);
     }
