@@ -20,4 +20,11 @@ public interface IActivityService : IGenericService<Activity>
     Task<IEnumerable<Activity>> GetTripActivitiesWithDetailsAsync(int tripId);
 
     Task<bool> UserOwnsActivityAsync(int activityId, string userId);
+
+    Task<Activity?> GetActivityWithTripAndParticipantsAsync(int activityId);
+    Task AddChecklistItemAsync(int activityId, string item);
+    Task ToggleChecklistItemAsync(int activityId, string itemTitle);
+    Task AssignParticipantToItemAsync(int activityId, string itemTitle, string? participantId);
+    Task RemoveChecklistItemAsync(int activityId, string itemTitle);
+    Task RenameChecklistItemAsync(int activityId, string oldTitle, string newTitle);
 }

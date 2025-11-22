@@ -47,4 +47,13 @@ public class ActivityRepository : GenericRepository<Activity>, IActivityReposito
             .Include(a => a.Day)
             .FirstOrDefaultAsync(a => a.Id == (int)id);
     }
+
+    public async Task<Activity?> GetByIdWithTripAndParticipantsAsync(int activityId)
+    {
+        return await _context.Activities
+            .Include(a => a.Trip)
+                .ThenInclude(t => t.Participants)
+                    .ThenInclude(tp => tp.Person)
+            .FirstOrDefaultAsync(a => a.Id == activityId);
+    }
 }
