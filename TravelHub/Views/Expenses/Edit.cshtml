@@ -138,6 +138,47 @@
                 <span asp-validation-for="Multiplier" class="text-danger"></span>
             </div>
 
+            <!-- Checkbox dla opłat przewalutowania (tylko dla wydatków rzeczywistych) -->
+            <div class="form-group mb-3 real-expense-field" id="feesSection">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" asp-for="IncludeFees" id="includeFeesCheckbox" />
+                    <label class="form-check-label" for="includeFeesCheckbox">
+                        <strong>Include currency conversion fees</strong>
+                    </label>
+                    <small class="form-text text-muted d-block">
+                        Add bank or exchange fees that were charged for this transaction.
+                    </small>
+                </div>
+            </div>
+
+            <!-- Pola opłat (tylko dla wydatków rzeczywistych) -->
+            <div class="row real-expense-field" id="feesFields" style="display: none;">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="AdditionalFee" class="form-label">Additional Fee (@Model.TripCurrency)</label>
+                        <input asp-for="AdditionalFee" class="form-control" type="text"
+                               inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
+                               placeholder="0.00" id="additionalFee" />
+                        <small class="form-text text-muted">
+                            Fixed fee charged by the bank/exchange
+                        </small>
+                        <span asp-validation-for="AdditionalFee" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label asp-for="PercentageFee" class="form-label">Percentage Fee (%)</label>
+                        <input asp-for="PercentageFee" class="form-control" type="text"
+                               inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
+                               placeholder="0.00" id="percentageFee" />
+                        <small class="form-text text-muted">
+                            Percentage fee charged on the converted amount (0-100%)
+                        </small>
+                        <span asp-validation-for="PercentageFee" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-group mb-3">
                 <label asp-for="PaidById" class="form-label">Paid By</label>
                 <select asp-for="PaidById" class="form-control" required>
@@ -227,6 +268,7 @@
                     <li>💡 Make sure to select the correct currency</li>
                     <li>💡 Manage shares in the distribution section</li>
                     <li>💡 Use estimated expenses for planning future costs</li>
+                    <li>💡 Add currency conversion fees for bank/exchange charges</li>
                 </ul>
             </div>
         </div>
@@ -252,6 +294,11 @@
             var shareIndex = 0;
             var hasInitializedExistingShares = false;
             var tripCurrency = "@Html.Raw(Model.TripCurrency)";
+            var $includeFeesCheckbox = $('#includeFeesCheckbox');
+            var $feesFields = $('#feesFields');
+            var $feesSection = $('#feesSection');
+            var $additionalFeeInput = $('#additionalFee');
+            var $percentageFeeInput = $('#percentageFee');
 
             // Funkcja do parsowania liczb z przecinkiem/kropką
             function parseDecimal(value) {
@@ -264,6 +311,37 @@
                 if (!value || value === 0) return '';
                 return value.toFixed(decimals).replace('.', ',');
             }
+
+            // Funkcja do obsługi checkboxa opłat
+            function handleFeesCheckboxChange() {
+                var includeFees = $includeFeesCheckbox.is(':checked');
+
+                if (includeFees) {
+                    $feesFields.show();
+                } else {
+                    $feesFields.hide();
+                    // Wyczyść pola opłat gdy checkbox jest odznaczony
+                    $additionalFeeInput.val('0');
+                    $percentageFeeInput.val('0');
+                }
+            }
+
+            // Funkcja do aktualizacji widoczności sekcji opłat
+            function updateFeesSectionVisibility() {
+                var isEstimated = $isEstimatedCheckbox.is(':checked');
+
+                if (isEstimated) {
+                    $feesSection.hide();
+                    $feesFields.hide();
+                    $includeFeesCheckbox.prop('checked', false);
+                } else {
+                    $feesSection.show();
+                    handleFeesCheckboxChange();
+                }
+            }
+
+            // Obsługa zmiany checkboxa opłat
+            $includeFeesCheckbox.on('change', handleFeesCheckboxChange);
 
             // Obsługa checkboxa wydatku szacunkowego
             function handleEstimatedExpenseChange() {
@@ -278,12 +356,19 @@
                     // Ukryj sekcje uczestników i udziałów dla wydatków szacunkowych
                     $participantsSection.hide();
                     $sharesSection.hide();
+                    $feesSection.hide();
+                    $feesFields.hide();
 
                     // Odznacz wszystkich uczestników
                     $('.participant-checkbox').prop('checked', false);
 
                     // Wyczyść udziały
                     clearAllShares();
+
+                    // Wyczyść opłaty
+                    $includeFeesCheckbox.prop('checked', false);
+                    $additionalFeeInput.val('0');
+                    $percentageFeeInput.val('0');
 
                     // Zmień tekst przycisku
                     $submitButton.text('Update Estimated Expense');
@@ -296,17 +381,25 @@
                     // Pokaż sekcje dla wydatków rzeczywistych
                     $participantsSection.show();
                     updateSharesSection();
+                    updateFeesSectionVisibility();
                     $submitButton.text('Update Expense');
                 }
 
                 validateTotalDistribution();
             }
 
-            // Inicjalizacja stanu wydatku szacunkowego
+            // Inicjalizacja
             handleEstimatedExpenseChange();
+            updateFeesSectionVisibility();
 
             // Obsługa zmiany checkboxa
             $isEstimatedCheckbox.on('change', handleEstimatedExpenseChange);
+
+            // Sprawdź czy opłaty powinny być pokazane przy ładowaniu strony
+            if (@Json.Serialize(Model.IncludeFees)) {
+                $includeFeesCheckbox.prop('checked', true);
+                handleFeesCheckboxChange();
+            }
 
             // Walidacja sumy kosztów
             function validateTotalDistribution() {

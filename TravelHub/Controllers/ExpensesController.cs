@@ -142,7 +142,9 @@ public class ExpensesController : Controller
                 TransferredToId = viewModel.TransferredToId,
                 ExchangeRateId = exchangeRateEntry.Id,
                 TripId = viewModel.TripId,
-                IsEstimated = false
+                IsEstimated = false,
+                AdditionalFee = viewModel.IncludeFees ? viewModel.AdditionalFee : 0,
+                PercentageFee = viewModel.IncludeFees ? viewModel.PercentageFee : 0
             };
 
             List<ParticipantShareDto> participantSharesDto;
@@ -264,6 +266,8 @@ public class ExpensesController : Controller
                 existingExpense.TripId = viewModel.TripId;
                 existingExpense.IsEstimated = viewModel.IsEstimated;
                 existingExpense.Multiplier = viewModel.IsEstimated ? viewModel.Multiplier : 1;
+                existingExpense.AdditionalFee = (!viewModel.IsEstimated && viewModel.IncludeFees) ? viewModel.AdditionalFee : 0;
+                existingExpense.PercentageFee = (!viewModel.IsEstimated && viewModel.IncludeFees) ? viewModel.PercentageFee : 0;
 
                 List<ParticipantShareDto> participantSharesDto;
 
@@ -419,6 +423,8 @@ public class ExpensesController : Controller
                 TripId = viewModel.TripId,
                 IsEstimated = viewModel.IsEstimated,
                 Multiplier = viewModel.IsEstimated ? viewModel.Multiplier : 1,
+                AdditionalFee = (!viewModel.IsEstimated && viewModel.IncludeFees) ? viewModel.AdditionalFee : 0,
+                PercentageFee = (!viewModel.IsEstimated && viewModel.IncludeFees) ? viewModel.PercentageFee : 0,
             };
 
             List<ParticipantShareDto> participantSharesDto;
@@ -618,6 +624,9 @@ public class ExpensesController : Controller
             viewModel.Multiplier = expense.Multiplier;
             viewModel.SpotId = expense.SpotId;
             viewModel.TransportId = expense.TransportId;
+            viewModel.AdditionalFee = expense.AdditionalFee;
+            viewModel.PercentageFee = expense.PercentageFee;
+            viewModel.IncludeFees = expense.AdditionalFee > 0 || expense.PercentageFee > 0;
 
             if (expense.ExchangeRate != null)
             {
