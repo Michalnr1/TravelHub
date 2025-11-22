@@ -18,8 +18,8 @@ using DinkToPdf.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-//var connectionString = builder.Configuration.GetConnectionString("LocalConnection");
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("LocalConnection");
 
 // Connection to SQL Server configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -58,6 +58,7 @@ builder.Services.AddScoped<IReverseGeocodingService, ReverseGeocodingService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
+builder.Services.AddScoped<IRouteOptimizationService, RouteOptimizationService>();
 
 // Identity
 builder.Services.AddIdentity<Person, IdentityRole>(options =>  // ← Person!
