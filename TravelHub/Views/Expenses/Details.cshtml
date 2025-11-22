@@ -32,8 +32,35 @@
                     <dt class="col-sm-3">Name</dt>
                     <dd class="col-sm-9">@Model.Name</dd>
 
-                    <dt class="col-sm-3">Total Amount</dt>
-                    <dd class="col-sm-9">@Model.Value.ToString("F2") @Model.CurrencyKey</dd>
+                    <dt class="col-sm-3">@(Model.IsEstimated ? "Estimated Amount" : "Total Amount")</dt>
+                    <dd class="col-sm-9">@(Model.IsEstimated ? Model.EstimatedValue.ToString("F2") : Model.Value.ToString("F2")) @Model.CurrencyKey</dd>
+
+                    @if (Model.IsEstimated && Model.Multiplier > 1)
+                    {
+                        <dt class="col-sm-3">Multiplier</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge bg-info">×@Model.Multiplier</span>
+                            <small class="text-muted d-block mt-1">
+                                This estimated expense will be multiplied by @Model.Multiplier in calculations.
+                            </small>
+                        </dd>
+                    }
+
+                    @if (!Model.IsEstimated && (Model.AdditionalFee > 0 || Model.PercentageFee > 0))
+                    {
+                        <dt class="col-sm-3">Currency Conversion Fees</dt>
+                        <dd class="col-sm-9">
+                            <div class="mb-1">
+                                <small>Additional Fee: @Model.AdditionalFee.ToString("F2") @Model.CurrencyKey</small>
+                            </div>
+                            <div class="mb-1">
+                                <small>Percentage Fee: @Model.PercentageFee.ToString("F1")%</small>
+                            </div>
+                            <div class="fw-bold">
+                                <small>Total Fees: @Model.TotalFee.ToString("F2") @Model.TripCurrency</small>
+                            </div>
+                        </dd>
+                    }
 
                     <dt class="col-sm-3">Paid By</dt>
                     <dd class="col-sm-9">@Model.PaidByName</dd>
@@ -52,6 +79,32 @@
                         </dd>
                     }
 
+                    @if (Model.CurrencyKey != Model.TripCurrency)
+                    {
+                        <dt class="col-sm-3">Exchange Rate</dt>
+                        <dd class="col-sm-9">
+                            1 @Model.CurrencyKey = @Model.ExchangeRateValue.ToString("F4") @Model.TripCurrency
+                        </dd>
+
+                        <dt class="col-sm-3">Converted Amount</dt>
+                        <dd class="col-sm-9">
+                            @if (Model.IsEstimated)
+                            {
+                                <span>@Model.FormattedConvertedEstimatedValue</span>
+                            }
+                            else
+                            {
+                                <span>@Model.FormattedConvertedValue</span>
+                            }
+                            @if (!Model.IsEstimated && (Model.AdditionalFee > 0 || Model.PercentageFee > 0))
+                            {
+                                <small class="text-muted d-block mt-1">
+                                    Includes conversion fees of @Model.FormattedTotalFee
+                                </small>
+                            }
+                        </dd>
+                    }
+
                     <dt class="col-sm-3">Expense Type</dt>
                     <dd class="col-sm-9">
                         @if (Model.IsEstimated)
@@ -61,6 +114,15 @@
                             </span>
                             <small class="text-muted d-block mt-1">
                                 This is a planned/estimated cost for budgeting purposes.
+                            </small>
+                        }
+                        else if (!string.IsNullOrEmpty(Model.TransferredToName))
+                        {
+                            <span class="badge bg-info">
+                                <i class="fas fa-exchange-alt"></i> Transfer
+                            </span>
+                            <small class="text-muted d-block mt-1">
+                                This is a money transfer between participants.
                             </small>
                         }
                         else
@@ -110,7 +172,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                @if (Model.Participants.Any())
+                @if (Model.Participants.Any() && string.IsNullOrEmpty(Model.TransferredToName))
                 {
                     <div class="table-responsive">
                         <table class="table table-striped">
@@ -179,6 +241,11 @@
                             <strong>Estimated Expense:</strong>
                             <span>No participants assigned. This is a planning expense for budgeting purposes.</span>
                         }
+                        else if (!string.IsNullOrEmpty(Model.TransferredToName))
+                        {
+                            <strong>Transfer Expense:</strong>
+                            <span>This is a money transfer from @Model.PaidByName to @Model.TransferredToName.</span>
+                        }
                         else
                         {
                             <strong>No participants assigned to this expense.</strong>
@@ -239,6 +306,12 @@
                             <i class="fas fa-clock"></i> Estimated
                         </span>
                     }
+                    else if (!string.IsNullOrEmpty(Model.TransferredToName))
+                    {
+                        <span class="badge bg-info">
+                            <i class="fas fa-exchange-alt"></i> Transfer
+                        </span>
+                    }
                     else
                     {
                         <span class="badge bg-success">
@@ -248,14 +321,50 @@
                 </div>
 
                 <div class="d-flex justify-content-between mb-2">
-                    <strong>Total Amount:</strong>
+                    <strong>@(Model.IsEstimated ? "Estimated Amount" : "Total Amount"):</strong>
                     <span class="fw-bold">@(Model.IsEstimated? Model.EstimatedValue.ToString("F2") : Model.Value.ToString("F2")) @Model.CurrencyKey</span>
                 </div>
 
-                <div class="d-flex justify-content-between mb-2">
-                    <strong>Participants:</strong>
-                    <span>@Model.Participants.Count</span>
-                </div>
+                @if (Model.IsEstimated && Model.Multiplier > 1)
+                {
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Multiplier:</strong>
+                        <span class="badge bg-info">×@Model.Multiplier</span>
+                    </div>
+                }
+
+                @if (!Model.IsEstimated && (Model.AdditionalFee > 0 || Model.PercentageFee > 0))
+                {
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Conversion Fees:</strong>
+                        <span class="fw-bold text-danger">@Model.FormattedTotalFee</span>
+                    </div>
+                }
+
+                @if (Model.CurrencyKey != Model.TripCurrency)
+                {
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Converted Amount:</strong>
+                        <span class="fw-bold">
+                            @if (Model.IsEstimated)
+                            {
+                                @Model.FormattedConvertedEstimatedValue
+                            }
+                            else
+                            {
+                                @Model.FormattedConvertedValue
+                            }
+                        </span>
+                    </div>
+                }
+
+                @if (!Model.IsEstimated)
+                {
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Participants:</strong>
+                        <span>@Model.Participants.Count</span>
+                    </div>
+                }
 
                 @if (Model.Participants.Any())
                 {
@@ -269,6 +378,14 @@
                     <strong>Paid by:</strong>
                     <span>@Model.PaidByName</span>
                 </div>
+
+                @if (!string.IsNullOrEmpty(Model.TransferredToName))
+                {
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Transferred to:</strong>
+                        <span>@Model.TransferredToName</span>
+                    </div>
+                }
 
                 <div class="d-flex justify-content-between">
                     <strong>Category:</strong>
@@ -287,10 +404,22 @@
                         </small>
                     </div>
                 }
+                else if (Model.TransportId.HasValue)
+                {
+                    <div class="mt-3 p-2 bg-light rounded">
+                        <small class="text-muted">
+                            <i class="fas fa-bus"></i>
+                            <strong>Linked to Transport:</strong>
+                            <a asp-controller="Transports" asp-action="Details" asp-route-id="@Model.TransportId.Value" class="text-decoration-none">
+                                @(Model.TransportName ?? "View Transport")
+                            </a>
+                        </small>
+                    </div>
+                }
             </div>
         </div>
 
-        @if (Model.Participants.Any())
+        @if (Model.Participants.Any() && string.IsNullOrEmpty(Model.TransferredToName))
         {
             <div class="card mt-4">
                 <div class="card-header">
@@ -325,11 +454,29 @@
                 </div>
             </div>
         }
+        else if (!string.IsNullOrEmpty(Model.TransferredToName))
+        {
+            <div class="card mt-4">
+                <div class="card-header bg-info bg-opacity-25">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exchange-alt"></i> Transfer Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-0">
+                        <small>
+                            This is a money transfer from <strong>@Model.PaidByName</strong> to <strong>@Model.TransferredToName</strong>.
+                            The amount of @Model.Value.ToString("F2") @Model.CurrencyKey has been recorded.
+                        </small>
+                    </p>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
 @section Scripts {
-    @if (Model.Participants.Any())
+    @if (Model.Participants.Any() && string.IsNullOrEmpty(Model.TransferredToName))
     {
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>

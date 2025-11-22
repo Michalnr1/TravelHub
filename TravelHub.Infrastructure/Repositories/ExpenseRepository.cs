@@ -21,6 +21,7 @@ public class ExpenseRepository : GenericRepository<Expense>, IExpenseRepository
             .Include(e => e.PaidBy)
             .Include(e => e.Spot)
             .Include(e => e.Transport)
+            .Include(e => e.TransferredTo)
             .FirstOrDefaultAsync(e => e.Id == expenseId);
     }
 
