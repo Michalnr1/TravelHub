@@ -144,7 +144,8 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             if (expenseCurrency == tripCurrency)
             {
                 // Ta sama waluta - bez konwersji
-                summary.TotalExpensesInTripCurrency += expense.Value;
+                var finalValue = expense.Value + CalculateFees(expense, expense.Value);
+                summary.TotalExpensesInTripCurrency += finalValue;
                 summary.ExpenseCalculations.Add(new ExpenseCalculationDto
                 {
                     ExpenseId = expense.Id,
@@ -152,7 +153,10 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                     OriginalCurrency = expenseCurrency,
                     TargetCurrency = tripCurrency,
                     ExchangeRate = 1m,
-                    ConvertedValue = expense.Value
+                    ConvertedValue = finalValue,
+                    AdditionalFee = expense.AdditionalFee,
+                    PercentageFee = expense.PercentageFee,
+                    TotalFee = finalValue - expense.Value
                 });
                 continue;
             }
@@ -162,7 +166,8 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             if (expenseRate == null || tripBaseRate == null)
             {
                 // Brak kursów - traktujemy jako 1:1
-                summary.TotalExpensesInTripCurrency += expense.Value;
+                var finalValue = expense.Value + CalculateFees(expense, expense.Value);
+                summary.TotalExpensesInTripCurrency += finalValue;
                 summary.ExpenseCalculations.Add(new ExpenseCalculationDto
                 {
                     ExpenseId = expense.Id,
@@ -170,7 +175,10 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                     OriginalCurrency = expenseCurrency,
                     TargetCurrency = tripCurrency,
                     ExchangeRate = 1m,
-                    ConvertedValue = expense.Value
+                    ConvertedValue = finalValue,
+                    AdditionalFee = expense.AdditionalFee,
+                    PercentageFee = expense.PercentageFee,
+                    TotalFee = finalValue - expense.Value
                 });
                 continue;
             }
@@ -179,7 +187,10 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             var conversionRate = expenseRate.ExchangeRateValue / tripBaseRate.ExchangeRateValue;
             var convertedValue = expense.Value * conversionRate;
 
-            summary.TotalExpensesInTripCurrency += convertedValue;
+            // Dolicz opłaty do przeliczonej kwoty
+            var finalValueWithFees = convertedValue + CalculateFees(expense, convertedValue);
+
+            summary.TotalExpensesInTripCurrency += finalValueWithFees;
             summary.ExpenseCalculations.Add(new ExpenseCalculationDto
             {
                 ExpenseId = expense.Id,
@@ -187,7 +198,10 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                 OriginalCurrency = expenseCurrency,
                 TargetCurrency = tripCurrency,
                 ExchangeRate = conversionRate,
-                ConvertedValue = convertedValue
+                ConvertedValue = finalValueWithFees,
+                AdditionalFee = expense.AdditionalFee,
+                PercentageFee = expense.PercentageFee,
+                TotalFee = finalValueWithFees - convertedValue
             });
         }
 
@@ -231,13 +245,14 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         foreach (var expense in expenses)
         {
             var paidBy = expense.PaidById;
-            var expenseValueInTripCurrency = await ConvertToTripCurrencyAsync(expense.Value, expense.ExchangeRate, tripCurrency);
+            var conversionResult = await ConvertExpenseWithFeesAsync(expense, tripCurrency);
+            var expenseValueInTripCurrency = conversionResult.ConvertedValue;
 
             if (expense.TransferredToId == null)
             {
                 foreach (var participant in expense.Participants.Where(p => p.PersonId != paidBy))
                 {
-                    var shareInTripCurrency = await ConvertToTripCurrencyAsync(participant.ActualShareValue, expense.ExchangeRate, tripCurrency);
+                    var shareInTripCurrency = expenseValueInTripCurrency * participant.Share;
 
                     if (owesToOthers.ContainsKey(participant.PersonId))
                         owesToOthers[participant.PersonId] += shareInTripCurrency;
@@ -436,6 +451,67 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         return Task.FromResult(amount * expenseRate.ExchangeRateValue);
     }
 
+    private async Task<ExpenseConversionResult> ConvertExpenseWithFeesAsync(Expense expense, CurrencyCode tripCurrency)
+    {
+        var originalValue = expense.Value;
+        var expenseCurrency = expense.ExchangeRate?.CurrencyCodeKey ?? tripCurrency;
+
+        // Jeśli ta sama waluta - bez konwersji
+        if (expenseCurrency == tripCurrency)
+        {
+            var finalValue = originalValue + CalculateFees(expense, originalValue);
+            return new ExpenseConversionResult
+            {
+                ConvertedValue = finalValue,
+                BaseConvertedValue = originalValue,
+                AdditionalFee = expense.AdditionalFee,
+                PercentageFee = expense.PercentageFee,
+                TotalFee = finalValue - originalValue,
+                ExchangeRate = 1m,
+                OriginalCurrency = expenseCurrency,
+                TargetCurrency = tripCurrency
+            };
+        }
+
+        // Konwersja waluty
+        var convertedValue = await ConvertToTripCurrencyAsync(originalValue, expense.ExchangeRate, tripCurrency);
+        var finalValueWithFees = convertedValue + CalculateFees(expense, convertedValue);
+
+        var conversionRate = expense.ExchangeRate?.ExchangeRateValue ?? 1m;
+
+        return new ExpenseConversionResult
+        {
+            ConvertedValue = finalValueWithFees,
+            BaseConvertedValue = convertedValue,
+            AdditionalFee = expense.AdditionalFee,
+            PercentageFee = expense.PercentageFee,
+            TotalFee = finalValueWithFees - convertedValue,
+            ExchangeRate = conversionRate,
+            OriginalCurrency = expenseCurrency,
+            TargetCurrency = tripCurrency
+        };
+    }
+
+    private decimal CalculateFees(Expense expense, decimal convertedAmount)
+    {
+        // Opłaty dotyczą tylko wydatków rzeczywistych
+        if (expense.IsEstimated)
+            return 0m;
+
+        decimal fees = 0m;
+
+        // Opłata stała - dodajemy bezpośrednio
+        fees += expense.AdditionalFee;
+
+        // Opłata procentowa - obliczana od przeliczonej kwoty
+        if (expense.PercentageFee > 0)
+        {
+            fees += convertedAmount * (expense.PercentageFee / 100m);
+        }
+
+        return fees;
+    }
+
     private List<DebtDetailDto> OptimizeDebts(List<DebtDetailDto> debts)
     {
         // Tworzymy macierz długów między wszystkimi uczestnikami
@@ -549,29 +625,40 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
         foreach (var expense in expenses)
         {
-            decimal convertedValue;
-            decimal baseValue;
+            ExpenseConversionResult conversionResult;
 
             if (expense.IsEstimated)
             {
                 // Dla wydatków szacunkowych: pomnóż przez multiplier
-                baseValue = expense.EstimatedValue * expense.Multiplier;
-                convertedValue = await ConvertToTripCurrencyAsync(baseValue, expense.ExchangeRate, tripCurrency);
+                var baseValue = expense.EstimatedValue * expense.Multiplier;
+                conversionResult = await ConvertExpenseWithFeesAsync(new Expense
+                {
+                    Name = expense.Name,
+                    PaidById = expense.PaidById,
+                    Value = baseValue,
+                    ExchangeRate = expense.ExchangeRate,
+                    IsEstimated = true,
+                    AdditionalFee = expense.AdditionalFee,
+                    PercentageFee = expense.PercentageFee,
+                }, tripCurrency);
             }
             else
             {
-                baseValue = expense.Value;
-                convertedValue = await ConvertToTripCurrencyAsync(expense.Value, expense.ExchangeRate, tripCurrency);
+                // Dla wydatków rzeczywistych - z opłatami
+                conversionResult = await ConvertExpenseWithFeesAsync(expense, tripCurrency);
             }
 
             result.Add(new ExpenseCalculation
             {
                 Expense = expense,
-                ConvertedValue = convertedValue,
-                BaseValue = baseValue, // Dodajemy baseValue do śledzenia wartości bazowej
+                ConvertedValue = conversionResult.ConvertedValue,
+                BaseValue = conversionResult.BaseConvertedValue,
                 IsMultiplied = expense.IsEstimated && expense.Multiplier > 1,
-                OriginalCurrency = expense.ExchangeRate?.CurrencyCodeKey ?? tripCurrency,
-                TargetCurrency = tripCurrency
+                OriginalCurrency = conversionResult.OriginalCurrency,
+                TargetCurrency = tripCurrency,
+                AdditionalFee = conversionResult.AdditionalFee,
+                PercentageFee = conversionResult.PercentageFee,
+                TotalFee = conversionResult.TotalFee
             });
         }
 
@@ -844,6 +931,22 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         public decimal ConvertedValue { get; set; }
         public decimal BaseValue { get; set; } // Wartość bazowa przed konwersją walutową
         public bool IsMultiplied { get; set; }
+        public CurrencyCode OriginalCurrency { get; set; }
+        public CurrencyCode TargetCurrency { get; set; }
+
+        public decimal AdditionalFee { get; set; }
+        public decimal PercentageFee { get; set; }
+        public decimal TotalFee { get; set; }
+    }
+
+    private class ExpenseConversionResult
+    {
+        public decimal ConvertedValue { get; set; }
+        public decimal BaseConvertedValue { get; set; }
+        public decimal AdditionalFee { get; set; }
+        public decimal PercentageFee { get; set; }
+        public decimal TotalFee { get; set; }
+        public decimal ExchangeRate { get; set; }
         public CurrencyCode OriginalCurrency { get; set; }
         public CurrencyCode TargetCurrency { get; set; }
     }
