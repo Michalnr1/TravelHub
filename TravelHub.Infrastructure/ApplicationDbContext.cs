@@ -445,6 +445,8 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(e => e.EstimatedValue).HasPrecision(18, 2);
             entity.Property(e => e.IsEstimated).IsRequired();
             entity.Property(e => e.Multiplier).IsRequired().HasDefaultValue(1);
+            entity.Property(e => e.AdditionalFee).IsRequired().HasDefaultValue(0).HasPrecision(18, 2);
+            entity.Property(e => e.PercentageFee).IsRequired().HasDefaultValue(0).HasPrecision(5, 2);
 
             // 1:N relationship for the person who paid
             entity.HasOne(e => e.PaidBy)
