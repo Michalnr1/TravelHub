@@ -312,6 +312,16 @@
                 return value.toFixed(decimals).replace('.', ',');
             }
 
+            // Funkcja do zaokrąglania do 2 miejsc po przecinku (dla kwot)
+            function roundToTwoDecimals(value) {
+                return Math.round(value * 100) / 100;
+            }
+
+            // Funkcja do zaokrąglania do 3 miejsc po przecinku (dla procentów)
+            function roundToThreeDecimals(value) {
+                return Math.round(value * 1000) / 1000;
+            }
+
             // Funkcja do obsługi checkboxa opłat
             function handleFeesCheckboxChange() {
                 var includeFees = $includeFeesCheckbox.is(':checked');
@@ -483,7 +493,7 @@
             // Obsługa zmiany kwoty całkowitej
             $totalAmountInput.on('input', function () {
                 updateTotalAmountDisplay();
-                recalculateSharesFromPercentages();
+                // recalculateSharesFromPercentages();
                 validateTotalDistribution();
             });
 
@@ -667,7 +677,7 @@
 
                 // Aktualizuj widoczne pola
                 $(`.amount-input[data-person-id="${personId}"]`).val(formatDecimal(amount));
-                $(`.share-input[data-person-id="${personId}"]`).val(formatDecimal(percentage, 3));
+                // $(`.share-input[data-person-id="${personId}"]`).val(formatDecimal(percentage, 3));
 
                 // Aktualizuj ukryte pola
                 updateHiddenFields(personId, shareForBackend, amount, 2);
@@ -681,7 +691,7 @@
 
                 // Aktualizuj widoczne pola
                 $(`.share-input[data-person-id="${personId}"]`).val(formatDecimal(percentage, 3));
-                $(`.amount-input[data-person-id="${personId}"]`).val(formatDecimal(amount));
+                // $(`.amount-input[data-person-id="${personId}"]`).val(formatDecimal(amount));
 
                 // Aktualizuj ukryte pola
                 updateHiddenFields(personId, shareForBackend, amount, 1);
@@ -700,19 +710,36 @@
                 if (checkedCount === 0) return;
 
                 var totalAmount = parseDecimal($totalAmountInput.val());
-                var equalShare = totalAmount / checkedCount;
-                var equalPercentage = 100 / checkedCount;
-                var equalShareForBackend = (1 / checkedCount);
 
+                // Oblicz równy podział z korektą zaokrągleń
+                var equalShare = roundToTwoDecimals(totalAmount / checkedCount);
+                var remainingAmount = totalAmount;
+                var shares = [];
+
+                // Oblicz udziały dla wszystkich oprócz ostatniego uczestnika
+                for (var i = 0; i < checkedCount - 1; i++) {
+                    shares.push(equalShare);
+                    remainingAmount -= equalShare;
+                }
+
+                // Ostatni uczestnik dostaje pozostałą kwotę (z korektą zaokrągleń)
+                shares.push(roundToTwoDecimals(remainingAmount));
+
+                // Przypisz udziały uczestnikom
+                var participantIndex = 0;
                 $('.participant-checkbox:checked').each(function() {
                     var personId = $(this).data('person-id');
+                    var shareAmount = shares[participantIndex];
+                    var sharePercentage = roundToThreeDecimals((shareAmount / totalAmount) * 100);
 
                     // Aktualizuj widoczne pola
-                    $(`.amount-input[data-person-id="${personId}"]`).val(formatDecimal(equalShare));
-                    $(`.share-input[data-person-id="${personId}"]`).val(formatDecimal(equalPercentage, 3));
+                    $(`.amount-input[data-person-id="${personId}"]`).val(formatDecimal(shareAmount));
+                    $(`.share-input[data-person-id="${personId}"]`).val(formatDecimal(sharePercentage, 3));
 
                     // Aktualizuj ukryte pola
-                    updateHiddenFields(personId, equalShareForBackend, equalShare, 1);
+                    updateHiddenFields(personId, sharePercentage / 100, shareAmount, 1);
+
+                    participantIndex++;
                 });
 
                 updateCalculations();
