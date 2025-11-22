@@ -25,7 +25,8 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
 
     // MINIMAL IMPLEMENTATION
     public async Task<List<ActivityOrder>> GetActivityOrderSuggestion(List<RouteOptimizationSpot> spots, List<RouteOptimizationActivity> otherActivities,
-                                                                      RouteOptimizationSpot? start, RouteOptimizationSpot? end, List<Transport> transports, string travelMode)
+                                                                      RouteOptimizationSpot? start, RouteOptimizationSpot? end, List<RouteOptimizationTransport> transports, 
+                                                                      string travelMode, decimal startTime)
     {
         int i = 0;
         foreach (RouteOptimizationSpot spot in spots)
@@ -34,33 +35,37 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
             i++;
         }
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         double[,] weights = await GetEdgeWeights(spots, transports, travelMode);
         double[] startWeights = await GetStartWeights(start, spots, transports, travelMode);
         double[] endWeights = await GetEndWeights(end, spots, transports, travelMode);
-
+        sw.Stop();
+        System.Diagnostics.Debug.WriteLine($"API calls took {sw.ElapsedMilliseconds}\n");
 
         List<RouteOptimizationActivity> allActivities = [.. spots.Cast<RouteOptimizationActivity>(), .. otherActivities];
         allActivities = allActivities.OrderBy(a => { return a.Order; }).ToList();
 
-
+        sw = System.Diagnostics.Stopwatch.StartNew();
         List<RouteOptimizationActivity> result = new List<RouteOptimizationActivity>();
         if (allActivities.Count <= BRUTE_FORCE_THRESHOLD)
         {
-            result = RunFullSearch(allActivities, weights, startWeights, endWeights);
+            result = RunFullSearch(allActivities, weights, startWeights, endWeights, startTime);
         }
+        sw.Stop();
+        System.Diagnostics.Debug.WriteLine($"Optimization took {sw.ElapsedMilliseconds}\n");
 
 
         return ActivitiesToOrders(result, start, end);
     }
 
-    private List<RouteOptimizationActivity> RunFullSearch(List<RouteOptimizationActivity> activities, double[,] weights, double[] startWeights, double[] endWeights)
+    private List<RouteOptimizationActivity> RunFullSearch(List<RouteOptimizationActivity> activities, double[,] weights, double[] startWeights, double[] endWeights, decimal startTime)
     {
         List<RouteOptimizationActivity> best = activities;
-        double bestScore = ScoreSolution(best, weights, startWeights, endWeights);
+        double bestScore = ScoreSolution(best, weights, startWeights, endWeights, startTime);
 
         foreach (var permutation in GetPermutations(activities))
         {
-            double score = ScoreSolution(permutation, weights, startWeights, endWeights);
+            double score = ScoreSolution(permutation, weights, startWeights, endWeights, startTime);
 
             if (score < bestScore)
             {
@@ -73,16 +78,51 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
     }
 
     // MINIMAL IMPLEMENTATION
-    private double ScoreSolution(List<RouteOptimizationActivity> activities, double[,] weights, double[] startWeights, double[] endWeights) 
+    private double ScoreSolution(List<RouteOptimizationActivity> activities, double[,] weights, double[] startWeights, double[] endWeights, decimal startTime) 
     {
+        decimal time = startTime;
+        int spotIdx = 0;
+        double latePenalty = 0;
         List<RouteOptimizationSpot> spots = activities.Where(a => a.Type == "Spot").Cast<RouteOptimizationSpot>().ToList();
-        double totalTravelTime = startWeights[spots[0].WeightMatrixIndex!.Value];
-        for (int i = 0; i < spots.Count - 1; i++)
+        foreach (RouteOptimizationActivity activity in activities)
         {
-            totalTravelTime += weights[spots[i].WeightMatrixIndex!.Value, spots[i+1].WeightMatrixIndex!.Value];
+            if (activity.Type == "Spot")
+            {
+                RouteOptimizationSpot spot = (RouteOptimizationSpot)activity;
+                if (spotIdx == 0)
+                {
+                    time += (decimal)(startWeights[spot.WeightMatrixIndex!.Value] / 3600);
+                }
+                else
+                {
+                    time += (decimal)(weights[spots[spotIdx - 1].WeightMatrixIndex!.Value, spots[spotIdx].WeightMatrixIndex!.Value] / 3600);
+                }
+                spotIdx++;
+            }
+            if (activity.StartTime != null && activity.StartTime > 0)
+            {
+                if (activity.StartTime < time)
+                {
+                    // Additional penalty for time being late - if being late is unavoidable, shorter lateness should be preferred
+                    latePenalty += (double)(time - activity.StartTime) * 1;
+                }
+                else
+                {
+                    time = activity.StartTime.Value;
+                }
+            }
+            time += activity.Duration;
+            if (spotIdx == spots.Count - 1)
+            {
+                time += (decimal)(endWeights[spots[spotIdx].WeightMatrixIndex!.Value] / 3600);
+            }
         }
-        totalTravelTime += endWeights[spots[spots.Count - 1].WeightMatrixIndex!.Value];
-        return totalTravelTime;
+        if (latePenalty > 0)
+        {
+            latePenalty += 24; //Large penalty for being late, it should significantly outsize regular travel time penalty 
+        }
+        double totalTime = (double)(time - startTime);
+        return totalTime + latePenalty;
     }
 
     private List<ActivityOrder> ActivitiesToOrders(List<RouteOptimizationActivity> activities, RouteOptimizationActivity? start, RouteOptimizationActivity? end) 
@@ -133,29 +173,57 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         }
     }
 
-    private async Task<double[,]> GetEdgeWeights(List<RouteOptimizationSpot> spots, List<Transport> transports, string travelMode)
+    private async Task<double[,]> GetEdgeWeights(List<RouteOptimizationSpot> spots, List<RouteOptimizationTransport> transports, string travelMode)
     {
-        List<RouteMatrixElement> routeMatrixElements = await GetRouteMatrix(spots, travelMode);
-        //CHECK IF GRAPH IS CONNECTED?
+        int limit = travelMode == "TRANSIT" ? 10 : 25;
         double[,] weights = new double[spots.Count, spots.Count];
-        foreach (RouteMatrixElement routeMatrixElement in routeMatrixElements)
+        if (spots.Count <= limit)
         {
-            weights[routeMatrixElement.originIndex, routeMatrixElement.destinationIndex] = routeMatrixElement.duration;
+            List<RouteMatrixElement> routeMatrixElements = await GetRouteMatrix(spots, travelMode);
+            //CHECK IF GRAPH IS CONNECTED?
+            foreach (RouteMatrixElement routeMatrixElement in routeMatrixElements)
+            {
+                weights[routeMatrixElement.originIndex, routeMatrixElement.destinationIndex] = routeMatrixElement.duration;
+            }
         }
-        foreach (Transport transport in transports)
+        else
+        {
+            List<List<RouteOptimizationSpot>> sublists = new List<List<RouteOptimizationSpot>>();
+            int k = 0;
+            while (k < spots.Count)
+            {
+                sublists.Add(spots.Slice(k, Math.Min(limit, spots.Count - k)));
+                k += limit;
+            }
+            for (int i = 0; i < sublists.Count; i++)
+            {
+                for (int j = 0; j < sublists.Count; j++)
+                {
+                    List<RouteMatrixElement> routeMatrixElements = await GetRouteMatrix(sublists[i], sublists[j], travelMode);
+                    foreach (RouteMatrixElement routeMatrixElement in routeMatrixElements)
+                    {
+                        weights[routeMatrixElement.originIndex + i * limit, routeMatrixElement.destinationIndex + j * limit] = routeMatrixElement.duration;
+                    }
+                }
+            }
+        }
+        foreach (RouteOptimizationTransport transport in transports)
         {
             int originIndex = spots.FindIndex(s => s.Id == transport.FromSpotId);
             int destinationIndex = spots.FindIndex(s => s.Id == transport.ToSpotId);
             if (originIndex != -1 && destinationIndex != -1)
             {
-                weights[originIndex, destinationIndex] = (double) transport.Duration * 3600;
+                weights[originIndex, destinationIndex] = (double)transport.Duration * 3600;
             }
         }
         return weights;
+
+
+
     }
 
     //COULD BE OPTIMIZED NOT TO MAKE REQUESTS FOR THE ROUTES THAT WE HAVE TRANSPORTS FOR?
-    private async Task<double[]> GetStartWeights(RouteOptimizationSpot? start, List<RouteOptimizationSpot> spots, List<Transport> transports, string travelMode)
+    private async Task<double[]> GetStartWeights(RouteOptimizationSpot? start, List<RouteOptimizationSpot> spots, List<RouteOptimizationTransport> transports, string travelMode)
     {
         if (start == null) return new double[spots.Count];
 
@@ -165,7 +233,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         {
             weights[routeMatrixElement.destinationIndex] = routeMatrixElement.duration;
         }
-        foreach (Transport transport in transports)
+        foreach (RouteOptimizationTransport transport in transports)
         {
             if (transport.FromSpotId == start.Id)
             {
@@ -180,7 +248,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         return weights;
     }
 
-    private async Task<double[]> GetEndWeights(RouteOptimizationSpot? end, List<RouteOptimizationSpot> spots, List<Transport> transports, string travelMode)
+    private async Task<double[]> GetEndWeights(RouteOptimizationSpot? end, List<RouteOptimizationSpot> spots, List<RouteOptimizationTransport> transports, string travelMode)
     {
         if (end == null) return new double[spots.Count];
 
@@ -190,7 +258,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         {
             weights[routeMatrixElement.originIndex] = routeMatrixElement.duration;
         }
-        foreach (Transport transport in transports)
+        foreach (RouteOptimizationTransport transport in transports)
         {
             if (transport.ToSpotId == end.Id)
             {
@@ -255,7 +323,15 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 int originIndex = elem.GetProperty("originIndex").GetInt32();
                 int destinationIndex = elem.GetProperty("destinationIndex").GetInt32();
 
-                string durationStr = elem.GetProperty("duration").GetString() ?? "-1";
+                string durationStr = "-1";
+                try
+                {
+                    durationStr = elem.GetProperty("duration").GetString() ?? "-1";
+                } catch (KeyNotFoundException)
+                {
+
+                }
+                
 
                 if (durationStr.EndsWith("s"))
                     durationStr = durationStr[..^1];
