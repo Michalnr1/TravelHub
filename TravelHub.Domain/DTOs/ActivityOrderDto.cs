@@ -33,3 +33,10 @@ public record RouteOptimizationSpot : RouteOptimizationActivity
     public double Latitude { get; set; }
     public int? WeightMatrixIndex { get; set; }
 }
+
+public record RouteOptimizationTransport
+{
+    public int FromSpotId { get; set; }
+    public int ToSpotId { get; set; }
+    public decimal Duration { get; set; }
+}

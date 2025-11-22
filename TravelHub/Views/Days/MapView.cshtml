@@ -185,8 +185,14 @@
             <button id="order-apply" class="btn btn-outline-primary text-start" onclick="applyActivityOrder()">
                 Apply order change
             </button>
-            <button id="optimize" class="btn btn-outline-primary text-start" onclick="getOptimizedActivityOrders()">
-                Optimize!
+            <button id="optimize" class="btn btn-outline-primary text-start" onclick="getOptimizedActivityOrders('WALK')">
+                Optimize for walking
+            </button>
+            <button id="optimize" class="btn btn-outline-primary text-start" onclick="getOptimizedActivityOrders('DRIVE')">
+                Optimize for driving
+            </button>
+            <button id="optimize" class="btn btn-outline-primary text-start" onclick="getOptimizedActivityOrders('TRANSIT')">
+                Optimize for public transit
             </button>
         </div>
     </div>
@@ -353,7 +359,7 @@
             console.log(JSON.stringify(legs));
             console.log(JSON.stringify(activities));
 
-            await renderRoute(legs, travelMode, startTime);
+            await renderRoute(legs, travelMode);
 
             let endTime = activities[activities.length - 1].endTime;
             showRouteSummary(startTime, endTime);
@@ -410,9 +416,8 @@
             return transitRoute.routes[0].legs[0];
         }
 
-        async function renderRoute(legs, travelMode, startTime) {
+        async function renderRoute(legs, travelMode) {
             const { Polyline } = await google.maps.importLibrary("maps");
-            time = startTime;
             for (let i = 0; i < legs.length; i++) {
                 const leg = legs[i];
                 const locationCard = document.getElementById(`spot-${points[i+1].id}`);
@@ -420,7 +425,7 @@
                 if (leg.type == 'Transit') {
                     const card = buildTravelCard(i);
                     locationCard.before(card);
-                    time = await renderTransitSteps(leg, card);
+                    await renderTransitSteps(leg, card);
                 } else {
                     const durationMillis = getTransportDuration(points[i], leg);
                     const card = buildTravelCard(i, durationMillis, travelMode);
@@ -430,7 +435,6 @@
                     setPolylineEventBindings(polyline, card);
                     polylines.push(polyline);
 
-                    time = time.plus({ milliseconds: parseInt(durationMillis) });
                 }
             }
         }
@@ -884,8 +888,11 @@
             }
         });
 
-        function getOptimizedActivityOrders() {
-            fetch('@Url.Action("RouteOptimization", "Days", new {id = Model.Id})', {
+        function getOptimizedActivityOrders(travelMode) {
+            fetch('@Url.Action("RouteOptimization", "Days")?' + new URLSearchParams({
+                id: '@Html.Raw(Model.Id)',
+                travelMode: travelMode,
+            }).toString(), {
                 method: 'GET',
             })
             .then(response => {

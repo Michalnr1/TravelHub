@@ -25,7 +25,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
 
     // MINIMAL IMPLEMENTATION
     public async Task<List<ActivityOrder>> GetActivityOrderSuggestion(List<RouteOptimizationSpot> spots, List<RouteOptimizationActivity> otherActivities,
-                                                                      RouteOptimizationSpot? start, RouteOptimizationSpot? end, List<Transport> transports, 
+                                                                      RouteOptimizationSpot? start, RouteOptimizationSpot? end, List<RouteOptimizationTransport> transports, 
                                                                       string travelMode, decimal startTime)
     {
         int i = 0;
@@ -93,13 +93,9 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 {
                     time += (decimal)(startWeights[spot.WeightMatrixIndex!.Value] / 3600);
                 }
-                else if (spotIdx == spots.Count - 1)
-                {
-                    time += (decimal)(endWeights[spot.WeightMatrixIndex!.Value] / 3600);
-                }
                 else
                 {
-                    time += (decimal)(weights[spots[spotIdx].WeightMatrixIndex!.Value, spots[spotIdx + 1].WeightMatrixIndex!.Value] / 3600);
+                    time += (decimal)(weights[spots[spotIdx - 1].WeightMatrixIndex!.Value, spots[spotIdx].WeightMatrixIndex!.Value] / 3600);
                 }
                 spotIdx++;
             }
@@ -116,6 +112,10 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 }
             }
             time += activity.Duration;
+            if (spotIdx == spots.Count - 1)
+            {
+                time += (decimal)(endWeights[spots[spotIdx].WeightMatrixIndex!.Value] / 3600);
+            }
         }
         if (latePenalty > 0)
         {
@@ -173,7 +173,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         }
     }
 
-    private async Task<double[,]> GetEdgeWeights(List<RouteOptimizationSpot> spots, List<Transport> transports, string travelMode)
+    private async Task<double[,]> GetEdgeWeights(List<RouteOptimizationSpot> spots, List<RouteOptimizationTransport> transports, string travelMode)
     {
         int limit = travelMode == "TRANSIT" ? 10 : 25;
         double[,] weights = new double[spots.Count, spots.Count];
@@ -207,7 +207,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 }
             }
         }
-        foreach (Transport transport in transports)
+        foreach (RouteOptimizationTransport transport in transports)
         {
             int originIndex = spots.FindIndex(s => s.Id == transport.FromSpotId);
             int destinationIndex = spots.FindIndex(s => s.Id == transport.ToSpotId);
@@ -223,7 +223,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
     }
 
     //COULD BE OPTIMIZED NOT TO MAKE REQUESTS FOR THE ROUTES THAT WE HAVE TRANSPORTS FOR?
-    private async Task<double[]> GetStartWeights(RouteOptimizationSpot? start, List<RouteOptimizationSpot> spots, List<Transport> transports, string travelMode)
+    private async Task<double[]> GetStartWeights(RouteOptimizationSpot? start, List<RouteOptimizationSpot> spots, List<RouteOptimizationTransport> transports, string travelMode)
     {
         if (start == null) return new double[spots.Count];
 
@@ -233,7 +233,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         {
             weights[routeMatrixElement.destinationIndex] = routeMatrixElement.duration;
         }
-        foreach (Transport transport in transports)
+        foreach (RouteOptimizationTransport transport in transports)
         {
             if (transport.FromSpotId == start.Id)
             {
@@ -248,7 +248,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         return weights;
     }
 
-    private async Task<double[]> GetEndWeights(RouteOptimizationSpot? end, List<RouteOptimizationSpot> spots, List<Transport> transports, string travelMode)
+    private async Task<double[]> GetEndWeights(RouteOptimizationSpot? end, List<RouteOptimizationSpot> spots, List<RouteOptimizationTransport> transports, string travelMode)
     {
         if (end == null) return new double[spots.Count];
 
@@ -258,7 +258,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         {
             weights[routeMatrixElement.originIndex] = routeMatrixElement.duration;
         }
-        foreach (Transport transport in transports)
+        foreach (RouteOptimizationTransport transport in transports)
         {
             if (transport.ToSpotId == end.Id)
             {
@@ -302,11 +302,11 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 payload, new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull, }),
             Encoding.UTF8, "application/json");
 
-        //System.Diagnostics.Debug.WriteLine($"{await body.ReadAsStringAsync()}\n");
+        System.Diagnostics.Debug.WriteLine($"{await body.ReadAsStringAsync()}\n");
 
         using HttpResponseMessage response = await PostWithHeadersAsync(url, body, headers);
 
-        //System.Diagnostics.Debug.WriteLine($"{await response.Content.ReadAsStringAsync()}\n");
+        System.Diagnostics.Debug.WriteLine($"{await response.Content.ReadAsStringAsync()}\n");
 
         response.EnsureSuccessStatusCode();
 
@@ -323,7 +323,15 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 int originIndex = elem.GetProperty("originIndex").GetInt32();
                 int destinationIndex = elem.GetProperty("destinationIndex").GetInt32();
 
-                string durationStr = elem.GetProperty("duration").GetString() ?? "-1";
+                string durationStr = "-1";
+                try
+                {
+                    durationStr = elem.GetProperty("duration").GetString() ?? "-1";
+                } catch (KeyNotFoundException)
+                {
+
+                }
+                
 
                 if (durationStr.EndsWith("s"))
                     durationStr = durationStr[..^1];
