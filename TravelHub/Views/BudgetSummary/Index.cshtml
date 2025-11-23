@@ -198,7 +198,7 @@
                                         <th class="text-end">Actual</th>
                                         <th class="text-end">Estimated</th>
                                         <th class="text-end">Balance</th>
-                                        <th class="text-end">Total</th>
+                                        @* <th class="text-end">Total</th> *@
                                         <th class="text-end">%</th>
                                     </tr>
                                 </thead>
@@ -215,7 +215,7 @@
                                             <td class="text-end @(category.Balance >= 0 ? "text-danger" : "text-success")">
                                                 @Math.Abs(category.Balance).ToString("N2")
                                             </td>
-                                            <td class="text-end fw-bold">@category.Total.ToString("N2")</td>
+                                            @* <td class="text-end fw-bold">@category.Total.ToString("N2")</td> *@
                                             <td class="text-end">@category.PercentageOfTotal.ToString("N1")%</td>
                                         </tr>
                                     }
@@ -228,7 +228,7 @@
                                         <td class="text-end @(Model.Balance >= 0 ? "text-danger" : "text-success")">
                                             @Math.Abs(Model.Balance).ToString("N2")
                                         </td>
-                                        <td class="text-end">@Model.CategorySummaries.Sum(c => c.Total).ToString("N2")</td>
+                                        @* <td class="text-end">@Model.CategorySummaries.Sum(c => c.Total).ToString("N2")</td> *@
                                         <td class="text-end">100%</td>
                                     </tr>
                                 </tfoot>

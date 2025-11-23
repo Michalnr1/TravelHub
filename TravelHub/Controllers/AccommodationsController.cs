@@ -563,7 +563,8 @@ public class AccommodationsController : Controller
                 ExchangeRateId = exchangeRateEntry.Id,
                 TripId = accommodation.TripId,
                 SpotId = accommodation.Id,
-                IsEstimated = true
+                IsEstimated = true,
+                Multiplier = (accommodation.CheckOut - accommodation.CheckIn).Days
             };
 
             // Dodaj expense bez uczestników
@@ -598,6 +599,7 @@ public class AccommodationsController : Controller
                     existingExpense.EstimatedValue = viewModel.ExpenseValue.Value;
                     existingExpense.ExchangeRateId = exchangeRateEntry.Id;
                     existingExpense.ExchangeRate = exchangeRateEntry;
+                    existingExpense.Multiplier = (accommodation.CheckOut - accommodation.CheckIn).Days;
 
                     await _expenseService.UpdateAsync(existingExpense);
                     _logger.LogInformation("Expense updated for accommodation {AccommodationId}", accommodation.Id);
