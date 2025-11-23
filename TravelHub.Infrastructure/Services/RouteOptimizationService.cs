@@ -80,7 +80,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
     // MINIMAL IMPLEMENTATION
     private double ScoreSolution(List<RouteOptimizationActivity> activities, double[,] weights, double[] startWeights, double[] endWeights, decimal startTime) 
     {
-        decimal time = startTime;
+        double time = (double)startTime;
         int spotIdx = 0;
         double latePenalty = 0;
         List<RouteOptimizationSpot> spots = activities.Where(a => a.Type == "Spot").Cast<RouteOptimizationSpot>().ToList();
@@ -91,37 +91,38 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 RouteOptimizationSpot spot = (RouteOptimizationSpot)activity;
                 if (spotIdx == 0)
                 {
-                    time += (decimal)(startWeights[spot.WeightMatrixIndex!.Value] / 3600);
+                    time += startWeights[spot.WeightMatrixIndex!.Value] / 3600;
                 }
                 else
                 {
-                    time += (decimal)(weights[spots[spotIdx - 1].WeightMatrixIndex!.Value, spots[spotIdx].WeightMatrixIndex!.Value] / 3600);
+                    
+                    time += weights[spots[spotIdx - 1].WeightMatrixIndex!.Value, spots[spotIdx].WeightMatrixIndex!.Value] / 3600;
                 }
                 spotIdx++;
             }
             if (activity.StartTime != null && activity.StartTime > 0)
             {
-                if (activity.StartTime < time)
+                if ((double)activity.StartTime < time)
                 {
                     // Additional penalty for time being late - if being late is unavoidable, shorter lateness should be preferred
-                    latePenalty += (double)(time - activity.StartTime) * 1;
+                    latePenalty += (double)(time - (double)activity.StartTime) * 1;
                 }
                 else
                 {
-                    time = activity.StartTime.Value;
+                    time = (double)activity.StartTime.Value;
                 }
             }
-            time += activity.Duration;
+            time += (double)activity.Duration;
             if (spotIdx == spots.Count - 1)
             {
-                time += (decimal)(endWeights[spots[spotIdx].WeightMatrixIndex!.Value] / 3600);
+                time += endWeights[spots[spotIdx].WeightMatrixIndex!.Value] / 3600;
             }
         }
         if (latePenalty > 0)
         {
             latePenalty += 24; //Large penalty for being late, it should significantly outsize regular travel time penalty 
         }
-        double totalTime = (double)(time - startTime);
+        double totalTime = time - (double)startTime;
         return totalTime + latePenalty;
     }
 
@@ -177,13 +178,21 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
     {
         int limit = travelMode == "TRANSIT" ? 10 : 25;
         double[,] weights = new double[spots.Count, spots.Count];
+        for (int i = 0; i < spots.Count; i++)
+        {
+            for (int j = 0; j < spots.Count; j++)
+            {
+                weights[i,j] = double.PositiveInfinity;
+            }
+        }
         if (spots.Count <= limit)
         {
             List<RouteMatrixElement> routeMatrixElements = await GetRouteMatrix(spots, travelMode);
             //CHECK IF GRAPH IS CONNECTED?
             foreach (RouteMatrixElement routeMatrixElement in routeMatrixElements)
             {
-                weights[routeMatrixElement.originIndex, routeMatrixElement.destinationIndex] = routeMatrixElement.duration;
+                if (routeMatrixElement.duration > 0)
+                    weights[routeMatrixElement.originIndex, routeMatrixElement.destinationIndex] = routeMatrixElement.duration;
             }
         }
         else
@@ -229,9 +238,14 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
 
         List<RouteMatrixElement> routeMatrixElements = await GetRouteMatrix(new List<RouteOptimizationSpot>() { start }, spots, travelMode);
         double[] weights = new double[spots.Count];
+        for (int i = 0; i < spots.Count; i++)
+        {
+            weights[i] = double.PositiveInfinity;
+        }
         foreach (RouteMatrixElement routeMatrixElement in routeMatrixElements)
         {
-            weights[routeMatrixElement.destinationIndex] = routeMatrixElement.duration;
+            if (routeMatrixElement.duration > 0)
+                weights[routeMatrixElement.destinationIndex] = routeMatrixElement.duration;
         }
         foreach (RouteOptimizationTransport transport in transports)
         {
@@ -254,9 +268,14 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
 
         List<RouteMatrixElement> routeMatrixElements = await GetRouteMatrix(spots, new List<RouteOptimizationSpot>() { end }, travelMode);
         double[] weights = new double[spots.Count];
+        for (int i = 0; i < spots.Count; i++)
+        {
+            weights[i] = double.PositiveInfinity;
+        }
         foreach (RouteMatrixElement routeMatrixElement in routeMatrixElements)
         {
-            weights[routeMatrixElement.originIndex] = routeMatrixElement.duration;
+            if (routeMatrixElement.duration > 0)
+                weights[routeMatrixElement.originIndex] = routeMatrixElement.duration;
         }
         foreach (RouteOptimizationTransport transport in transports)
         {
