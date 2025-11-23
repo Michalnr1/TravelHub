@@ -70,8 +70,11 @@
                     <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Description)</dt>
                     <dd class="col-sm-9">@Html.DisplayFor(model => model.Description)</dd>
 
+                    <dt class="col-sm-3">@Html.DisplayNameFor(model => model.StartTimeString)</dt>
+                    <dd class="col-sm-9">@Html.DisplayFor(model => model.StartTimeString)</dd>
+
                     <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Duration)</dt>
-                    <dd class="col-sm-9">@Html.DisplayFor(model => model.Duration) hours</dd>
+                    <dd class="col-sm-9">@Html.DisplayFor(model => model.DurationString) hours</dd>
 
                     <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Rating)</dt>
                     <dd class="col-sm-9">
@@ -319,8 +322,12 @@
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
+                    <strong>Start time:</strong>
+                    <span class="badge bg-info">@Model.StartTimeString</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
                     <strong>Duration:</strong>
-                    <span class="badge bg-info">@Model.Duration hours</span>
+                    <span class="badge bg-info">@Model.DurationString</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <strong>Order:</strong>
