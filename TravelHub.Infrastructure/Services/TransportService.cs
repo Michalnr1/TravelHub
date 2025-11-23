@@ -41,4 +41,14 @@ public class TransportService : GenericService<Transport>, ITransportService
 
         return transports.Sum(t => t.Duration);
     }
+
+    public async Task<List<Transport>> GetTransportsFromSpotAsync(int spotId)
+    {
+        return await _transportRepository.GetTransportsFromSpotAsync(spotId);
+    }
+
+    public async Task<List<Transport>> GetTransportsToSpotAsync(int spotId)
+    {
+        return await _transportRepository.GetTransportsToSpotAsync(spotId);
+    }
 }

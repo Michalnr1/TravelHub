@@ -132,9 +132,8 @@ public class DaysController : Controller
                                 Latitude = s.Latitude,
                                 // Cost = s.Cost,
                                 PhotoCount = s.Photos?.Count ?? 0,
-                                TransportsFromCount = s.TransportsFrom?.Count ?? 0,
-                                TransportsToCount = s.TransportsTo?.Count ?? 0,
-                                TransportsFrom = s.TransportsFrom?.Select(t => new TransportBasicViewModel { 
+                                TransportsFrom = s.TransportsFrom?.Select(t => new TransportBasicViewModel {
+                                    Id = t.Id,
                                     Name = t.Name,
                                     Duration = t.Duration,
                                     FromSpotId = t.FromSpotId,
@@ -184,6 +183,7 @@ public class DaysController : Controller
             Type = "Spot",
             TransportsFrom = a.TransportsFrom?.Select(t => new TransportBasicViewModel
             {
+                Id = t.Id,
                 Name = t.Name,
                 Duration = t.Duration,
                 FromSpotId = t.FromSpotId,

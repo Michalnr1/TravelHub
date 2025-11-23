@@ -224,9 +224,7 @@ public class TripsSearchController : Controller
                     DayName = s.Day?.Name,
                     Longitude = s.Longitude,
                     Latitude = s.Latitude,
-                    PhotoCount = s.Photos?.Count ?? 0,
-                    TransportsFromCount = s.TransportsFrom?.Count ?? 0,
-                    TransportsToCount = s.TransportsTo?.Count ?? 0
+                    PhotoCount = s.Photos?.Count ?? 0
                 }).ToList(),
 
             Transports = transports.Select(t => new TransportViewModel

@@ -220,9 +220,7 @@ public class TripsController : Controller
                 Longitude = s.Longitude,
                 Latitude = s.Latitude,
                 // Cost = s.Cost,
-                PhotoCount = s.Photos?.Count ?? 0,
-                TransportsFromCount = s.TransportsFrom?.Count ?? 0,
-                TransportsToCount = s.TransportsTo?.Count ?? 0
+                PhotoCount = s.Photos?.Count ?? 0
             }).ToList(),
             Transports = transports.Select(t => new TransportViewModel
             {
@@ -514,9 +512,7 @@ public class TripsController : Controller
                 Longitude = s.Longitude,
                 Latitude = s.Latitude,
                 // Cost = s.Cost,
-                PhotoCount = s.Photos?.Count ?? 0,
-                TransportsFromCount = s.TransportsFrom?.Count ?? 0,
-                TransportsToCount = s.TransportsTo?.Count ?? 0
+                PhotoCount = s.Photos?.Count ?? 0
             }).ToList(),
             Transports = transports.Select(t => new TransportViewModel
             {

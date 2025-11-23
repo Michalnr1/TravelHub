@@ -12,6 +12,7 @@ using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Expenses;
+using TravelHub.Web.ViewModels.Transports;
 using CategorySelectItem = TravelHub.Web.ViewModels.Activities.CategorySelectItem;
 
 namespace TravelHub.Web.Controllers;
@@ -26,6 +27,7 @@ public class SpotsController : Controller
     private readonly ITripParticipantService _tripParticipantService;
     private readonly IGenericService<Day> _dayService;
     private readonly IPhotoService _photoService;
+    private readonly ITransportService _transportService;
     private readonly IFileService _fileService;
     private readonly IPdfService _pdfService;
     private readonly ICompositeViewEngine _viewEngine;
@@ -46,6 +48,7 @@ public class SpotsController : Controller
         ITripParticipantService tripParticipantService,
         IGenericService<Day> dayService,
         IPhotoService photoService,
+        ITransportService transportService,
         IFileService fileService, 
         IReverseGeocodingService reverseGeocodingService,
         IExpenseService expenseService,
@@ -65,6 +68,7 @@ public class SpotsController : Controller
         _tripParticipantService = tripParticipantService;
         _dayService = dayService;
         _photoService = photoService;
+        _transportService = transportService;
         _fileService = fileService;
         _reverseGeocodingService = reverseGeocodingService;
         _expenseService = expenseService;
@@ -97,9 +101,7 @@ public class SpotsController : Controller
             Latitude = s.Latitude,
             // Cost = s.Cost,
             Rating = s.Rating,
-            PhotoCount = s.Photos?.Count ?? 0,
-            TransportsFromCount = s.TransportsFrom?.Count ?? 0,
-            TransportsToCount = s.TransportsTo?.Count ?? 0
+            PhotoCount = s.Photos?.Count ?? 0
         }).ToList();
 
         return View(viewModel);
@@ -140,12 +142,36 @@ public class SpotsController : Controller
             Latitude = spot.Latitude,
             // Cost = spot.Cost,
             Rating = spot.Rating,
-            PhotoCount = spot.Photos?.Count ?? 0,
-            TransportsFromCount = spot.TransportsFrom?.Count ?? 0,
-            TransportsToCount = spot.TransportsTo?.Count ?? 0
+            PhotoCount = spot.Photos?.Count ?? 0
         };
 
-        // download photos
+        // Pobieranie transportów FROM tego spota
+        var transportsFrom = await _transportService.GetTransportsFromSpotAsync(spot.Id);
+        viewModel.TransportsFrom = transportsFrom.Select(t => new TransportBasicViewModel
+        {
+            Id = t.Id,
+            Duration = t.Duration,
+            Name = t.Name,
+            FromSpotId = t.FromSpotId,
+            ToSpotId = t.ToSpotId,
+            FromSpotName = t.FromSpot?.Name,
+            ToSpotName = t.ToSpot?.Name
+        }).ToList();
+
+        // Pobieranie transportów TO tego spota
+        var transportsTo = await _transportService.GetTransportsToSpotAsync(spot.Id);
+        viewModel.TransportsTo = transportsTo.Select(t => new TransportBasicViewModel
+        {
+            Id = t.Id,
+            Duration = t.Duration,
+            Name = t.Name,
+            FromSpotId = t.FromSpotId,
+            ToSpotId = t.ToSpotId,
+            FromSpotName = t.FromSpot?.Name,
+            ToSpotName = t.ToSpot?.Name
+        }).ToList();
+
+        // Download photos
         var photos = await _photoService.GetBySpotIdAsync(spot.Id);
         viewModel.Photos = photos.Select(p => new PhotoViewModel
         {

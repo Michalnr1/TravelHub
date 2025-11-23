@@ -9,10 +9,13 @@ namespace TravelHub.Web.ViewModels.Transports;
 
 public class TransportBasicViewModel
 {
+    public int Id { get; set; }
     public decimal Duration { get; set; }
     public string? Name { get; set; }
     public required int FromSpotId { get; set; }
     public required int ToSpotId { get; set; }
+    public string? FromSpotName { get; set; }
+    public string? ToSpotName { get; set; }
 }
 
 public class TransportViewModel

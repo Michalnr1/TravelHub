@@ -15,4 +15,7 @@ public interface ITransportService : IGenericService<Transport>
     Task<Transport?> GetByIdWithDetailsAsync(int id);
 
     Task<IReadOnlyList<Transport>> GetAllWithDetailsAsync();
+
+    Task<List<Transport>> GetTransportsFromSpotAsync(int spotId);
+    Task<List<Transport>> GetTransportsToSpotAsync(int spotId);
 }

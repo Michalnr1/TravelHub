@@ -40,4 +40,22 @@ public class TransportRepository : GenericRepository<Transport>, ITransportRepos
             .Include(t => t.ToSpot)
             .ToListAsync();
     }
+
+    public async Task<List<Transport>> GetTransportsFromSpotAsync(int spotId)
+    {
+        return await _context.Transports
+            .Include(t => t.FromSpot)
+            .Include(t => t.ToSpot)
+            .Where(t => t.FromSpotId == spotId)
+            .ToListAsync();
+    }
+
+    public async Task<List<Transport>> GetTransportsToSpotAsync(int spotId)
+    {
+        return await _context.Transports
+            .Include(t => t.FromSpot)
+            .Include(t => t.ToSpot)
+            .Where(t => t.ToSpotId == spotId)
+            .ToListAsync();
+    }
 }

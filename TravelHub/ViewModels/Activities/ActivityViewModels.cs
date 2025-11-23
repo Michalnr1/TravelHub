@@ -28,10 +28,18 @@ public class ActivityDetailsViewModel
     public decimal Duration { get; set; }
     public string DurationString { get; set; } = "00:00";
     public int Order { get; set; }
+
+    [Display(Name = "Category name")]
     public string? CategoryName { get; set; }
+
+    [Display(Name = "Start time")]
     public decimal StartTime { get; set; }
+
+    [Display(Name = "Trip name")]
     public required string TripName { get; set; }
     public int TripId { get; set; }
+
+    [Display(Name = "Day name")]
     public string? DayName { get; set; }
     public string? Type { get; set; } // "Activity" or "Spot"
 }
@@ -129,9 +137,8 @@ public class SpotDetailsViewModel : ActivityDetailsViewModel
     public IEnumerable<PhotoViewModel>? Photos { get; set; }
     public IEnumerable<FileViewModel>? Files { get; set; }
     public int PhotoCount { get; set; }
-    public int TransportsFromCount { get; set; }
-    public int TransportsToCount { get; set; }
     public List<TransportBasicViewModel>? TransportsFrom { get; set; }
+    public List<TransportBasicViewModel>? TransportsTo { get; set; }
 }
 
 public class AccommodationBasicViewModel : SpotDetailsViewModel
