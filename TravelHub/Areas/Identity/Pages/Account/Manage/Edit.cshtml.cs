@@ -84,6 +84,10 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
             [Display(Name = "Nationality")]
             public string Nationality { get; set; }
 
+            [StringLength(3, MinimumLength = 3, ErrorMessage = "The airport code must have exactly 3 characters")]
+            [Display(Name = "Default Airport Code")]
+            public string DefaultAirportCode { get; set; }
+
             [Required]
             [Display(Name = "Birthday")]
             [DataType(DataType.Date)]
@@ -112,7 +116,8 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
                 LastName = user.LastName,
                 Nationality = user.Nationality,
                 Birthday = user.Birthday,
-                IsPrivate = user.IsPrivate
+                IsPrivate = user.IsPrivate,
+                DefaultAirportCode = user.DefaultAirportCode
             };
         }
 
@@ -207,6 +212,9 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
 
             if (Input.Nationality != user.Nationality)
                 user.Nationality = Input.Nationality;
+
+            if (Input.DefaultAirportCode != user.DefaultAirportCode)
+                user.DefaultAirportCode = Input.DefaultAirportCode;
 
             if (Input.Birthday != user.Birthday)
                 user.Birthday = Input.Birthday;
