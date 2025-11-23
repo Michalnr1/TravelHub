@@ -10,13 +10,15 @@ public class SpotServiceTests
 {
     private readonly Mock<ISpotRepository> _mockSpotRepo;
     private readonly Mock<IActivityRepository> _mockActivityRepo;
+    private readonly Mock<IGenericRepository<Country>> _mockCountryRepo;
     private readonly SpotService _sut;
 
     public SpotServiceTests()
     {
         _mockSpotRepo = new Mock<ISpotRepository>();
         _mockActivityRepo = new Mock<IActivityRepository>();
-        _sut = new SpotService(_mockSpotRepo.Object, _mockActivityRepo.Object);
+        _mockCountryRepo = new Mock<IGenericRepository<Country>>();
+        _sut = new SpotService(_mockSpotRepo.Object, _mockActivityRepo.Object, _mockCountryRepo.Object);
     }
 
     [Fact]

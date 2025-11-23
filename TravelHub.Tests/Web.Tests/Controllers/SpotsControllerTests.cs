@@ -1,17 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Configuration;
 using Moq;
+using System;
+using System.Collections.Generic;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
+using TravelHub.Tests.TestUtilities;
 using TravelHub.Web.Controllers;
 using TravelHub.Web.ViewModels.Activities;
-using TravelHub.Tests.TestUtilities;
 using Xunit;
 
 namespace TravelHub.Tests.Web.Tests.Controllers;
@@ -19,24 +21,33 @@ namespace TravelHub.Tests.Web.Tests.Controllers;
 public class SpotsControllerTests
 {
     private static SpotsController CreateController(
-        Mock<ISpotService> spotMock,
-        Mock<IActivityService> activityMock,
-        Mock<IGenericService<Category>> categoryMock,
-        Mock<ITripService> tripMock,
-        Mock<ITripParticipantService> tripParticipantMock,
-        Mock<IGenericService<Day>> dayMock,
-        Mock<IPhotoService> photoMock,
-        Mock<IReverseGeocodingService> reverseGeoMock,
-        Mock<IExpenseService> expenseMock,
-        Mock<IExchangeRateService> exchangeRateMock,
-        string currentUserId = null)
+    Mock<ISpotService> spotMock,
+    Mock<IActivityService> activityMock,
+    Mock<IGenericService<Category>> categoryMock,
+    Mock<ITripService> tripMock,
+    Mock<ITripParticipantService> tripParticipantMock,
+    Mock<IGenericService<Day>> dayMock,
+    Mock<IPhotoService> photoMock,
+    Mock<IReverseGeocodingService> reverseGeoMock,
+    Mock<IExpenseService> expenseMock,
+    Mock<IExchangeRateService> exchangeRateMock,
+    string currentUserId = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("ApiKeys:GoogleApiKey", "test") })
             .Build();
 
+        // user manager (factory from your tests)
         var userManager = TestUserManagerFactory.Create();
 
+        // create missing mocks required by constructor
+        var fileMock = new Mock<IFileService>();
+        var pdfMock = new Mock<IPdfService>();
+        var viewEngineMock = new Mock<ICompositeViewEngine>();
+        var tempDataProviderMock = new Mock<ITempDataProvider>();
+        var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+
+        // create the controller with all required parameters in correct order
         var controller = new SpotsController(
             spotMock.Object,
             activityMock.Object,
@@ -45,24 +56,42 @@ public class SpotsControllerTests
             tripParticipantMock.Object,
             dayMock.Object,
             photoMock.Object,
+            fileMock.Object,                // IFileService
             reverseGeoMock.Object,
             expenseMock.Object,
             exchangeRateMock.Object,
             new FakeLogger<SpotsController>(),
             configuration,
-            userManager);
+            userManager,                   // UserManager<Person>
+            pdfMock.Object,                // IPdfService
+            viewEngineMock.Object,         // ICompositeViewEngine
+            tempDataProviderMock.Object,   // ITempDataProvider
+            httpContextAccessorMock.Object // IHttpContextAccessor
+        );
 
-        controller.TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider());
-
+        // Prepare HttpContext and TempData
         var httpContext = new DefaultHttpContext();
         if (!string.IsNullOrEmpty(currentUserId))
         {
             httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, currentUserId) }, "TestAuth"));
         }
+
+        // make IHttpContextAccessor return the created context
+        httpContextAccessorMock.Setup(a => a.HttpContext).Returns(httpContext);
+
+        // If you want TempData to behave like real one in tests, you can use TestTempDataProvider (or the mock object)
+        // Here we prefer to use a concrete TestTempDataProvider instance for TempDataDictionary
+        var concreteTempDataProvider = new TestTempDataProvider();
+        controller.TempData = new TempDataDictionary(httpContext, concreteTempDataProvider);
+
+        // set ControllerContext with the httpContext (so ActionContext, Request, etc. are available)
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
         controller.Url = new FakeUrlHelper();
+
         return controller;
     }
+
 
     [Fact]
     public async Task Index_ReturnsViewWithList()
@@ -87,7 +116,7 @@ public class SpotsControllerTests
             Trip = new Trip { Id = 1, Name = "Trip1", PersonId = "test" },
             Category = new Category { Id = 1, Name = "Cat", Color = "0000000" },
             Day = new Day { Id = 2, Name = "Day1" },
-            Photos = new List<Photo> { new Photo { Id = 1, Name = "p1", SpotId = 1 } }
+            Photos = new List<Photo> { new Photo { Id = 1, Name = "p1", SpotId = 1, FilePath = "~/images/spots" } }
         };
 
         spotMock.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync(new List<Spot> { spot });
@@ -123,7 +152,7 @@ public class SpotsControllerTests
         var trip = new Trip { Id = 10, PersonId = "owner", Name = "T" };
         var spot = new Spot { Id = 5, Name = "DetailSpot", TripId = trip.Id, Trip = trip, Photos = new List<Photo>() };
 
-        spot.Photos.Add(new Photo { Id = 1, Name = "p", SpotId = spot.Id });
+        spot.Photos.Add(new Photo { Id = 1, Name = "p", SpotId = spot.Id, FilePath = "~/images/spots" });
 
         spotMock.Setup(s => s.GetSpotDetailsAsync(spot.Id)).ReturnsAsync(spot);
         spotMock.Setup(s => s.UserOwnsSpotAsync(spot.Id, It.IsAny<string>())).ReturnsAsync(true);
