@@ -106,6 +106,10 @@ public class TripService : GenericService<Trip>, ITripService
             allSpots.AddRange(day.Activities.OfType<Spot>());
         }
 
+        var accomms = await _accommodationService.GetAccommodationByTripAsync(id);
+
+        allSpots.AddRange(accomms);
+
         //Domyślnie jakiś default użytkownika?
 
         //if (!allSpots.Any())

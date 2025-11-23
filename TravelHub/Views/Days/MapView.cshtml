@@ -109,6 +109,7 @@
             <div class="card-body p-0">
                 @if (allActivities.Any())
                 {
+                    int i = 0;
                     <div class="list-group list-group-flush" id="activitiesContainer">
                         @foreach (var activity in allActivities)
                         {
@@ -117,6 +118,13 @@
                             @if (isSpot)
                             {
                                 id = "spot-" + activity.Id;
+                                if (Model.PreviousAccommodation?.Id == activity.Id && i == 0)
+                                {
+                                    id = id + "-prev";
+                                } else if (Model.NextAccommodation?.Id == activity.Id && i == allActivities.Count - 1)
+                                {
+                                    id = id + "-next";
+                                }
                             }
                             else
                             {
@@ -168,7 +176,7 @@
                                     <i class="fas fa-grip-vertical"></i>
                                 </div>
                             </div>
-
+                            i++;
                         }
                     </div>
                 }
@@ -232,9 +240,6 @@
 
         let otherActivities = JSON.parse('@Json.Serialize(Model.Activities)')
         let activities = JSON.parse('@Json.Serialize(allActivities)');
-        console.log(points);
-        console.log(otherActivities);
-        console.log(activities);
         let previousAccommodation = JSON.parse('@Json.Serialize(Model.PreviousAccommodation)');
         let nextAccommodation = JSON.parse('@Json.Serialize(Model.NextAccommodation)');
         let involvesCheckout = previousAccommodation != null && (nextAccommodation == null || previousAccommodation.id != nextAccommodation.id);
@@ -252,7 +257,6 @@
             // Initialize the map.
             map = new google.maps.Map(document.getElementById("map"), {
                     center: center,
-                    zoom: 12,
                     mapId: 'DEMO_MAP_ID'
             });
             marker = new AdvancedMarkerElement({
@@ -260,6 +264,15 @@
             });
             infoWindow = new google.maps.InfoWindow({});
             routeInfoWindow = new google.maps.InfoWindow({});
+
+            const bounds = getMapBounds(points);
+
+            if (points.length <= 1) {
+                map.setCenter(center);
+                map.setZoom(14);
+            }  else {
+                map.fitBounds(bounds, 20);
+            }
 
             points.forEach((point, i) => {
               let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
@@ -295,7 +308,15 @@
                   }
               });
 
-              let listElem = document.getElementById("spot-" + points[i].id);
+              let cardId = `spot-${point.id}`;
+
+              if (i == 0 && '@Html.Raw(Model.PreviousAccommodation?.Id)' == point.id) {
+                  cardId = cardId + "-prev";
+              } else if (i == points.length - 1 && '@Html.Raw(Model.NextAccommodation?.Id)' == point.id) {
+                cardId = cardId + "-next";
+              }
+
+              let listElem = document.getElementById(cardId);
               listElem.addEventListener("mouseenter", (event) => {
                   infoWindow.close();
                   infoWindow.setContent(marker.title);
@@ -434,7 +455,16 @@
             const { Polyline } = await google.maps.importLibrary("maps");
             for (let i = 0; i < legs.length; i++) {
                 const leg = legs[i];
-                const locationCard = document.getElementById(`spot-${points[i+1].id}`);
+
+                let cardId = `spot-${points[i+1].id}`;
+
+                if (i == 0 && '@Html.Raw(Model.PreviousAccommodation?.Id)' == points[i+1].id) {
+                    cardId = cardId + "-prev";
+                } else if (i == legs.length - 1 && '@Html.Raw(Model.NextAccommodation?.Id)' == points[i+1].id) {
+                    cardId = cardId + "-next";
+                }
+                console.log(cardId);
+                const locationCard = document.getElementById(cardId);
 
                 if (leg.type == 'Transit') {
                     const card = buildTravelCard(i);
@@ -451,6 +481,19 @@
 
                 }
             }
+        }
+
+        function getMapBounds(points) {
+
+            const bounds = new google.maps.LatLngBounds();
+
+            for(let i = 0; i < points.length; i++) {
+                let coords = { lat: parseFloat(points[i].latitude), lng: parseFloat(points[i].longitude) };
+
+                 bounds.extend(coords);
+            }
+
+            return bounds;
         }
 
         async function renderTransitSteps(leg, card) {
@@ -493,7 +536,7 @@
                 displayWarning(`The itinerary for this day takes ${duration.toFormat("hh 'h' mm 'm'")}, are you sure?`);
             }
             for (let i = 1; i < activities.length; i++){
-                if (activities[i].startTime != 0 && activities[i].arrTime > decimalToDateTime(startTime, activities[i].startTime)) {
+                if (activities[i].startTime != null && activities[i].startTime != 0 && activities[i].arrTime > decimalToDateTime(startTime, activities[i].startTime)) {
                     displayWarning(`You set the starting time for ${activities[i].name} as ${decimalToDateTime(startTime, activities[i].startTime).toLocaleString(luxon.DateTime.TIME_24_SIMPLE)}, but with this plan you would arrive at ${activities[i].arrTime.toLocaleString(luxon.DateTime.TIME_24_SIMPLE)}`);
                     break;
                 }
@@ -941,26 +984,43 @@
             // --- REORDER DOM ---
             const items = Array.from(container.querySelectorAll('.activity-item'));
 
-            items.sort((a, b) => {
+            if (previousAccommodation != null) {
+                ia = 1;
+            } else {
+                ia = 0;
+            }
+            if (nextAccommodation != null) {
+                ib = items.length-1;
+            } else {
+                ib = items.length;
+            }
+            let itemsToBeSorted = items.slice(ia, ib);
+            itemsToBeSorted.sort((a, b) => {
                 const idA = parseInt(a.dataset.activityId);
                 const idB = parseInt(b.dataset.activityId);
                 return orderMap.get(idA) - orderMap.get(idB);
             });
+            if (ia > 0) itemsToBeSorted.splice(0, 0, items[0]);
+            if (ib < items.length) itemsToBeSorted.push(items[ib]);
 
             // Re-append in correct order
-            items.forEach(item => container.appendChild(item));
+            itemsToBeSorted.forEach(item => container.appendChild(item));
 
 
             // --- UPDATE ACTIVITIES ARRAY ---
-            activities.sort((a, b) => orderMap.get(a.id) - orderMap.get(b.id));
-            activities.forEach(a => a.order = orderMap.get(a.id));
-
+            let activitiesToBeSorted = activities.slice(ia, nextAccommodation ? activities.length - 1 : activities.length);
+            activitiesToBeSorted.sort((a, b) => orderMap.get(a.id) - orderMap.get(b.id));
+            activitiesToBeSorted.forEach(a => a.order = orderMap.get(a.id));
+            if (ia > 0) activitiesToBeSorted.splice(0, 0, activities[0]);
+            if (ib < items.length) activitiesToBeSorted.push(activities[activities.length - 1]);
+            activities = activitiesToBeSorted;
 
             // --- UPDATE POINTS (spots only) ---
             let newPoints = [];
-            let spotCounter = 0;
-
-            items.forEach(item => {
+            let spotCounter = ia;
+            if (ia > 0) newPoints.push(points[0]);
+            
+            itemsToBeSorted.slice(ia, ib).forEach(item => {
                 const id = parseInt(item.dataset.activityId);
                 const point = points.find(p => p.id === id);
 
@@ -971,9 +1031,9 @@
                     spotCounter++;
                 }
             });
+            if (ib < items.length) newPoints.push(points[ib]);
 
             points = newPoints;
-
             // --- RESET MAP & ROUTE DISPLAY ---
             clearPolylines();
             clearTravelCards();

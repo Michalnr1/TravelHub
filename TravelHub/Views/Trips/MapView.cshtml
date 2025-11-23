@@ -137,7 +137,6 @@
             // Initialize the map.
             map = new google.maps.Map(document.getElementById("map"), {
                     center: center,
-                    zoom: 12,
                     //TODO: Create map id
                     mapId: 'DEMO_MAP_ID'
             });
@@ -145,6 +144,15 @@
                map,
             });
             infoWindow = new google.maps.InfoWindow({});
+
+                        const bounds = getMapBounds(points);
+
+            if (points.length <= 1) {
+                map.setCenter(center);
+                map.setZoom(14);
+            }  else {
+                map.fitBounds(bounds, 20);
+            }
 
             points.forEach((point, i) => {
               let coords = {lat: parseFloat(point.latitude), lng: parseFloat(point.longitude)}
@@ -189,6 +197,19 @@
 
               
             });
+        }
+
+        function getMapBounds(points) {
+
+            const bounds = new google.maps.LatLngBounds();
+
+            for(let i = 0; i < points.length; i++) {
+                let coords = { lat: parseFloat(points[i].latitude), lng: parseFloat(points[i].longitude) };
+
+                 bounds.extend(coords);
+            }
+
+            return bounds;
         }
     </script>
 
