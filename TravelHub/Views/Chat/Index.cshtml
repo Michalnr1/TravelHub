@@ -22,9 +22,9 @@
 <form id="chatForm" asp-action="PostMessage" asp-controller="Chat" method="post">
     <input type="hidden" name="tripId" value="@Model.TripId" />
     <div class="mb-3">
-        <textarea name="Message" class="form-control" rows="3" placeholder="Napisz wiadomość..."></textarea>
+        <textarea name="Message" class="form-control" rows="3" placeholder="Write message..."></textarea>
     </div>
-    <button type="submit" class="btn btn-primary">Wyślij</button>
+    <button type="submit" class="btn btn-primary">Send</button>
 </form>
 
 @section Scripts {
