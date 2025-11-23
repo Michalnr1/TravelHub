@@ -42,6 +42,12 @@
             </div>
 
             <div class="form-floating mb-3">
+                <input asp-for="Input.DefaultAirportCode" class="form-control" />
+                <label asp-for="Input.DefaultAirportCode" class="form-label"></label>
+                <span asp-validation-for="Input.DefaultAirportCode" class="text-danger"></span>
+            </div>
+
+            <div class="form-floating mb-3">
                 <input asp-for="Input.Birthday" class="form-control" type="date" />
                 <label asp-for="Input.Birthday" class="form-label"></label>
                 <span asp-validation-for="Input.Birthday" class="text-danger"></span>
