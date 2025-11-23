@@ -537,4 +537,9 @@ public class TripService : GenericService<Trip>, ITripService
             ParticipantsCount = trip.Participants?.Count(p => p.Status == TripParticipantStatus.Accepted || p.Status == TripParticipantStatus.Owner) ?? 0
         };
     }
+
+    public async Task MarkAllChecklistItemsAsync(int tripId, bool completed)
+    {
+        await _tripRepository.MarkAllChecklistItemsAsync(tripId, completed);
+    }
 }

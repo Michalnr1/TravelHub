@@ -30,4 +30,5 @@ public interface ITripService : IGenericService<Trip>
     Task<IEnumerable<Country>> GetAvailableCountriesForPublicTripsAsync();
     int CountAllSpotsInTrip(Trip trip);
     List<string> GetUniqueCountriesFromTrip(Trip trip);
+    Task MarkAllChecklistItemsAsync(int tripId, bool completed);
 }

@@ -1091,11 +1091,9 @@ public class TripsController : Controller
     [HttpGet]
     public async Task<IActionResult> Checklist(int tripId)
     {
-        //var trip = await _tripService.GetByIdAsync(tripId);
         var trip = await _tripService.GetByIdWithParticipantsAsync(tripId);
         if (trip == null) return NotFound();
 
-        // map Trip.Checklist and participants to viewmodel
         var vm = new ChecklistPageViewModel
         {
             TripId = tripId,
@@ -1114,14 +1112,6 @@ public class TripsController : Controller
         await _tripService.AssignParticipantToItemAsync(tripId, itemTitle, participantId);
         return RedirectToAction("Checklist", new { tripId });
     }
-
-    //[HttpGet]
-    //public async Task<IActionResult> Checklist(int tripId)
-    //{
-    //    var checklist = await _tripService.GetChecklistAsync(tripId);
-    //    ViewBag.TripId = tripId;
-    //    return View(checklist);
-    //}
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -1199,6 +1189,54 @@ public class TripsController : Controller
         if (string.IsNullOrWhiteSpace(item)) return BadRequest();
 
         await _tripService.RemoveChecklistItemAsync(tripId, item);
+        return RedirectToAction("Checklist", new { tripId });
+    }
+
+    /// <summary>
+    /// Mark all checklist items as completed
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkAllComplete(int tripId)
+    {
+        try
+        {
+            await _tripService.MarkAllChecklistItemsAsync(tripId, true);
+            TempData["SuccessMessage"] = "All items have been marked as complete!";
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = $"Error marking items as complete: {ex.Message}";
+        }
+
+        return RedirectToAction("Checklist", new { tripId });
+    }
+
+    /// <summary>
+    /// Mark all checklist items as incomplete
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkAllIncomplete(int tripId)
+    {
+        try
+        {
+            await _tripService.MarkAllChecklistItemsAsync(tripId, false);
+            TempData["SuccessMessage"] = "All items have been marked as incomplete!";
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = $"Error marking items as incomplete: {ex.Message}";
+        }
+
         return RedirectToAction("Checklist", new { tripId });
     }
 
