@@ -593,10 +593,19 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                 (e.PaidById == filter.PersonId || e.TransferredToId == filter.PersonId)));
         }
 
-        // Filtruj po kategorii
+        // Filtruj po kategorii - UWAGA: CategoryId = 0 oznacza Uncategorized (CategoryId = null)
         if (filter.CategoryId.HasValue)
         {
-            query = query.Where(e => e.CategoryId == filter.CategoryId.Value);
+            if (filter.CategoryId.Value == 0)
+            {
+                // Uncategorized - wydatki bez kategorii (CategoryId = null)
+                query = query.Where(e => e.CategoryId == null);
+            }
+            else
+            {
+                // Konkretna kategoria
+                query = query.Where(e => e.CategoryId == filter.CategoryId.Value);
+            }
         }
 
         // Filtruj transfery
@@ -751,6 +760,15 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
         foreach (var categoryGroup in categoryGroups)
         {
+            // Jeśli mamy filtr kategorii, pokazuj tylko wybraną kategorię
+            if (filter.CategoryId.HasValue)
+            {
+                if (filter.CategoryId.Value == 0 && categoryGroup.Key.Id != 0)
+                    continue; // Pomijaj kategorie gdy wybrano Uncategorized
+                else if (filter.CategoryId.Value != 0 && categoryGroup.Key.Id != filter.CategoryId.Value)
+                    continue; // Pomijaj kategorie gdy wybrano konkretną kategorię
+            }
+
             var categorySummary = CalculateCategorySummary(categoryGroup.Key, categoryGroup.ToList(), filter);
             categorySummaries.Add(categorySummary);
         }
@@ -845,9 +863,11 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             personsToShow = allParticipants.Where(p =>
                 expenses.Any(e =>
                     ((e.Expense.PaidById == p.Id || e.Expense.Participants.Any(ep => ep.PersonId == p.Id)) &&
-                    e.Expense.CategoryId == filter.CategoryId.Value) ||
+                    // e.Expense.CategoryId == filter.CategoryId.Value) ||
+                    (filter.CategoryId.Value == 0 ? e.Expense.CategoryId == null : e.Expense.CategoryId == filter.CategoryId.Value)) ||
                     (!string.IsNullOrEmpty(e.Expense.TransferredToId) &&
-                    e.Expense.TransferredToId == p.Id && e.Expense.CategoryId == filter.CategoryId.Value)))
+                    e.Expense.TransferredToId == p.Id && // e.Expense.CategoryId == filter.CategoryId.Value)))
+                    (filter.CategoryId.Value == 0 ? e.Expense.CategoryId == null : e.Expense.CategoryId == filter.CategoryId.Value))))
                 .ToList();
         }
 
@@ -877,8 +897,15 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             var expense = expenseCalc.Expense;
 
             // Filtruj po kategorii jeśli jest ustawiona
-            if (categoryFilter.HasValue && expense.CategoryId != categoryFilter.Value && string.IsNullOrEmpty(expense.TransferredToId))
-                continue;
+            //if (categoryFilter.HasValue && expense.CategoryId != categoryFilter.Value && string.IsNullOrEmpty(expense.TransferredToId))
+            //    continue;
+            if (categoryFilter.HasValue)
+            {
+                if (categoryFilter.Value == 0 && expense.CategoryId != null)
+                    continue; // Pomijaj gdy wybrano Uncategorized, a wydatek ma kategorię
+                else if (categoryFilter.Value != 0 && expense.CategoryId != categoryFilter.Value)
+                    continue; // Pomijaj gdy wybrano konkretną kategorię, a wydatek ma inną
+            }
 
             // Sprawdź czy osoba jest uczestnikiem tego wydatku
             var personParticipation = expense.Participants.FirstOrDefault(p => p.PersonId == person.Id);

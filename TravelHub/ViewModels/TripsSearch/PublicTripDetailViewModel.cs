@@ -25,6 +25,7 @@ public class PublicTripDetailViewModel
     public List<TransportViewModel> Transports { get; set; } = new();
     public List<AccommodationViewModel> Accommodations { get; set; } = new();
     public List<PublicExpenseViewModel> Expenses { get; set; } = new();
+    public List<CountryViewModel> Countries { get; set; } = new();
 
     // Counts for display
     public int ActivitiesCount => Activities.Count;

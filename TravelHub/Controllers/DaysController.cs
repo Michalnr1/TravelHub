@@ -19,7 +19,6 @@ public class DaysController : Controller
     private readonly ITripService _tripService;
     private readonly ITripParticipantService _tripParticipantService;
     private readonly IActivityService _activityService;
-    private readonly ITransportService _transportService;
     private readonly UserManager<Person> _userManager;
     private readonly IRouteOptimizationService _routeOptimizationService;
     private readonly IConfiguration _configuration;
@@ -476,9 +475,9 @@ public class DaysController : Controller
         {
             firstSpot = day.Activities.Where(a => a is Spot && a.Id == fixedFirst).Cast<Spot>().FirstOrDefault();
         }
-        else if (previousDay != null)
+        if (firstSpot == null && previousDay != null)
         {
-            firstSpot = previousDay.Accommodation;
+            firstSpot = previousDay?.Accommodation;
         }
 
         Spot? lastSpot = null;
@@ -486,7 +485,7 @@ public class DaysController : Controller
         {
             lastSpot = day.Activities.Where(a => a is Spot && a.Id == fixedLast).Cast<Spot>().FirstOrDefault();
         }
-        else
+        if (lastSpot == null)
         {
             lastSpot = day.Accommodation;
         }

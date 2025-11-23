@@ -194,6 +194,20 @@
             <button id="optimize" class="btn btn-outline-primary text-start" onclick="getOptimizedActivityOrders('TRANSIT')">
                 Optimize for public transit
             </button>
+            @if(Model.PreviousAccommodation == null)
+            {
+                <span>Keep first spot fixed</span> <input type="checkbox" id="firstFixed" value="off"/>
+            } else
+            {
+                <input type="checkbox" id="firstFixed" value="off" hidden/>
+            }
+            @if(Model.NextAccommodation == null)
+            {
+                <span>Keep last spot fixed</span> <input type="checkbox" id="lastFixed" value="off"/>
+            } else
+            {
+                <input type="checkbox" id="lastFixed" value="off" hidden/>
+            }
         </div>
     </div>
 </div>
@@ -889,9 +903,13 @@
         });
 
         function getOptimizedActivityOrders(travelMode) {
+            fixedFirst = document.getElementById("firstFixed").checked;
+            fixedLast = document.getElementById("lastFixed").checked;
             fetch('@Url.Action("RouteOptimization", "Days")?' + new URLSearchParams({
                 id: '@Html.Raw(Model.Id)',
                 travelMode: travelMode,
+                fixedFirst: fixedFirst ? points[0].id : null,
+                fixedLast: fixedLast ? points[points.length - 1].id : null
             }).toString(), {
                 method: 'GET',
             })

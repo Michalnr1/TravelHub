@@ -118,6 +118,7 @@ public class TripsSearchController : Controller
         var transports = await _transportService.GetTripTransportsWithDetailsAsync(id);
         var accommodations = await _accommodationService.GetAccommodationByTripAsync(id);
         var expenses = await _expenseService.GetByTripIdWithParticipantsAsync(id);
+        var countries = await _spotService.GetCountriesByTripAsync(id);
 
         // Oblicz całkowite wydatki w walucie podróży
         var expensesSummary = await _expenseService.CalculateTripExpensesInTripCurrencyAsync(id, trip.CurrencyCode);
@@ -251,6 +252,12 @@ public class TripsSearchController : Controller
                 CheckOut = a.CheckOut,
                 Latitude = a.Latitude,
                 Longitude = a.Longitude
+            }).ToList(),
+            Countries = countries.Select(c => new CountryViewModel
+            {
+                Code = c.Code,
+                Name = c.Name,
+                SpotsCount = c.Spots?.Count ?? 0
             }).ToList(),
 
             Expenses = filteredExpenses, // Używamy przefiltrowanych wydatków
