@@ -21,6 +21,7 @@ public class AccommodationsController : Controller
     private readonly IDayService _dayService;
     private readonly ISpotService _spotService;
     private readonly IExchangeRateService _exchangeRateService;
+    private readonly IReverseGeocodingService _reverseGeocodingService;
     private readonly IExpenseService _expenseService;
     private readonly UserManager<Person> _userManager;
     private readonly IConfiguration _configuration;
@@ -34,6 +35,7 @@ public class AccommodationsController : Controller
         IDayService dayService,
         ISpotService spotService,
         IExchangeRateService exchangeRateService,
+        IReverseGeocodingService reverseGeocodingService,
         IExpenseService expenseService,
         UserManager<Person> userManager,
         IConfiguration configuration,
@@ -46,6 +48,7 @@ public class AccommodationsController : Controller
         _dayService = dayService;
         _spotService = spotService;
         _exchangeRateService = exchangeRateService;
+        _reverseGeocodingService = reverseGeocodingService;
         _expenseService = expenseService;
         _userManager = userManager;
         _configuration = configuration;
@@ -269,6 +272,12 @@ public class AccommodationsController : Controller
 
                 await _accommodationService.UpdateAsync(existingAccommodation);
 
+                (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(viewModel.Latitude, viewModel.Longitude);
+                if (countryName != null && countryCode != null)
+                {
+                    await _spotService.AddCountry(existingAccommodation.Id, countryName, countryCode);
+                }
+
                 // Aktualizuj powiązany Expense (jak w AddToTrip)
                 await UpdateExpenseForAccommodation(existingAccommodation, viewModel);
 
@@ -486,6 +495,12 @@ public class AccommodationsController : Controller
 
                 // Dodaj accommodation
                 var createdAccommodation = await _accommodationService.AddAsync(accommodation);
+
+                (string? countryName, string? countryCode, string? city) = await _reverseGeocodingService.GetCountryAndCity(viewModel.Latitude, viewModel.Longitude);
+                if (countryName != null && countryCode != null)
+                {
+                    await _spotService.AddCountry(accommodation.Id, countryName, countryCode);
+                }
 
                 // Jeśli podano koszt, utwórz powiązany Expense (opcjonalnie)
                 if (viewModel.ExpenseValue.HasValue && viewModel.ExpenseValue > 0)
