@@ -82,7 +82,7 @@
     </div>
 
     <!-- Aktywne filtry -->
-    @if (!string.IsNullOrEmpty(Model.FilterByPersonName) || !string.IsNullOrEmpty(Model.FilterByCategoryName))
+    @if (!string.IsNullOrEmpty(Model.FilterByPersonName) || !string.IsNullOrEmpty(Model.FilterByCategoryName) || Model.FilterByCategoryId == 0)
     {
         <div class="alert alert-info mb-4">
             <strong>Active Filters:</strong>
@@ -90,7 +90,11 @@
             {
                 <span class="badge bg-primary me-2">Person: @Model.FilterByPersonName</span>
             }
-            @if (!string.IsNullOrEmpty(Model.FilterByCategoryName))
+            @if (Model.FilterByCategoryId == 0)
+            {
+                <span class="badge bg-warning me-2">Category: Uncategorized</span>
+            }
+            else if (!string.IsNullOrEmpty(Model.FilterByCategoryName))
             {
                 <span class="badge bg-success me-2">Category: @Model.FilterByCategoryName</span>
             }
@@ -193,7 +197,7 @@
                                         <th>Category</th>
                                         <th class="text-end">Actual</th>
                                         <th class="text-end">Estimated</th>
-                                        <th class="text-end">Transfers</th>
+                                        <th class="text-end">Balance</th>
                                         <th class="text-end">Total</th>
                                         <th class="text-end">%</th>
                                     </tr>
@@ -208,7 +212,9 @@
                                             </td>
                                             <td class="text-end">@category.ActualExpenses.ToString("N2")</td>
                                             <td class="text-end">@category.EstimatedExpenses.ToString("N2")</td>
-                                            <td class="text-end">@category.Transfers.ToString("N2")</td>
+                                            <td class="text-end @(category.Balance >= 0 ? "text-danger" : "text-success")">
+                                                @Math.Abs(category.Balance).ToString("N2")
+                                            </td>
                                             <td class="text-end fw-bold">@category.Total.ToString("N2")</td>
                                             <td class="text-end">@category.PercentageOfTotal.ToString("N1")%</td>
                                         </tr>
@@ -219,7 +225,9 @@
                                         <td>Total</td>
                                         <td class="text-end">@Model.CategorySummaries.Sum(c => c.ActualExpenses).ToString("N2")</td>
                                         <td class="text-end">@Model.CategorySummaries.Sum(c => c.EstimatedExpenses).ToString("N2")</td>
-                                        <td class="text-end">@Model.CategorySummaries.Sum(c => c.Transfers).ToString("N2")</td>
+                                        <td class="text-end @(Model.Balance >= 0 ? "text-danger" : "text-success")">
+                                            @Math.Abs(Model.Balance).ToString("N2")
+                                        </td>
                                         <td class="text-end">@Model.CategorySummaries.Sum(c => c.Total).ToString("N2")</td>
                                         <td class="text-end">100%</td>
                                     </tr>

@@ -129,6 +129,16 @@ public class BudgetFilterViewModel
     public bool IncludeEstimated { get; set; } = true;
 }
 
+public class PublicBudgetFilterViewModel
+{
+    public int TripId { get; set; }
+
+    [FromForm(Name = "FilterByCategoryId")]
+    public int? CategoryId { get; set; }
+
+    public bool IncludeEstimated { get; set; } = true;
+}
+
 public class PersonFilterItem
 {
     public string Id { get; set; } = string.Empty;
