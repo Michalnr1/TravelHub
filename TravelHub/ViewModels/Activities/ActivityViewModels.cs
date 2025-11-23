@@ -33,7 +33,7 @@ public class ActivityDetailsViewModel
     public string? CategoryName { get; set; }
 
     [Display(Name = "Start time")]
-    public decimal StartTime { get; set; }
+    public decimal? StartTime { get; set; }
 
     [Display(Name = "Trip name")]
     public required string TripName { get; set; }
