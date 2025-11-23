@@ -17,6 +17,15 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
 {
     private readonly string apiKey;
     private static readonly int BRUTE_FORCE_THRESHOLD = 7;
+    private static readonly int RANDOMIZED_RESTARTS = 10;
+    private static readonly double STARTING_TEMPERATURE = 10000;
+    private static readonly double COOLING_RATE = 0.995;
+    private static readonly double MINIMAL_TEMPERATURE = 0.01;
+    private static readonly int SECONDS_IN_HOUR = 3600;
+    private static readonly int TRANSIT_LIMIT = 10;
+    private static readonly int DEFAULT_LIMIT = 25;
+    private static readonly Random _rand = new Random();
+    
 
     public RouteOptimizationService(IHttpClientFactory httpClientFactory, IConfiguration config) : base(httpClientFactory, 1, TimeSpan.FromSeconds(1))
     {
@@ -50,8 +59,11 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         if (allActivities.Count <= BRUTE_FORCE_THRESHOLD)
         {
             result = RunFullSearch(allActivities, weights, startWeights, endWeights, startTime);
+        } else
+        {
+            result = RunRandomizedSearch(allActivities, weights, startWeights, endWeights, startTime);
         }
-        sw.Stop();
+            sw.Stop();
         System.Diagnostics.Debug.WriteLine($"Optimization took {sw.ElapsedMilliseconds}\n");
 
 
@@ -77,6 +89,164 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
         return best;
     }
 
+    private List<RouteOptimizationActivity> RunRandomizedSearch(List<RouteOptimizationActivity> activities, double[,] weights, double[] startWeights, double[] endWeights, decimal startTime)
+    {
+        List<RouteOptimizationActivity> bestOrder = new List<RouteOptimizationActivity>();
+        double bestScore = double.PositiveInfinity;
+
+        Random rng = new Random();
+
+        for (int i = 0; i < RANDOMIZED_RESTARTS; i++)
+        {
+
+            (var result, var score) = SimulatedAnnealing(activities.OrderBy(_ => rng.Next()).ToList(), weights, startWeights, endWeights, startTime);
+            (result, score) = GetLocalMinimum(result, weights, startWeights, endWeights, startTime);
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestOrder = result;
+            }
+        }
+
+
+        return bestOrder;
+    }
+
+    private (List<RouteOptimizationActivity>, double) SimulatedAnnealing(List<RouteOptimizationActivity> activities, double[,] weights, double[] startWeights, double[] endWeights, decimal startTime)
+    {
+        double temperature = STARTING_TEMPERATURE;
+        double coolingRate = COOLING_RATE;
+        double minTemperature = MINIMAL_TEMPERATURE;
+
+        List<RouteOptimizationActivity> current = activities.ToList();
+        List<RouteOptimizationActivity> best = current.ToList();
+
+        double currentScore = ScoreSolution(current, weights, startWeights, endWeights, startTime);
+        double bestScore = currentScore;
+
+        int iterations = 0;
+
+        while (temperature > minTemperature)
+        {
+            List<RouteOptimizationActivity> candidate = GenerateNeighbor(current);
+            double candidateScore = ScoreSolution(candidate, weights, startWeights, endWeights, startTime);
+
+            double acceptanceProbability = AcceptanceProbability(currentScore, candidateScore, temperature);
+
+            if (candidateScore < currentScore || _rand.NextDouble() < acceptanceProbability)
+            {
+                current = candidate;
+                currentScore = candidateScore;
+
+                if (candidateScore < bestScore)
+                {
+                    best = candidate;
+                    bestScore = candidateScore;
+                }
+            }
+
+            temperature *= coolingRate;
+            iterations++;
+        }
+
+        return (best, bestScore);
+    }
+
+    private List<T> GenerateNeighbor<T>(List<T> order)
+    {
+        var newOrder = order.ToList();
+        int i = _rand.Next(order.Count);
+        int j = _rand.Next(order.Count);
+
+        (newOrder[i], newOrder[j]) = (newOrder[j], newOrder[i]);
+
+        return newOrder;
+    }
+
+    private (List<RouteOptimizationActivity>, double) GetLocalMinimum(List<RouteOptimizationActivity> order, double[,] weights, double[] startWeights, double[] endWeights, decimal startTime)
+    {
+        double bestScore = ScoreSolution(order, weights, startWeights, endWeights, startTime);
+        var best = order;
+        bool descended = false;
+        int iters = 0;
+        do
+        {
+            descended = false;
+            foreach (List<RouteOptimizationActivity> neighbor in GenerateNeighborsSwap(best).Concat(GenerateNeighborsInsert(best)))
+            {
+                double score = ScoreSolution(neighbor, weights, startWeights, endWeights, startTime);
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = neighbor;
+                    descended = true;
+                }
+            }
+            iters++;
+        } while (descended);
+        Console.WriteLine($"Hill Climbing iterations: {iters}");
+        return (best, bestScore);
+    }
+
+    private IEnumerable<List<T>> GenerateNeighborsSwap<T>(List<T> order)
+    {
+        for (int i = 0; i < order.Count; i++)
+        {
+            for (int j = i + 1; j < order.Count; j++)
+            {
+                var newOrder = order.ToList();
+                (newOrder[i], newOrder[j]) = (newOrder[j], newOrder[i]);
+                yield return newOrder;
+            }
+        }
+    }
+
+    private IEnumerable<List<T>> GenerateNeighborsInsert<T>(List<T> order)
+    {
+        var newOrder = order.ToList();
+        for (int ii = 0; ii < order.Count; ii++)
+        {
+            for (int jj = 0; jj < order.Count; jj++)
+            {
+                int i = ii;
+                int j = jj;
+                newOrder = order.ToList();
+                if (i == j) continue;
+                if (i > j)
+                {
+                    T prev = order[j];
+                    newOrder[j] = order[i];
+                    j++;
+                    while (i >= j)
+                    {
+                        (newOrder[j], prev) = (prev, newOrder[j]);
+                        j++;
+                    }
+                }
+                else
+                {
+                    T prev = order[j];
+                    newOrder[j] = order[i];
+                    j--;
+                    while (i <= j)
+                    {
+                        (newOrder[j], prev) = (prev, newOrder[j]);
+                        j--;
+                    }
+                }
+                yield return newOrder;
+            }
+        }
+    }
+
+    private double AcceptanceProbability(double currentScore, double newScore, double temperature)
+    {
+        if (newScore < currentScore)
+            return 1.0;
+
+        return Math.Exp((currentScore - newScore) / temperature);
+    }
+
     // MINIMAL IMPLEMENTATION
     private double ScoreSolution(List<RouteOptimizationActivity> activities, double[,] weights, double[] startWeights, double[] endWeights, decimal startTime) 
     {
@@ -91,12 +261,12 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 RouteOptimizationSpot spot = (RouteOptimizationSpot)activity;
                 if (spotIdx == 0)
                 {
-                    time += startWeights[spot.WeightMatrixIndex!.Value] / 3600;
+                    time += startWeights[spot.WeightMatrixIndex!.Value] / SECONDS_IN_HOUR;
                 }
                 else
                 {
                     
-                    time += weights[spots[spotIdx - 1].WeightMatrixIndex!.Value, spots[spotIdx].WeightMatrixIndex!.Value] / 3600;
+                    time += weights[spots[spotIdx - 1].WeightMatrixIndex!.Value, spots[spotIdx].WeightMatrixIndex!.Value] / SECONDS_IN_HOUR;
                 }
                 spotIdx++;
             }
@@ -115,7 +285,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
             time += (double)activity.Duration;
             if (spotIdx == spots.Count - 1)
             {
-                time += endWeights[spots[spotIdx].WeightMatrixIndex!.Value] / 3600;
+                time += endWeights[spots[spotIdx].WeightMatrixIndex!.Value] / SECONDS_IN_HOUR;
             }
         }
         if (latePenalty > 0)
@@ -176,7 +346,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
 
     private async Task<double[,]> GetEdgeWeights(List<RouteOptimizationSpot> spots, List<RouteOptimizationTransport> transports, string travelMode)
     {
-        int limit = travelMode == "TRANSIT" ? 10 : 25;
+        int limit = travelMode == "TRANSIT" ? TRANSIT_LIMIT : DEFAULT_LIMIT;
         double[,] weights = new double[spots.Count, spots.Count];
         for (int i = 0; i < spots.Count; i++)
         {
@@ -222,7 +392,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
             int destinationIndex = spots.FindIndex(s => s.Id == transport.ToSpotId);
             if (originIndex != -1 && destinationIndex != -1)
             {
-                weights[originIndex, destinationIndex] = (double)transport.Duration * 3600;
+                weights[originIndex, destinationIndex] = (double)transport.Duration * SECONDS_IN_HOUR;
             }
         }
         return weights;
@@ -254,7 +424,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 int destinationIndex = spots.FindIndex(s => s.Id == transport.ToSpotId);
                 if (destinationIndex != -1)
                 {
-                    weights[destinationIndex] = (double)transport.Duration * 3600;
+                    weights[destinationIndex] = (double)transport.Duration * SECONDS_IN_HOUR;
                 }
             }
             
@@ -284,7 +454,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
                 int originIndex = spots.FindIndex(s => s.Id == transport.FromSpotId);
                 if (originIndex != -1)
                 {
-                    weights[originIndex] = (double)transport.Duration * 3600;
+                    weights[originIndex] = (double)transport.Duration * SECONDS_IN_HOUR;
                 }
             }
 
