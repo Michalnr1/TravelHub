@@ -391,9 +391,6 @@
 
             legs = await processLegs(legs, travelMode == 'TRANSIT', startTime);
 
-            console.log(JSON.stringify(legs));
-            console.log(JSON.stringify(activities));
-
             await renderRoute(legs, travelMode);
 
             let endTime = activities[activities.length - 1].endTime;
@@ -463,7 +460,6 @@
                 } else if (i == legs.length - 1 && '@Html.Raw(Model.NextAccommodation?.Id)' == points[i+1].id) {
                     cardId = cardId + "-next";
                 }
-                console.log(cardId);
                 const locationCard = document.getElementById(cardId);
 
                 if (leg.type == 'Transit') {
@@ -948,6 +944,11 @@
         function getOptimizedActivityOrders(travelMode) {
             fixedFirst = document.getElementById("firstFixed").checked;
             fixedLast = document.getElementById("lastFixed").checked;
+
+            if (points.length - (previousAccommodation ? 1 : 0) - (nextAccommodation ? 1 : 0) < 2) {
+                return;
+            } 
+
             fetch('@Url.Action("RouteOptimization", "Days")?' + new URLSearchParams({
                 id: '@Html.Raw(Model.Id)',
                 travelMode: travelMode,

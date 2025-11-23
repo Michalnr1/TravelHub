@@ -539,6 +539,11 @@ public class DaysController : Controller
             Longitude = lastSpot.Longitude,
         };
 
+        if (spots.Count < 2)
+        {
+            return NotFound();
+        }
+
         List<ActivityOrder> result = await _routeOptimizationService.GetActivityOrderSuggestion(spots, otherActivities, first, end, transports, travelMode, (decimal)startTime); 
 
         return Ok(result);
