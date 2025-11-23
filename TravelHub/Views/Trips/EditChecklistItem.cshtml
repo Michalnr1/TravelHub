@@ -1,32 +1,62 @@
-﻿@using TravelHub.Web.ViewModels.Checklists;
-@model EditChecklistItemViewModel
+﻿@model TravelHub.Web.ViewModels.Checklists.EditChecklistItemViewModel
 
 @{
-    ViewData["Title"] = "Edit checklist item";
+    ViewData["Title"] = "Edit Checklist Item";
 }
 
-<h2>Edit checklist item</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="fas fa-edit text-warning"></i> Edit Checklist Item
+    </h1>
+    <a asp-controller="Trips" asp-action="Checklist" asp-route-tripId="@Model.TripId" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Checklist
+    </a>
+</div>
 
-<form asp-action="EditChecklistItem" method="post">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="TripId" />
-    <input type="hidden" asp-for="OldItem" />
-
-    <div class="mb-3">
-        <label asp-for="NewItem" class="form-label">Item title</label>
-        <input asp-for="NewItem" class="form-control" />
-        
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Edit Item</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="TripId" />
+                    <input type="hidden" asp-for="OldItem" />
+                    
+                    <div class="mb-3">
+                        <label asp-for="NewItem" class="form-label">Item Name</label>
+                        <input asp-for="NewItem" class="form-control" placeholder="Enter item name..." />
+                        <span asp-validation-for="NewItem" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save"></i> Update Item
+                        </button>
+                        <a asp-controller="Trips" asp-action="Checklist" asp-route-tripId="@Model.TripId" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-
-    @* Show validation summary *@
-    <div asp-validation-summary="All" class="text-danger"></div>
-
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a asp-action="Checklist" asp-route-tripId="@Model.TripId" class="btn btn-secondary">Cancel</a>
-</form>
+</div>
 
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('NewItem');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        });
+    </script>
 }

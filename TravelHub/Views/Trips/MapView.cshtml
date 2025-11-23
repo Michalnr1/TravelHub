@@ -39,64 +39,6 @@
     <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
 }
 
-<!-- Trip Overview -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <strong>Status:</strong> <span class="badge bg-info">@Model.Status</span>
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Dates:</strong> @Model.DateRange
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Duration:</strong> @Model.Duration days
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-success">@Model.ActivitiesCount</h3>
-                <p class="mb-0">Activities</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-warning">@Model.SpotsCount</h3>
-                <p class="mb-0">Spots</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-info">@Model.TransportsCount</h3>
-                <p class="mb-0">Transports</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-secondary">@Model.AccommodationsCount</h3>
-                <p class="mb-0">Accommodations</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-
 <div class="row">
     <div class="col-md-8">
         <div>

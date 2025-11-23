@@ -112,4 +112,25 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
             .OrderBy(c => c.Name)
             .ToListAsync();
     }
+
+    public async Task MarkAllChecklistItemsAsync(int tripId, bool completed)
+    {
+        var trip = await _context.Trips
+            .Include(t => t.Checklist)
+            .ThenInclude(c => c.Items)
+            .FirstOrDefaultAsync(t => t.Id == tripId);
+
+        if (trip == null)
+            throw new KeyNotFoundException($"Trip with ID {tripId} not found.");
+
+        if (trip.Checklist?.Items != null)
+        {
+            foreach (var item in trip.Checklist.Items)
+            {
+                item.IsCompleted = completed;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+    }
 }

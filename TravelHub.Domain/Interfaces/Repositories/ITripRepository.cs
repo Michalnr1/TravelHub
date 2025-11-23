@@ -12,4 +12,5 @@ public interface ITripRepository : IGenericRepository<Trip>
     Task<Trip?> GetByIdWithParticipantsAsync(int id);
     Task<IEnumerable<Trip>> GetPublicTripsAsync();
     Task<IEnumerable<Country>> GetCountriesForPublicTripsAsync();
+    Task MarkAllChecklistItemsAsync(int tripId, bool completed);
 }
