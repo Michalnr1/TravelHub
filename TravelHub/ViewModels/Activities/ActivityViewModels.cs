@@ -28,12 +28,12 @@ public class ActivityDetailsViewModel
     public decimal Duration { get; set; }
     public string DurationString { get; set; } = "00:00";
     public int Order { get; set; }
+    public decimal? StartTime { get; set; }
+    [Display(Name = "Start time")]
+    public string? StartTimeString { get; set; }
 
     [Display(Name = "Category name")]
     public string? CategoryName { get; set; }
-
-    [Display(Name = "Start time")]
-    public decimal StartTime { get; set; }
 
     [Display(Name = "Trip name")]
     public required string TripName { get; set; }
@@ -61,8 +61,11 @@ public class ActivityCreateEditViewModel
     public string DurationString { get; set; } = "00:00";
 
     public decimal Duration { get; set; }
-
     public int Order { get; set; }
+    [Display(Name = "Start time")]
+    public string? StartTimeString { get; set; }
+
+    public decimal? StartTime { get; set; }
 
     [Display(Name = "Category")]
     public int? CategoryId { get; set; }

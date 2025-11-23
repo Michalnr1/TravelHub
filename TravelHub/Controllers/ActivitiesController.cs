@@ -87,6 +87,8 @@ public class ActivitiesController : Controller
             Duration = activity.Duration,
             DurationString = ConvertDecimalToTimeString(activity.Duration),
             Order = activity.Order,
+            StartTime = activity.StartTime,
+            StartTimeString = activity.StartTime != null ? ConvertDecimalToTimeString(activity.StartTime.Value) : null,
             CategoryName = activity.Category?.Name,
             TripName = activity.Trip?.Name!,
             TripId = activity.TripId,
@@ -156,6 +158,7 @@ public class ActivitiesController : Controller
 
         var viewModel = await CreateActivityCreateEditViewModel(activity);
         viewModel.DurationString = ConvertDecimalToTimeString(activity.Duration);
+        viewModel.StartTimeString = activity.StartTime != null ? ConvertDecimalToTimeString(activity.StartTime.Value) : null;
         return View(viewModel);
     }
 
@@ -179,6 +182,7 @@ public class ActivitiesController : Controller
             try
             {
                 viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
+                viewModel.StartTime = viewModel.StartTimeString != null ? ConvertTimeStringToDecimal(viewModel.StartTimeString) : null;
 
                 var existingActivity = await _activityService.GetByIdAsync(id);
                 if (existingActivity == null)
@@ -198,6 +202,7 @@ public class ActivitiesController : Controller
                 existingActivity.Description = viewModel.Description!;
                 existingActivity.Duration = viewModel.Duration;
                 existingActivity.Order = viewModel.Order;
+                existingActivity.StartTime = viewModel.StartTime;
                 existingActivity.CategoryId = viewModel.CategoryId;
                 existingActivity.TripId = viewModel.TripId;
                 existingActivity.DayId = viewModel.DayId;
@@ -347,12 +352,14 @@ public class ActivitiesController : Controller
             {
                 viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
                 viewModel.Order = await CalculateNextOrder(viewModel.DayId);
+                viewModel.StartTime = viewModel.StartTimeString != null ? ConvertTimeStringToDecimal(viewModel.StartTimeString) : null;
 
                 var activity = new Activity
                 {
                     Name = viewModel.Name,
                     Description = viewModel.Description!,
                     Duration = viewModel.Duration,
+                    StartTime = viewModel.StartTime,
                     Order = viewModel.Order,
                     CategoryId = viewModel.CategoryId,
                     TripId = viewModel.TripId,
@@ -612,6 +619,7 @@ public class ActivitiesController : Controller
             viewModel.Description = activity.Description;
             viewModel.Duration = activity.Duration;
             viewModel.Order = activity.Order;
+            viewModel.StartTime = activity.StartTime;
             viewModel.CategoryId = activity.CategoryId;
             viewModel.TripId = activity.TripId;
             viewModel.DayId = activity.DayId;

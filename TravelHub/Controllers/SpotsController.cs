@@ -134,6 +134,8 @@ public class SpotsController : Controller
             Duration = spot.Duration,
             DurationString = ConvertDecimalToTimeString(spot.Duration),
             Order = spot.Order,
+            StartTime = spot.StartTime,
+            StartTimeString = spot.StartTime != null ? ConvertDecimalToTimeString(spot.StartTime.Value) : null,
             CategoryName = spot.Category?.Name,
             TripName = spot.Trip?.Name!,
             TripId = spot.TripId,
@@ -268,6 +270,7 @@ public class SpotsController : Controller
 
         var viewModel = await CreateSpotCreateEditViewModel(spot);
         viewModel.DurationString = ConvertDecimalToTimeString(spot.Duration);
+        viewModel.StartTimeString = viewModel.StartTime != null ? ConvertDecimalToTimeString(viewModel.StartTime.Value) : null;
 
         var trip = await _tripService.GetByIdAsync(spot.TripId);
         viewModel.TripCurrency = trip.CurrencyCode;
@@ -300,6 +303,7 @@ public class SpotsController : Controller
             try
             {
                 viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
+                viewModel.StartTime = viewModel.StartTimeString != null ? ConvertTimeStringToDecimal(viewModel.StartTimeString) : null;
 
                 var existingSpot = await _spotService.GetByIdAsync(id);
                 if (existingSpot == null)
@@ -319,6 +323,7 @@ public class SpotsController : Controller
                 existingSpot.Description = viewModel.Description!;
                 existingSpot.Duration = viewModel.Duration;
                 existingSpot.Order = viewModel.Order;
+                existingSpot.StartTime = viewModel.StartTime;
                 existingSpot.CategoryId = viewModel.CategoryId;
                 existingSpot.TripId = viewModel.TripId;
                 existingSpot.DayId = viewModel.DayId;
@@ -497,6 +502,7 @@ public class SpotsController : Controller
             try
             {
                 viewModel.Duration = ConvertTimeStringToDecimal(viewModel.DurationString);
+                viewModel.StartTime = viewModel.StartTimeString != null ? ConvertTimeStringToDecimal(viewModel.StartTimeString) : null;
                 viewModel.Order = await CalculateNextOrder(viewModel.DayId);
 
                 var spot = new Spot
@@ -505,6 +511,7 @@ public class SpotsController : Controller
                     Description = viewModel.Description!,
                     Duration = viewModel.Duration,
                     Order = viewModel.Order,
+                    StartTime = viewModel.StartTime,    
                     CategoryId = viewModel.CategoryId,
                     TripId = viewModel.TripId,
                     DayId = viewModel.DayId,
@@ -673,6 +680,7 @@ public class SpotsController : Controller
             viewModel.Description = spot.Description;
             viewModel.Duration = spot.Duration;
             viewModel.Order = spot.Order;
+            viewModel.StartTime = spot.StartTime;
             viewModel.CategoryId = spot.CategoryId;
             viewModel.TripId = spot.TripId;
             viewModel.DayId = spot.DayId;

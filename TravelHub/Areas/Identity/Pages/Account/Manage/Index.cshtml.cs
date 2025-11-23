@@ -34,6 +34,7 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Nationality { get; set; }
+        public string DefaultAirportCode { get; set; }
         public DateTime Birthday { get; set; }
         public string PhoneNumber { get; set; }
         public bool IsPrivate { get; set; }
@@ -84,6 +85,7 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
             FirstName = user.FirstName;
             LastName = user.LastName;
             Nationality = user.Nationality;
+            DefaultAirportCode = user.DefaultAirportCode;
             Birthday = user.Birthday;
             IsPrivate = user.IsPrivate;
         }
