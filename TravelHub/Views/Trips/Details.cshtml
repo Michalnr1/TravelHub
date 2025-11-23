@@ -697,11 +697,14 @@
                     }
                 });
 
-                // Show/hide no results message
-                if (visibleCount === 0 && filterType !== 'all') {
-                    noExpensesMessage.style.display = 'block';
-                } else {
-                    noExpensesMessage.style.display = 'none';
+                if (noExpensesMessage != null)
+                {
+                    // Show/hide no results message
+                    if (visibleCount === 0 && filterType !== 'all') {
+                        noExpensesMessage.style.display = 'block';
+                    } else {
+                        noExpensesMessage.style.display = 'none';
+                    }
                 }
 
                 // Update active filter button
