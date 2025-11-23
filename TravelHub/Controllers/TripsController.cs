@@ -441,7 +441,7 @@ public class TripsController : Controller
         return RedirectToAction(nameof(MyTrips));
     }
 
-    public async Task<IActionResult> MapView(int id)
+    public async Task<IActionResult> MapView(int id, string source = "")
     {
         var trip = await _tripService.GetTripWithDetailsAsync(id);
         if (trip == null)
@@ -449,7 +449,7 @@ public class TripsController : Controller
             return NotFound();
         }
 
-        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
+        if (source != "public" && !await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
         {
             return Forbid();
         }

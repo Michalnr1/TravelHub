@@ -530,19 +530,38 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div id="countriesLoading" class="text-center">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                @if (Model.Countries.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var country in Model.Countries.OrderBy(c => c.Name))
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@country.Name</strong>
+                                    @if (!string.IsNullOrEmpty(country.Code))
+                                    {
+                                        <small class="text-muted ms-2">(@country.Code)</small>
+                                    }
+                                </div>
+                                <span class="badge bg-primary rounded-pill">@country.SpotsCount spots</span>
+                            </div>
+                        }
                     </div>
-                    <p>Loading countries...</p>
-                </div>
-                <div id="countriesContent" style="display: none;">
-                    <div id="countriesList" class="list-group"></div>
-                    <div id="noCountriesMessage" class="text-muted text-center" style="display: none;">
-                        <p>No countries added to this trip yet.</p>
-                        <p>Add spots with location information to see countries here.</p>
+
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">
+                            Total: @Model.Countries.Count countries visited
+                        </small>
                     </div>
-                </div>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-globe-europe fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No countries added to this trip yet.</h5>
+                        <p class="text-muted">Add spots with location information to see countries here.</p>
+                    </div>
+                }
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -552,69 +571,6 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const countriesModal = document.getElementById('countriesModal');
-
-            countriesModal.addEventListener('show.bs.modal', function() {
-                loadCountries();
-            });
-
-            function loadCountries() {
-                const loadingElement = document.getElementById('countriesLoading');
-                const contentElement = document.getElementById('countriesContent');
-                const countriesList = document.getElementById('countriesList');
-                const noCountriesMessage = document.getElementById('noCountriesMessage');
-
-                // Show loading, hide content
-                loadingElement.style.display = 'block';
-                contentElement.style.display = 'none';
-                noCountriesMessage.style.display = 'none';
-                countriesList.innerHTML = '';
-
-                fetch(`@Url.Action("GetTripCountries", "Trips")/${@Model.Id}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(countries => {
-                        // Hide loading
-                        loadingElement.style.display = 'none';
-                        contentElement.style.display = 'block';
-
-                        if (countries && countries.length > 0) {
-                            // Sort countries by name
-                            countries.sort((a, b) => a.name.localeCompare(b.name));
-
-                            // Populate countries list
-                            countries.forEach(country => {
-                                const countryElement = document.createElement('div');
-                                countryElement.className = 'list-group-item d-flex justify-content-between align-items-center';
-                                countryElement.innerHTML = `
-                                    <div>
-                                        <strong>${country.name}</strong>
-                                    </div>
-                                    <span class="badge bg-primary rounded-pill">${country.spotsCount} spots</span>
-                                `;
-                                countriesList.appendChild(countryElement);
-                            });
-                        } else {
-                            noCountriesMessage.style.display = 'block';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error loading countries:', error);
-                        loadingElement.style.display = 'none';
-                        contentElement.style.display = 'block';
-                        noCountriesMessage.innerHTML = '<p class="text-danger">Error loading countries. Please try again.</p>';
-                        noCountriesMessage.style.display = 'block';
-                    });
-            }
-        });
-    </script>
-
     <style>
         .expense-item.estimated {
             border-left: 4px solid #ffc107;
