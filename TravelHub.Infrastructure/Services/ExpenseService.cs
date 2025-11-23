@@ -226,15 +226,12 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
         var tripCurrency = trip.CurrencyCode;
 
-        var owesToOthers = new Dictionary<string, decimal>();
-        var owedByOthers = new Dictionary<string, decimal>();
-        var debtDetails = new List<DebtDetailDto>();
+        // 1. Oblicz netto salda dla każdej osoby
+        var netBalances = new Dictionary<string, decimal>();
 
-        // Setup dictionaries
         foreach (var participant in participants)
         {
-            owesToOthers[participant.Id] = 0;
-            owedByOthers[participant.Id] = 0;
+            netBalances[participant.Id] = 0;
         }
 
         foreach (var expense in expenses)
@@ -245,69 +242,43 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
 
             if (expense.TransferredToId == null)
             {
-                foreach (var participant in expense.Participants.Where(p => p.PersonId != paidBy))
+                // Zwykły wydatek - osoba płacąca dostaje pieniądze, uczestnicy tracą
+                foreach (var participant in expense.Participants)
                 {
                     var shareInTripCurrency = expenseValueInTripCurrency * participant.Share;
 
-                    if (owesToOthers.ContainsKey(participant.PersonId))
-                        owesToOthers[participant.PersonId] += shareInTripCurrency;
-
-                    if (owedByOthers.ContainsKey(paidBy))
-                        owedByOthers[paidBy] += shareInTripCurrency;
-
-                    debtDetails.Add(new DebtDetailDto
+                    if (participant.PersonId == paidBy)
                     {
-                        FromPersonId = participant.PersonId,
-                        FromPersonName = $"{participant.Person?.FirstName} {participant.Person?.LastName}",
-                        ToPersonId = paidBy,
-                        ToPersonName = $"{expense.PaidBy?.FirstName} {expense.PaidBy?.LastName}",
-                        Amount = shareInTripCurrency
-                    });
+                        // Osoba płacąca: + (cały wydatek - jej udział)
+                        netBalances[participant.PersonId] += expenseValueInTripCurrency - shareInTripCurrency;
+                    }
+                    else
+                    {
+                        // Inni uczestnicy: - ich udział
+                        netBalances[participant.PersonId] -= shareInTripCurrency;
+                    }
                 }
             }
             else
             {
-                var transferredTo = expense.TransferredToId;
+                // Transfer - osoba płacąca traci, osoba otrzymująca zyskuje
                 var transferAmountInTripCurrency = await ConvertToTripCurrencyAsync(expense.Value, expense.ExchangeRate, tripCurrency);
 
-                if (owesToOthers.ContainsKey(paidBy))
-                    owesToOthers[paidBy] = Math.Max(0, owesToOthers[paidBy] - transferAmountInTripCurrency);
-
-                if (owedByOthers.ContainsKey(transferredTo))
-                    owedByOthers[transferredTo] = Math.Max(0, owedByOthers[transferredTo] - transferAmountInTripCurrency);
-
-                var existingDebt = debtDetails.FirstOrDefault(d => d.FromPersonId == paidBy && d.ToPersonId == transferredTo);
-
-                if (existingDebt != null)
-                {
-                    existingDebt.Amount = Math.Max(0, existingDebt.Amount - transferAmountInTripCurrency);
-                }
+                netBalances[paidBy] -= transferAmountInTripCurrency;
+                netBalances[expense.TransferredToId] += transferAmountInTripCurrency;
             }
         }
 
-        var aggregatedDebts = debtDetails
-            .GroupBy(d => new { d.FromPersonId, d.ToPersonId })
-            .Select(g => new DebtDetailDto
-            {
-                FromPersonId = g.Key.FromPersonId,
-                FromPersonName = g.First().FromPersonName,
-                ToPersonId = g.Key.ToPersonId,
-                ToPersonName = g.First().ToPersonName,
-                Amount = g.Sum(x => x.Amount)
-            })
-            .Where(d => d.Amount > 0.01m)
-            .ToList();
-
-        var optimizedDebts = OptimizeDebts(aggregatedDebts);
-
+        // 2. Przygotuj dane uczestników
         var participantBalances = participants.Select(p => new ParticipantBalanceDto
         {
             PersonId = p.Id,
             FullName = $"{p.FirstName} {p.LastName}",
-            OwesToOthers = owesToOthers[p.Id],
-            OwedByOthers = owedByOthers[p.Id],
-            NetBalance = owedByOthers[p.Id] - owesToOthers[p.Id]
+            NetBalance = netBalances[p.Id]
         }).ToList();
+
+        // 3. Oblicz kto komu powinien zapłacić (optymalizacja długów)
+        var debtDetails = OptimizeNetBalances(netBalances, participants.ToList());
 
         return new BalanceDto
         {
@@ -315,8 +286,60 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             TripName = trip.Name,
             TripCurrency = tripCurrency,
             ParticipantBalances = participantBalances,
-            DebtDetails = optimizedDebts
+            DebtDetails = debtDetails
         };
+    }
+
+    private List<DebtDetailDto> OptimizeNetBalances(Dictionary<string, decimal> netBalances, List<Person> participants)
+    {
+        var debts = new List<DebtDetailDto>();
+
+        // Tworzymy listę osób z dodatnim i ujemnym saldem
+        var creditors = netBalances
+            .Where(x => x.Value > 0.01m)
+            .OrderByDescending(x => x.Value)
+            .ToList();
+
+        var debtors = netBalances
+            .Where(x => x.Value < -0.01m)
+            .OrderBy(x => x.Value)
+            .ToList();
+
+        int creditorIndex = 0;
+        int debtorIndex = 0;
+
+        while (creditorIndex < creditors.Count && debtorIndex < debtors.Count)
+        {
+            var creditor = creditors[creditorIndex];
+            var debtor = debtors[debtorIndex];
+
+            var creditorName = participants.First(p => p.Id == creditor.Key).FirstName + " " + participants.First(p => p.Id == creditor.Key).LastName;
+            var debtorName = participants.First(p => p.Id == debtor.Key).FirstName + " " + participants.First(p => p.Id == debtor.Key).LastName;
+
+            var amount = Math.Min(creditor.Value, Math.Abs(debtor.Value));
+
+            if (amount > 0.01m)
+            {
+                debts.Add(new DebtDetailDto
+                {
+                    FromPersonId = debtor.Key,
+                    FromPersonName = debtorName,
+                    ToPersonId = creditor.Key,
+                    ToPersonName = creditorName,
+                    Amount = Math.Round(amount, 2)
+                });
+
+                // Aktualizuj salda
+                creditors[creditorIndex] = new KeyValuePair<string, decimal>(creditor.Key, creditor.Value - amount);
+                debtors[debtorIndex] = new KeyValuePair<string, decimal>(debtor.Key, debtor.Value + amount);
+
+                // Przejdź do następnego jeśli saldo zostało wyrównane
+                if (creditors[creditorIndex].Value < 0.01m) creditorIndex++;
+                if (Math.Abs(debtors[debtorIndex].Value) < 0.01m) debtorIndex++;
+            }
+        }
+
+        return debts;
     }
 
     public async Task<BudgetSummaryDto> GetBudgetSummaryAsync(BudgetFilterDto filter)
