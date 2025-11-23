@@ -146,7 +146,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                 {
                     finalValue = expense.Value;
                 }
-                finalValue += CalculateFees(expense, expense.Value);
+                finalValue += CalculateFees(expense.AdditionalFee, expense.PercentageFee, expense.IsEstimated, expense.Value);
                 summary.ExpenseCalculations.Add(new ExpenseCalculationDto
                 {
                     ExpenseId = expense.Id,
@@ -169,7 +169,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                 {
                     finalValue = expense.Value;
                 }
-                finalValue += CalculateFees(expense, expense.Value);
+                finalValue += CalculateFees(expense.AdditionalFee, expense.PercentageFee, expense.IsEstimated, expense.Value);
                 summary.ExpenseCalculations.Add(new ExpenseCalculationDto
                 {
                     ExpenseId = expense.Id,
@@ -191,7 +191,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             }
 
             // Dolicz opłaty do przeliczonej kwoty
-            var finalValueWithFees = convertedValue + CalculateFees(expense, convertedValue);
+            var finalValueWithFees = convertedValue + CalculateFees(expense.AdditionalFee, expense.PercentageFee, expense.IsEstimated, convertedValue);
 
             summary.ExpenseCalculations.Add(new ExpenseCalculationDto
             {
@@ -245,7 +245,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                 // Zwykły wydatek - osoba płacąca dostaje pieniądze, uczestnicy tracą
                 foreach (var participant in expense.Participants)
                 {
-                    var shareInTripCurrency = expenseValueInTripCurrency * participant.Share;
+                    var shareInTripCurrency = conversionResult.SharesInTripCurrency.First(s => s.PersonId == participant.PersonId).Value;
 
                     if (participant.PersonId == paidBy)
                     {
@@ -264,8 +264,8 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                 // Transfer - osoba płacąca traci, osoba otrzymująca zyskuje
                 var transferAmountInTripCurrency = await ConvertToTripCurrencyAsync(expense.Value, expense.ExchangeRate, tripCurrency);
 
-                netBalances[paidBy] -= transferAmountInTripCurrency;
-                netBalances[expense.TransferredToId] += transferAmountInTripCurrency;
+                netBalances[paidBy] += transferAmountInTripCurrency;
+                netBalances[expense.TransferredToId] -= transferAmountInTripCurrency;
             }
         }
 
@@ -473,11 +473,14 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
     {
         var originalValue = expense.Value;
         var expenseCurrency = expense.ExchangeRate?.CurrencyCodeKey ?? tripCurrency;
+        var originalShareValues = expense.Participants
+            .Select(p => (p.PersonId, p.ActualShareValue))
+            .ToList();
 
         // Jeśli ta sama waluta - bez konwersji
         if (expenseCurrency == tripCurrency)
         {
-            var finalValue = originalValue + CalculateFees(expense, originalValue);
+            var finalValue = originalValue + CalculateFees(expense.AdditionalFee, expense.PercentageFee, expense.IsEstimated, originalValue);
             return new ExpenseConversionResult
             {
                 ConvertedValue = finalValue,
@@ -487,15 +490,24 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
                 TotalFee = finalValue - originalValue,
                 ExchangeRate = 1m,
                 OriginalCurrency = expenseCurrency,
-                TargetCurrency = tripCurrency
+                TargetCurrency = tripCurrency,
+                SharesInTripCurrency = originalShareValues
             };
         }
 
         // Konwersja waluty
         var convertedValue = await ConvertToTripCurrencyAsync(originalValue, expense.ExchangeRate, tripCurrency);
-        var finalValueWithFees = convertedValue + CalculateFees(expense, convertedValue);
+        var finalValueWithFees = convertedValue + CalculateFees(expense.AdditionalFee, expense.PercentageFee, expense.IsEstimated, convertedValue);
 
         var conversionRate = expense.ExchangeRate?.ExchangeRateValue ?? 1m;
+
+        var convertedShareValues = originalShareValues
+            .Select(sv => (sv.PersonId, sv.ActualShareValue * conversionRate))
+            .ToList();
+
+        var finalShareValuesWithFees = convertedShareValues
+            .Select(sv => (sv.PersonId, sv.Item2 + CalculateFees(expense.AdditionalFee / expense.Participants.Count(), expense.PercentageFee, expense.IsEstimated, sv.Item2)))
+            .ToList();
 
         return new ExpenseConversionResult
         {
@@ -506,25 +518,26 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             TotalFee = finalValueWithFees - convertedValue,
             ExchangeRate = conversionRate,
             OriginalCurrency = expenseCurrency,
-            TargetCurrency = tripCurrency
+            TargetCurrency = tripCurrency,
+            SharesInTripCurrency = finalShareValuesWithFees
         };
     }
 
-    private decimal CalculateFees(Expense expense, decimal convertedAmount)
+    private decimal CalculateFees(decimal additionalFee, decimal percentageFee, bool isEstimated, decimal convertedAmount)
     {
         // Opłaty dotyczą tylko wydatków rzeczywistych
-        if (expense.IsEstimated)
+        if (isEstimated)
             return 0m;
 
         decimal fees = 0m;
 
         // Opłata stała - dodajemy bezpośrednio
-        fees += expense.AdditionalFee;
+        fees += additionalFee;
 
         // Opłata procentowa - obliczana od przeliczonej kwoty
-        if (expense.PercentageFee > 0)
+        if (percentageFee > 0)
         {
-            fees += convertedAmount * (expense.PercentageFee / 100m);
+            fees += convertedAmount * (percentageFee / 100m);
         }
 
         return fees;
@@ -994,5 +1007,6 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         public decimal ExchangeRate { get; set; }
         public CurrencyCode OriginalCurrency { get; set; }
         public CurrencyCode TargetCurrency { get; set; }
+        public List<(string PersonId, decimal Value)> SharesInTripCurrency { get; set; } = [];
     }
 }
