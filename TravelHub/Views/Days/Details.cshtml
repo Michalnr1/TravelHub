@@ -195,7 +195,7 @@
 
                             <div class="mt-2">
                                 <small class="text-muted">
-                                    <strong>Duration:</strong> @activity.Duration hours
+                                    <strong>Duration:</strong> @($"{(int)activity.Duration:D2}:{(int)((activity.Duration - (int)activity.Duration) * 60):D2}")
                                 </small>
 
                                 @if (activity.Category != null)
