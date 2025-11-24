@@ -2,13 +2,20 @@
 
 @{
     ViewData["Title"] = "Transport Details";
+
+    // Sprawdzamy czy to publiczny podgląd
+    var isPublicView = Context.Request.Query["source"] == "public";
+    var backUrl = isPublicView ? Url.Action("Details", "TripsSearch", new { id = Model.TripId }) : Url.Action("Details", "Trips", new { id = Model.TripId });
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>@Model.Name</h1>
     <div>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
-        <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">Back to Trip</a>
+        @if (!isPublicView)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+        }
+        <a href="@backUrl" class="btn btn-outline-secondary">Back to Trip</a>
     </div>
 </div>
 
@@ -37,7 +44,7 @@
 
                     <dt class="col-sm-3">Trip</dt>
                     <dd class="col-sm-9">
-                        <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="text-decoration-none">
+                        <a href="@backUrl" class="text-decoration-none">
                             @Html.DisplayFor(model => model.TripName)
                         </a>
                     </dd>
@@ -120,10 +127,13 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
-                        <i class="fas fa-edit"></i> Edit Transport
-                    </a>
-                    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">
+                    @if (!isPublicView)
+                    {
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Edit Transport
+                        </a>
+                    }
+                    <a href="@backUrl" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Back to Trip
                     </a>
                 </div>

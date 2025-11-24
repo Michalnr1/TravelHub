@@ -108,7 +108,7 @@ public class SpotsController : Controller
     }
 
     // GET: Spots/Details/5
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int? id, string source = "")
     {
         if (id == null)
         {
@@ -121,7 +121,7 @@ public class SpotsController : Controller
             return NotFound();
         }
 
-        if (!await _tripParticipantService.UserHasAccessToTripAsync(spot!.TripId, GetCurrentUserId()))
+        if (source != "public" && !await _tripParticipantService.UserHasAccessToTripAsync(spot!.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }

@@ -64,7 +64,7 @@ public class TransportsController : Controller
     }
 
     // GET: Transports/Details/5
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int? id, string source = "")
     {
         if (id == null)
         {
@@ -77,7 +77,7 @@ public class TransportsController : Controller
             return NotFound();
         }
 
-        if (!await _tripParticipantService.UserHasAccessToTripAsync(transport.TripId, GetCurrentUserId()))
+        if (source != "public" && !await _tripParticipantService.UserHasAccessToTripAsync(transport.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }

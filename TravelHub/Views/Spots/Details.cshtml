@@ -3,19 +3,29 @@
 
 @{
     ViewData["Title"] = "Spot Details";
+
+    // Sprawdzamy czy to publiczny podgląd
+    var isPublicView = Context.Request.Query["source"] == "public";
+    var backUrl = isPublicView ? Url.Action("Details", "TripsSearch", new { id = Model.TripId }) : Url.Action("Details", "Trips", new { id = Model.TripId });
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>@Model.Name</h1>
     <div>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+        @if (!isPublicView)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+        }
         <a asp-controller="Activities" asp-action="ChecklistActivity" asp-route-activityId="@Model.Id" class="btn btn-primary">
             View checklist
         </a>
-        <a asp-action="ExportPdf" asp-controller="Spots" asp-route-id="@Model.Id" class="btn btn-info">
-            Download as PDF
-        </a>
-        <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">Back to Trip</a>
+        @if (!isPublicView)
+        { 
+            <a asp-action="ExportPdf" asp-controller="Spots" asp-route-id="@Model.Id" class="btn btn-info">
+                Download as PDF
+            </a>
+        }
+        <a href="@backUrl" class="btn btn-outline-secondary">Back to Trip</a>
     </div>
 </div>
 
@@ -109,129 +119,132 @@
             </div>
         </div>
 
-        <!-- Photos Section -->
-        <div class="card mt-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-images text-info"></i> Photos
-                    <span class="badge bg-info ms-2">@Model.PhotoCount</span>
-                </h5>
+        @if (!isPublicView)
+        {
+            <!-- Photos Section -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-images text-info"></i> Photos
+                        <span class="badge bg-info ms-2">@Model.PhotoCount</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Photos?.Any() == true)
+                    {
+                        <div class="row">
+                            @foreach (var p in Model.Photos)
+                            {
+                                <div class="col-md-4 mb-3">
+                                    <div class="card">
+                                        <img src="~/images/spots/@p.Name" alt="@p.Alt" class="card-img-top" style="height: 200px; object-fit: cover;">
+                                        <div class="card-body text-center">
+                                            <p class="card-text small text-muted">@p.Alt</p>
+                                            <form asp-controller="Photos" asp-action="DeleteSpotPhoto" method="post">
+                                                <input type="hidden" name="id" value="@p.Id" />
+                                                <input type="hidden" name="spotId" value="@Model.Id" />
+                                                <button type="submit" class="btn btn-sm btn-danger"
+                                                        onclick="return confirm('Are you sure you want to delete this photo?')">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No photos added yet.
+                        </div>
+                    }
+
+                    <div class="mt-4">
+                        <h6>Add New Photo</h6>
+                        <form asp-controller="Photos" asp-action="UploadSpotPhoto" method="post" enctype="multipart/form-data" class="row g-3">
+                            <input type="hidden" name="spotId" value="@Model.Id" />
+                            <div class="col-md-6">
+                                <input type="file" name="photoFile" accept=".jpg,.jpeg,.png,.webp" class="form-control" required />
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" name="alt" placeholder="Photo description" class="form-control" />
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-upload"></i> Upload
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                @if (Model.Photos?.Any() == true)
-                {
-                    <div class="row">
-                        @foreach (var p in Model.Photos)
-                        {
-                            <div class="col-md-4 mb-3">
-                                <div class="card">
-                                    <img src="~/images/spots/@p.Name" alt="@p.Alt" class="card-img-top" style="height: 200px; object-fit: cover;">
-                                    <div class="card-body text-center">
-                                        <p class="card-text small text-muted">@p.Alt</p>
-                                        <form asp-controller="Photos" asp-action="DeleteSpotPhoto" method="post">
-                                            <input type="hidden" name="id" value="@p.Id" />
+
+            <!-- Files Section -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-file-alt text-warning"></i> Files
+                        <span class="badge bg-warning ms-2">@(Model.Files?.Count() ?? 0)</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Files?.Any() == true)
+                    {
+                        <div class="list-group">
+                            @foreach (var f in Model.Files)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-file-pdf text-danger me-2"></i>
+                                        <strong>@f.Name</strong>
+                                    </div>
+                                    <div>
+                                        <a class="btn btn-sm btn-outline-primary me-2"
+                                           asp-controller="Files"
+                                           asp-action="Download"
+                                           asp-route-id="@f.Id"
+                                           asp-route-spotId="@f.spotId">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        <form asp-controller="Files" asp-action="Delete" method="post" class="d-inline">
+                                            <input type="hidden" name="id" value="@f.Id" />
                                             <input type="hidden" name="spotId" value="@Model.Id" />
-                                            <button type="submit" class="btn btn-sm btn-danger"
-                                                    onclick="return confirm('Are you sure you want to delete this photo?')">
-                                                <i class="fas fa-trash"></i> Delete
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Are you sure you want to delete this file?')">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
                                     </div>
                                 </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No photos added yet.
-                    </div>
-                }
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No files added yet.
+                        </div>
+                    }
 
-                <div class="mt-4">
-                    <h6>Add New Photo</h6>
-                    <form asp-controller="Photos" asp-action="UploadSpotPhoto" method="post" enctype="multipart/form-data" class="row g-3">
-                        <input type="hidden" name="spotId" value="@Model.Id" />
-                        <div class="col-md-6">
-                            <input type="file" name="photoFile" accept=".jpg,.jpeg,.png,.webp" class="form-control" required />
-                        </div>
-                        <div class="col-md-4">
-                            <input type="text" name="alt" placeholder="Photo description" class="form-control" />
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-upload"></i> Upload
-                            </button>
-                        </div>
-                    </form>
+                    <div class="mt-4">
+                        <h6>Add New File</h6>
+                        <form asp-controller="Files" asp-action="Upload" method="post" enctype="multipart/form-data" class="row g-3">
+                            <input type="hidden" name="spotId" value="@Model.Id" />
+                            <div class="col-md-8">
+                                <input type="file" name="fileFile" accept=".pdf" class="form-control" required />
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="fas fa-upload"></i> Upload File
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Files Section -->
-        <div class="card mt-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-file-alt text-warning"></i> Files
-                    <span class="badge bg-warning ms-2">@(Model.Files?.Count() ?? 0)</span>
-                </h5>
-            </div>
-            <div class="card-body">
-                @if (Model.Files?.Any() == true)
-                {
-                    <div class="list-group">
-                        @foreach (var f in Model.Files)
-                        {
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="fas fa-file-pdf text-danger me-2"></i>
-                                    <strong>@f.Name</strong>
-                                </div>
-                                <div>
-                                    <a class="btn btn-sm btn-outline-primary me-2"
-                                       asp-controller="Files"
-                                       asp-action="Download"
-                                       asp-route-id="@f.Id"
-                                       asp-route-spotId="@f.spotId">
-                                        <i class="fas fa-download"></i> Download
-                                    </a>
-                                    <form asp-controller="Files" asp-action="Delete" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@f.Id" />
-                                        <input type="hidden" name="spotId" value="@Model.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                onclick="return confirm('Are you sure you want to delete this file?')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> No files added yet.
-                    </div>
-                }
-
-                <div class="mt-4">
-                    <h6>Add New File</h6>
-                    <form asp-controller="Files" asp-action="Upload" method="post" enctype="multipart/form-data" class="row g-3">
-                        <input type="hidden" name="spotId" value="@Model.Id" />
-                        <div class="col-md-8">
-                            <input type="file" name="fileFile" accept=".pdf" class="form-control" required />
-                        </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-warning w-100">
-                                <i class="fas fa-upload"></i> Upload File
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+        }
     </div>
 
     <div class="col-md-4">
@@ -244,7 +257,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <strong>Trip:</strong><br>
-                    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="text-decoration-none">
+                    <a href="@backUrl" class="text-decoration-none">
                         @Html.DisplayFor(model => model.TripName)
                     </a>
                 </div>
@@ -269,8 +282,7 @@
                                         <small class="text-muted">to @transport.ToSpotName</small>
                                         <small class="text-muted ms-2">(@transport.Duration hours)</small>
                                     </div>
-                                    <a asp-controller="Transports" asp-action="Details" asp-route-id="@transport.Id"
-                                       class="btn btn-sm btn-outline-primary">
+                                    <a asp-controller="Transports" asp-action="Details" asp-route-id="@transport.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-eye"></i> View
                                     </a>
                                 </div>
@@ -298,8 +310,7 @@
                                         <small class="text-muted">from @transport.FromSpotName</small>
                                         <small class="text-muted ms-2">(@transport.Duration hours)</small>
                                     </div>
-                                    <a asp-controller="Transports" asp-action="Details" asp-route-id="@transport.Id"
-                                       class="btn btn-sm btn-outline-primary">
+                                    <a asp-controller="Transports" asp-action="Details" asp-route-id="@transport.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-eye"></i> View
                                     </a>
                                 </div>
@@ -364,16 +375,22 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
-                        <i class="fas fa-edit"></i> Edit Spot
-                    </a>
+                    @if (!isPublicView)
+                    { 
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Edit Spot
+                        </a>
+                    }
                     <a asp-controller="Activities" asp-action="ChecklistActivity" asp-route-activityId="@Model.Id" class="btn btn-primary">
                         <i class="fas fa-list-check"></i> View Checklist
                     </a>
-                    <a asp-action="ExportPdf" asp-controller="Spots" asp-route-id="@Model.Id" class="btn btn-info">
-                        <i class="fas fa-download"></i> Download as PDF
-                    </a>
-                    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">
+                    @if (!isPublicView)
+                    { 
+                        <a asp-action="ExportPdf" asp-controller="Spots" asp-route-id="@Model.Id" class="btn btn-info">
+                            <i class="fas fa-download"></i> Download as PDF
+                        </a>
+                    }
+                    <a href="@backUrl" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Back to Trip
                     </a>
                 </div>

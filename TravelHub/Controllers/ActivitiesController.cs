@@ -61,7 +61,7 @@ public class ActivitiesController : Controller
     }
 
     // GET: Activities/Details/5
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int? id, string source = "")
     {
         if (id == null)
         {
@@ -74,7 +74,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
+        if (source != "public" && !await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }

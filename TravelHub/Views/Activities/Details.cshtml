@@ -2,16 +2,23 @@
 
 @{
     ViewData["Title"] = "Activity Details";
+
+    // Sprawdzamy czy to publiczny podgląd
+    var isPublicView = Context.Request.Query["source"] == "public";
+    var backUrl = isPublicView ? Url.Action("Details", "TripsSearch", new { id = Model.TripId }) : Url.Action("Details", "Trips", new { id = Model.TripId });
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>@Model.Name</h1>
     <div>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+        @if (!isPublicView)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+        }
         <a asp-controller="Activities" asp-action="ChecklistActivity" asp-route-activityId="@Model.Id" class="btn btn-primary">
             View checklist
         </a>
-        <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">Back to Trip</a>
+        <a href="@backUrl" class="btn btn-outline-secondary">Back to Trip</a>
     </div>
 </div>
 
@@ -64,7 +71,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <strong>Trip:</strong><br>
-                    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="text-decoration-none">
+                    <a href="@backUrl" class="text-decoration-none">
                         @Html.DisplayFor(model => model.TripName)
                     </a>
                 </div>
@@ -75,13 +82,16 @@
                 </div>
 
                 <div class="d-grid gap-2 mt-4">
-                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
-                        <i class="fas fa-edit"></i> Edit Activity
-                    </a>
+                    @if (!isPublicView)
+                    {           
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Edit Activity
+                        </a>
+                    }
                     <a asp-controller="Activities" asp-action="ChecklistActivity" asp-route-activityId="@Model.Id" class="btn btn-primary">
                         <i class="fas fa-list-check"></i> View Checklist
                     </a>
-                    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-outline-secondary">
+                    <a href="@backUrl" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Back to Trip
                     </a>
                 </div>
