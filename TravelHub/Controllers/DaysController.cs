@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Elfie.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Transports;
 using TravelHub.Web.ViewModels.Trips;
-using TravelHub.Domain.DTOs;
 
 namespace TravelHub.Web.Controllers;
 
@@ -46,7 +47,7 @@ public class DaysController : Controller
     }
 
     // GET: Days/Details/5
-    public async Task<IActionResult> Details(int id)
+    public async Task<IActionResult> Details(int id, string source = "")
     {
         var day = await _dayService.GetDayWithDetailsAsync(id);
         if (day == null)
@@ -54,10 +55,15 @@ public class DaysController : Controller
             return NotFound();
         }
 
+        if (source != "public" && !await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         return View(day);
     }
 
-    public async Task<IActionResult> MapView(int id)
+    public async Task<IActionResult> MapView(int id, string source = "")
     {
         var day = await _dayService.GetDayWithDetailsAsync(id);
         if (day == null)
@@ -70,7 +76,7 @@ public class DaysController : Controller
             return NotFound();
         }
 
-        if (!await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        if (source != "public" && !await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }
@@ -548,6 +554,13 @@ public class DaysController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateActivityOrder([FromBody] UpdateActivityOrderRequest request)
     {
+        var day = await _dayService.GetDayByIdAsync(request.DayId);
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(day!.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         try
         {
             if (request?.Activities == null || !request.Activities.Any())
