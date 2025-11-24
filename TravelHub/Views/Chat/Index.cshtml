@@ -22,17 +22,66 @@
 <form id="chatForm" asp-action="PostMessage" asp-controller="Chat" method="post">
     <input type="hidden" name="tripId" value="@Model.TripId" />
     <div class="mb-3">
-        <textarea name="Message" class="form-control" rows="3" placeholder="Write message..."></textarea>
+        <label class="form-label">Message</label>
+        <div id="chatEditor" style="height: 150px;"></div>
+        <textarea name="Message" id="chatMessageText" class="form-control d-none"></textarea>
+        <span class="text-danger" id="messageValidation"></span>
     </div>
     <button type="submit" class="btn btn-primary">Send</button>
 </form>
 
 @section Scripts {
     <script>
+        var chatQuill = new Quill('#chatEditor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'header': 1 }, { 'header': 2 }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'script': 'sub'}, { 'script': 'super' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'direction': 'rtl' }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'font': [] }],
+                    [{ 'align': [] }],
+                    ['link'],
+                    ['clean']
+                ]
+            },
+            placeholder: 'Write your message...',
+            theme: 'snow'
+        });
+
+        // Synchronizacja edytora komentarza z textarea
+        chatQuill.on('text-change', function() {
+            document.getElementById('chatMessageText').value = chatQuill.root.innerHTML;
+        });
+
+        // Ustawienie pustej początkowej wartości dla komentarza
+        document.getElementById('chatMessageText').value = '';
 
         const chatForm = document.getElementById('chatForm');
         chatForm.addEventListener('submit', async function (e) {
             e.preventDefault();
+
+            const messageText = document.getElementById('chatMessageText').value;
+            const validationSpan = document.getElementById('messageValidation');
+
+            // Reset validation
+            validationSpan.textContent = '';
+
+            // Walidacja
+            if (!messageText.trim() || chatQuill.getText().trim().length === 0) {
+                e.preventDefault();
+                validationSpan.textContent = 'Please enter your message';
+                chatQuill.focus();
+                return;
+            }
+
             const formData = new FormData(chatForm);
 
             const response = await fetch(chatForm.action + '?tripId=' + formData.get('tripId'), {
@@ -52,7 +101,9 @@
             const html = await partialRes.text();
             document.getElementById('chatMessages').innerHTML = html;
 
-            chatForm.querySelector('textarea[name="Message"]').value = '';
+            // Wyczyść edytor
+            chatQuill.root.innerHTML = '';
+            document.getElementById('chatMessageText').value = '';
         });
 
         // polling every 5s, without site refresh

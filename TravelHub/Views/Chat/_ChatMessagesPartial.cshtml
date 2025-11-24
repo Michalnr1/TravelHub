@@ -13,7 +13,7 @@
                 <div>
                     <strong>@(string.IsNullOrEmpty(m.PersonFirstName) ? "Anonymous" : (m.PersonFirstName + " " + m.PersonLastName))</strong>
                 </div>
-                <div class="mt-1">@Html.Raw(Html.Encode(m.Message).Replace("\n", "<br/>"))</div>
+                <div class="mt-1">@Html.Raw(m.Message)</div>
             </div>
 
             <div class="ms-3">
