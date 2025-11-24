@@ -14,7 +14,7 @@
 <hr />
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="AddToTrip" asp-route-tripId="@Model.TripId">
+        <form asp-action="AddToTrip" asp-route-tripId="@Model.TripId" asp-route-returnUrl="@returnUrl">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="TripId" />
 

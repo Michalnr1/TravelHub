@@ -430,7 +430,7 @@ public class SpotsController : Controller
     // POST: Spots/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public async Task<IActionResult> DeleteConfirmed(int id, string? returnUrl = null)
     {
         var spot = await _spotService.GetByIdAsync(id);
         if (!await _tripParticipantService.UserHasAccessToTripAsync(spot.TripId, GetCurrentUserId()))
@@ -445,6 +445,10 @@ public class SpotsController : Controller
             // Przelicz Order w dniu po usunięciu spotu
             await RecalculateOrderForDay(dayId);
 
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
             return RedirectToAction("Details", "Trips", new { id = spot.TripId });
         }
         else
@@ -454,7 +458,7 @@ public class SpotsController : Controller
     }
 
     // GET: Spots/AddToTrip/5
-    public async Task<IActionResult> AddToTrip(int tripId, int? dayId = null)
+    public async Task<IActionResult> AddToTrip(int tripId, int? dayId = null, string? returnUrl = null)
     {
         var trip = await _tripService.GetByIdAsync(tripId);
         if (trip == null)
@@ -477,7 +481,7 @@ public class SpotsController : Controller
 
         await PopulateSelectListsForTrip(viewModel, tripId);
 
-        await SetAddToDayViewData(trip, dayId);
+        await SetAddToDayViewData(trip, dayId, returnUrl);
 
         return View("AddToTrip", viewModel);
     }
@@ -485,7 +489,7 @@ public class SpotsController : Controller
     // POST: Spots/AddToTrip/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddToTrip(int tripId, SpotCreateEditViewModel viewModel)
+    public async Task<IActionResult> AddToTrip(int tripId, SpotCreateEditViewModel viewModel, string? returnUrl = null)
     {
         if (tripId != viewModel.TripId)
         {
@@ -540,6 +544,10 @@ public class SpotsController : Controller
                 }
 
                 TempData["SuccessMessage"] = "Spot added successfully!";
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
                 return RedirectToAction("Details", "Trips", new { id = tripId });
             }
             catch (Exception ex)
@@ -550,16 +558,19 @@ public class SpotsController : Controller
         }
 
         await PopulateSelectListsForTrip(viewModel, tripId);
-        await SetAddToDayViewData(trip, viewModel.DayId);
+        await SetAddToDayViewData(trip, viewModel.DayId, returnUrl);
         return View("AddToTrip", viewModel);
     }
 
-    private async Task SetAddToDayViewData(Trip trip, int? dayId)
+    private async Task SetAddToDayViewData(Trip trip, int? dayId, string? returnUrl)
     {
         ViewData["TripName"] = trip.Name;
         ViewData["DayName"] = dayId.HasValue ?
             trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
-        if (dayId != null)
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+        } else if (dayId != null)
         {
             ViewData["ReturnUrl"] = Url.Action("Details", "Days", new { id = dayId });
         }
