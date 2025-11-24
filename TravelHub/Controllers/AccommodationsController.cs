@@ -75,7 +75,7 @@ public class AccommodationsController : Controller
     }
 
     // GET: Accommodations/Details/5
-    public async Task<IActionResult> Details(int? id)
+    public async Task<IActionResult> Details(int? id, string source = "")
     {
         if (id == null)
         {
@@ -88,7 +88,7 @@ public class AccommodationsController : Controller
             return NotFound();
         }
 
-        if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
+        if (source != "public" && !await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
         {
             return Forbid();
         }

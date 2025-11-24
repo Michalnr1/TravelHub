@@ -38,6 +38,14 @@ public enum TripParticipantStatus
     Owner
 }
 
+public enum FriendRequestStatus
+{
+    Pending,
+    Accepted,
+    Declined,
+    Blocked
+}
+
 public enum CurrencyCode
 {
     // Europe

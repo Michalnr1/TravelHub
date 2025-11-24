@@ -21,11 +21,3 @@ public class FriendRequest
     public virtual Person Requester { get; set; } = null!;
     public virtual Person Addressee { get; set; } = null!;
 }
-
-public enum FriendRequestStatus
-{
-    Pending,
-    Accepted,
-    Declined,
-    Blocked
-}

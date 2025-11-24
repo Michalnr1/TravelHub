@@ -11,6 +11,11 @@
         .Where(a => a.Type != "Accommodation")
         .OrderBy(a => a.Order)
         .ToList() ?? new List<ActivityDetailsViewModel>();
+    
+    // Sprawdzamy czy to publiczny podgląd
+    var isPublicView = Context.Request.Query["source"] == "public";
+    var backUrl = isPublicView ? Url.Action("Details", "TripsSearch", new { id = Model.TripId }) : Url.Action("Details", "Trips", new { id = Model.TripId });
+}
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -120,7 +125,7 @@
                 <i class="fas fa-list-check text-primary"></i> Activities & Spots
                 <span class="badge bg-primary">@otherActivities.Count</span>
             </h4>
-            <small class="text-muted">Drag to reorder</small>
+            <small class="text-muted">@(isPublicView ? "" : "Drag to reorder")</small>
         </div>
 
         @if (otherActivities.Any())
@@ -159,14 +164,17 @@
                                 </div>
                                 <div class="text-end">
                                     <small class="text-muted">Order: <span class="order-display">@activity.Order</span></small>
-                                    <form asp-controller="Activities" asp-action="RemoveFromDay" method="post" class="d-inline">
-                                        <input type="hidden" name="activityId" value="@activity.Id" />
-                                        <input type="hidden" name="dayId" value="@Model.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-2"
-                                                title="Remove from @(isGroup ? "group" : "day")">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </form>
+                                    @if (!isPublicView)
+                                    {
+                                        <form asp-controller="Activities" asp-action="RemoveFromDay" method="post" class="d-inline">
+                                            <input type="hidden" name="activityId" value="@activity.Id" />
+                                            <input type="hidden" name="dayId" value="@Model.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-2"
+                                            title="Remove from @(isGroup ? "group" : "day")">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    }
                                 </div>
                             </div>
 
@@ -196,10 +204,13 @@
                             </div>
                         </div>
 
-                        <!-- Handle do przeciągania -->
-                        <div class="drag-handle ms-2 text-muted" style="cursor: grab;">
-                            <i class="fas fa-grip-vertical"></i>
-                        </div>
+                        @if (!isPublicView)
+                        {
+                            <!-- Handle do przeciągania -->
+                            <div class="drag-handle ms-2 text-muted" style="cursor: grab;">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        }
                     </div>
                 }
             </div>
@@ -216,32 +227,35 @@
             </div>
         }
 
-        <!-- Przyciski dodawania nowych aktywności -->
-        <div class="mt-4 row g-2">
-            <div class="col-md-4">
-                <a asp-controller="Activities" asp-action="AddToTrip"
-                   asp-route-tripId="@Model.TripId" asp-route-dayId="@Model.Id"
-                   class="btn btn-primary w-100">
-                    <i class="fas fa-plus"></i> Add Activity
-                </a>
-            </div>
+        @if (!isPublicView)
+        {
+            <!-- Przyciski dodawania nowych aktywności -->
+            <div class="mt-4 row g-2">
+                <div class="col-md-4">
+                    <a asp-controller="Activities" asp-action="AddToTrip"
+                       asp-route-tripId="@Model.TripId" asp-route-dayId="@Model.Id"
+                       class="btn btn-primary w-100">
+                        <i class="fas fa-plus"></i> Add Activity
+                    </a>
+                </div>
 
-            <div class="col-md-4">
-                <a asp-controller="Spots" asp-action="AddToTrip"
-                   asp-route-tripId="@Model.TripId" asp-route-dayId="@Model.Id"
-                   class="btn btn-success w-100">
-                    <i class="fas fa-map-marker-alt"></i> Add Spot
-                </a>
-            </div>
+                <div class="col-md-4">
+                    <a asp-controller="Spots" asp-action="AddToTrip"
+                       asp-route-tripId="@Model.TripId" asp-route-dayId="@Model.Id"
+                       class="btn btn-success w-100">
+                        <i class="fas fa-map-marker-alt"></i> Add Spot
+                    </a>
+                </div>
 
-            <div class="col-md-4">
-                <a asp-controller="Accommodations" asp-action="AddToTrip"
-                   asp-route-tripId="@Model.TripId" asp-route-dayId="@Model.Id"
-                   class="btn btn-warning w-100">
-                    <i class="fas fa-hotel"></i> Add Accommodation
-                </a>
+                <div class="col-md-4">
+                    <a asp-controller="Accommodations" asp-action="AddToTrip"
+                       asp-route-tripId="@Model.TripId" asp-route-dayId="@Model.Id"
+                       class="btn btn-warning w-100">
+                        <i class="fas fa-hotel"></i> Add Accommodation
+                    </a>
+                </div>
             </div>
-        </div>
+        }
     </div>
 
     <!-- Prawa kolumna: Dostępne aktywności z podróży -->
@@ -312,14 +326,17 @@
                             </div>
                         </div>
 
-                        <form asp-controller="Activities" asp-action="AddToDay" method="post" class="ms-2">
-                            <input type="hidden" name="activityId" value="@activity.Id" />
-                            <input type="hidden" name="dayId" value="@Model.Id" />
-                            <button type="submit" class="btn btn-sm btn-outline-success"
-                                    title="Add to @(isGroup ? "group" : "day")">
-                                <i class="fas fa-plus"></i> Add
-                            </button>
-                        </form>
+                        @if (!isPublicView)
+                        {
+                            <form asp-controller="Activities" asp-action="AddToDay" method="post" class="ms-2">
+                                <input type="hidden" name="activityId" value="@activity.Id" />
+                                <input type="hidden" name="dayId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-success"
+                                title="Add to @(isGroup ? "group" : "day")">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </form>
+                        }
                     </div>
                 }
             </div>
@@ -335,22 +352,25 @@
 
 <!-- Przyciski akcji na dole -->
 <div class="mt-4 d-flex flex-wrap gap-2">
-    @if (isGroup)
+    @if (!isPublicView && isGroup)
     {
         <a asp-action="EditGroup" asp-route-id="@Model.Id" class="btn btn-warning">
             <i class="fas fa-edit"></i> Edit Group
         </a>
     }
 
-    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
-        <i class="fas fa-trash"></i> Delete @(isGroup ? "Group" : "Day")
-    </a>
+    @if (!isPublicView)
+    {
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete @(isGroup ? "Group" : "Day")
+        </a>
+    }
 
-    <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">
+    <a href="@backUrl" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back to Trip
     </a>
 
-    <a asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary">
+    <a asp-action="MapView" asp-route-id="@Model.Id" asp-route-source="@(isPublicView ? "public" : "")" class="btn btn-secondary">
         <i class="fas fa-map"></i> View on Map
     </a>
 </div>
@@ -363,7 +383,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const container = document.getElementById('activitiesContainer');
+            const isPublicView = "@Html.Raw(isPublicView)" == "True";
+
             if (!container) return;
+            if (isPublicView) return;
 
             let draggedItem = null;
             let isUpdating = false;
