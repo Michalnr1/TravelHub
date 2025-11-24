@@ -1,5 +1,6 @@
 ﻿@using TravelHub.Domain.Entities
 @using TravelHub.Web.ViewModels.Activities
+@using Microsoft.AspNetCore.Http
 @model TravelHub.Web.ViewModels.Trips.DayDetailViewModel
 @{
     bool isGroup = Model.Number == null;
@@ -108,7 +109,7 @@
                 <h5 class="card-title mb-0">Spots (@(Model.Spots.Count()))</h5>
                 @if (!isPublicView)
                 {
-                    <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-sm btn-success">
+                    <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" asp-route-returnUrl="@Context.Request.Path" class="btn btn-sm btn-success">
                         <i class="fas fa-plus me-1"></i>Add Spot
                     </a>
                 }
@@ -122,6 +123,7 @@
                         {
                             string id;
                             bool isSpot = activity is SpotDetailsViewModel;
+                            string controller = "Spots";
                             @if (isSpot)
                             {
                                 id = "spot-" + activity.Id;
@@ -136,6 +138,7 @@
                             else
                             {
                                 id = "activity-" + activity.Id;
+                                controller = "Activities";
                             }
                             <div class="list-group-item d-flex justify-content-between align-items-start
                                             @(isSpot ? "border-success" : "border-primary") activity-item"
@@ -166,15 +169,15 @@
                                         </div>
                                     </div>
                                     <div class="btn-group ms-2 flex-shrink-0">
-                                        <a asp-controller="Spots" asp-action="Details" asp-route-id="@activity.Id" asp-route-source="@(isPublicView ? "public" : "")" class="btn btn-sm btn-outline-primary">
+                                        <a asp-controller="@controller" asp-action="Details" asp-route-id="@activity.Id" asp-route-source="@(isPublicView ? "public" : "")" asp-route-returnUrl="@Context.Request.Path" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         @if (!isPublicView)
                                         {
-                                            <a asp-controller="Spots" asp-action="Edit" asp-route-id="@activity.Id" class="btn btn-sm btn-outline-secondary">
+                                            <a asp-controller="@controller" asp-action="Edit" asp-route-id="@activity.Id" asp-route-returnUrl="@Context.Request.Path" class="btn btn-sm btn-outline-secondary">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form asp-controller="Spots" asp-action="Delete" asp-route-id="@activity.Id" method="post" class="d-inline">
+                                            <form asp-controller="@controller" asp-action="Delete" asp-route-id="@activity.Id" asp-route-returnUrl="@Context.Request.Path" method="post" class="d-inline">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this spot?')">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -196,7 +199,7 @@
                         <p class="text-muted mb-3">No spots added to this trip yet.</p>
                         @if (!isPublicView)
                         {
-                            <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" class="btn btn-success">
+                            <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Trip!.Id" asp-route-dayId="@Model.Id" asp-route-returnUrl="@Context.Request.Path" class="btn btn-success">
                                 <i class="fas fa-plus me-1"></i>Add Spot
                             </a>
                         }
@@ -231,6 +234,14 @@
                 <input type="checkbox" id="lastFixed" value="off" hidden/>
             }
         </div>
+    </div>
+    <div class="mt-4 d-flex flex-wrap gap-2">
+        <a asp-controller="Days" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Day
+        </a>
+        <a href="@backUrl" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Trip
+        </a>
     </div>
 </div>
 

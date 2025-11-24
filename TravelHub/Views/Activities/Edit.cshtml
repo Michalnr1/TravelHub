@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Edit Activity";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? Url.Action("Details", "Trips", new { id = Model.TripId }); ;
 }
 
 <h1>Edit Activity</h1>
@@ -9,7 +10,7 @@
 <hr />
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="Edit">
+        <form asp-action="Edit" asp-route-returnUrl="@returnUrl">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
 
@@ -75,7 +76,7 @@
 
             <div class="form-group mt-3">
                 <input type="submit" value="Save" class="btn btn-primary" />
-                <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">Back to trip</a>
+                <a href="@returnUrl" class="btn btn-secondary">Back to Trip</a>
             </div>
         </form>
     </div>

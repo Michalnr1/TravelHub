@@ -60,7 +60,7 @@ public class ActivitiesController : Controller
     }
 
     // GET: Activities/Details/5
-    public async Task<IActionResult> Details(int? id, string source = "")
+    public async Task<IActionResult> Details(int? id, string source = "", string? returnUrl = null)
     {
         if (id == null)
         {
@@ -100,7 +100,7 @@ public class ActivitiesController : Controller
                 DisplayName = $"{p.Person?.FirstName} {p.Person?.LastName}"
             }).ToList() ?? new List<ParticipantVm>()
         };
-
+        ViewData["ReturnUrl"] = returnUrl;
         return View(viewModel);
     }
 
@@ -143,7 +143,7 @@ public class ActivitiesController : Controller
     }
 
     // GET: Activities/Edit/5
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int? id, string? returnUrl = null)
     {
         if (id == null)
         {
@@ -164,13 +164,14 @@ public class ActivitiesController : Controller
         var viewModel = await CreateActivityCreateEditViewModel(activity);
         viewModel.DurationString = ConvertDecimalToTimeString(activity.Duration);
         viewModel.StartTimeString = activity.StartTime != null ? ConvertDecimalToTimeString(activity.StartTime.Value) : null;
+        ViewData["ReturnUrl"] = returnUrl;
         return View(viewModel);
     }
 
     // POST: Activities/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, ActivityCreateEditViewModel viewModel)
+    public async Task<IActionResult> Edit(int id, ActivityCreateEditViewModel viewModel, string? returnUrl = null)
     {
         if (id != viewModel.Id)
         {
@@ -201,12 +202,12 @@ public class ActivitiesController : Controller
                 if (existingActivity.DayId != viewModel.DayId)
                 {
                     viewModel.Order = await CalculateNextOrder(viewModel.DayId);
+                    existingActivity.Order = viewModel.Order;
                 }
 
                 existingActivity.Name = viewModel.Name;
                 existingActivity.Description = viewModel.Description!;
-                existingActivity.Duration = viewModel.Duration;
-                existingActivity.Order = viewModel.Order;
+                existingActivity.Duration = viewModel.Duration;          
                 existingActivity.StartTime = viewModel.StartTime;
                 existingActivity.CategoryId = viewModel.CategoryId;
                 existingActivity.TripId = viewModel.TripId;
@@ -232,9 +233,13 @@ public class ActivitiesController : Controller
                     throw;
                 }
             }
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
-
+        ViewData["ReturnUrl"] = returnUrl;
         await PopulateSelectLists(viewModel);
         return View(viewModel);
     }
@@ -279,7 +284,7 @@ public class ActivitiesController : Controller
     // POST: Activities/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public async Task<IActionResult> DeleteConfirmed(int id, string? returnUrl = null)
     {
         var activity = await _activityService.GetByIdAsync(id);
         if (!await _tripParticipantService.UserHasAccessToTripAsync(activity.TripId, GetCurrentUserId()))
@@ -294,6 +299,10 @@ public class ActivitiesController : Controller
             // Przelicz Order w dniu po usunięciu aktywności
             await RecalculateOrderForDay(dayId);
 
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
             return RedirectToAction("Details", "Trips", new { id = activity.TripId });
         }
         else
@@ -303,7 +312,7 @@ public class ActivitiesController : Controller
     }
 
     // GET: Activities/AddToTrip/5
-    public async Task<IActionResult> AddToTrip(int tripId, int? dayId = null)
+    public async Task<IActionResult> AddToTrip(int tripId, int? dayId = null, string? returnUrl = null)
     {
         var trip = await _tripService.GetByIdAsync(tripId);
         if (trip == null)
@@ -325,7 +334,7 @@ public class ActivitiesController : Controller
 
         await PopulateSelectListsForTrip(viewModel, tripId);
 
-        SetAddToTripViewData(trip, dayId);
+        SetAddToTripViewData(trip, dayId, returnUrl);
 
         return View("AddToTrip", viewModel);
     }
@@ -333,7 +342,7 @@ public class ActivitiesController : Controller
     // POST: Activities/AddToTrip/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddToTrip(int tripId, ActivityCreateEditViewModel viewModel)
+    public async Task<IActionResult> AddToTrip(int tripId, ActivityCreateEditViewModel viewModel, string? returnUrl = null)
     {
         if (tripId != viewModel.TripId)
         {
@@ -374,6 +383,10 @@ public class ActivitiesController : Controller
                 await _activityService.AddAsync(activity);
 
                 TempData["SuccessMessage"] = "Activity added successfully!";
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
                 return RedirectToAction("Details", "Trips", new { id = tripId });
             }
             catch (Exception ex)
@@ -384,16 +397,20 @@ public class ActivitiesController : Controller
         }
 
         await PopulateSelectListsForTrip(viewModel, tripId);
-        SetAddToTripViewData(trip, viewModel.DayId);
+        SetAddToTripViewData(trip, viewModel.DayId, returnUrl);
         return View("AddToTrip", viewModel);
     }
 
-    private void SetAddToTripViewData(Trip trip, int? dayId)
+    private void SetAddToTripViewData(Trip trip, int? dayId, string? returnUrl)
     {
         ViewData["TripName"] = trip.Name;
         ViewData["DayName"] = dayId.HasValue ?
             trip.Days?.FirstOrDefault(d => d.Id == dayId)?.Name : null;
-        if (dayId != null)
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+        }
+        else if (dayId != null)
         {
             ViewData["ReturnUrl"] = Url.Action("Details", "Days", new { id = dayId });
         }
@@ -404,7 +421,7 @@ public class ActivitiesController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddToDay(int activityId, int dayId)
+    public async Task<IActionResult> AddToDay(int activityId, int dayId, string? returnUrl = null)
     {
         var activity = await _activityService.GetByIdAsync(activityId);
         if (activity == null)
@@ -441,6 +458,10 @@ public class ActivitiesController : Controller
         };
 
         TempData["SuccessMessage"] = $"{activityType.FirstCharToUpper()} added to day successfully!";
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
         return RedirectToAction("Details", "Days", new { id = dayId });
     }
 
