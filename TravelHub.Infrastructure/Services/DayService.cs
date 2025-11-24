@@ -69,8 +69,23 @@ public class DayService : GenericService<Day>, IDayService
             throw new ArgumentException($"Day with ID {id} not found");
         }
 
-        var allSpots = day.Activities.OfType<Spot>();
+        var allSpots = day.Activities.OfType<Spot>().ToList();
 
+        if (day.Accommodation != null)
+            allSpots.Add(day.Accommodation);
+
+        var trip = await _tripService.GetTripWithDetailsAsync(day.TripId);
+
+        if (trip != null)
+        {
+            var previousDay = trip.Days!.Where(d => d.Number == day!.Number - 1).FirstOrDefault();
+            if (previousDay != null && previousDay.Accommodation != null)
+            {
+                allSpots.Add(previousDay.Accommodation);
+            } 
+        }
+
+        
         //Domyślnie jakiś default użytkownika?
 
         //if (!allSpots.Any())

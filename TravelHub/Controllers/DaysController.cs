@@ -8,6 +8,7 @@ using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Days;
 using TravelHub.Web.ViewModels.Transports;
 using TravelHub.Web.ViewModels.Trips;
 
@@ -60,7 +61,62 @@ public class DaysController : Controller
             return Forbid();
         }
 
-        return View(day);
+        var allTripActivities = await _activityService.GetTripActivitiesWithDetailsAsync(day.TripId);
+
+        // Filtruj tylko aktywności bez przypisanego dnia i bez accommodation
+        var availableActivities = allTripActivities
+            .Where(a => a.DayId == null && !(a is Accommodation))
+            .ToList();
+
+        // Filtruj activities dnia - bez accommodation
+        var dayActivitiesWithoutAccommodation = day.Activities
+            .Where(a => !(a is Accommodation))
+            .ToList();
+
+        var viewModel = new DayDetailsViewModel
+        {
+            Id = day.Id,
+            Number = day.Number,
+            Name = day.Name,
+            Date = day.Date,
+            TripId = day.TripId,
+            Trip = day.Trip,
+            AccommodationId = day.AccommodationId,
+            Accommodation = day.Accommodation,
+            Activities = dayActivitiesWithoutAccommodation.Select(a => new ActivityDetailsViewModel
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Description = a.Description!,
+                Duration = a.Duration,
+                DurationString = ConvertDecimalToTimeString(a.Duration),
+                Order = a.Order,
+                StartTime = a.StartTime,
+                StartTimeString = a.StartTime.HasValue ? ConvertDecimalToTimeString(a.StartTime.Value) : null,
+                CategoryName = a.Category?.Name,
+                TripId = day.TripId,
+                TripName = day.Trip?.Name ?? "",
+                DayName = day.Name,
+                Type = a is Spot ? "Spot" : "Activity"
+            }).ToList(),
+            AvailableActivities = availableActivities.Select(a => new ActivityDetailsViewModel
+            {
+                Id = a.Id,
+                Name = a.Name,
+                Description = a.Description!,
+                Duration = a.Duration,
+                DurationString = ConvertDecimalToTimeString(a.Duration),
+                Order = a.Order,
+                StartTime = a.StartTime,
+                StartTimeString = a.StartTime.HasValue ? ConvertDecimalToTimeString(a.StartTime.Value) : null,
+                CategoryName = a.Category?.Name,
+                TripId = day.TripId,
+                TripName = day.Trip?.Name ?? "",
+                Type = a is Spot ? "Spot" : "Activity"
+            }).ToList()
+        };
+
+        return View(viewModel);
     }
 
     public async Task<IActionResult> MapView(int id, string source = "")
@@ -545,6 +601,11 @@ public class DaysController : Controller
             Longitude = lastSpot.Longitude,
         };
 
+        if (spots.Count < 2)
+        {
+            return NotFound();
+        }
+
         List<ActivityOrder> result = await _routeOptimizationService.GetActivityOrderSuggestion(spots, otherActivities, first, end, transports, travelMode, (decimal)startTime); 
 
         return Ok(result);
@@ -592,6 +653,9 @@ public class DaysController : Controller
         return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 
+    /// <summary>
+    /// Konwertuje decimal (godziny) na string w formacie HH:MM
+    /// </summary>
     private string ConvertDecimalToTimeString(decimal duration)
     {
         int hours = (int)duration;

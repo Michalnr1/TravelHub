@@ -906,7 +906,7 @@ public class TripsController : Controller
             DefaultCurrencyCode = trip.CurrencyCode,
             Currencies = allCurrencyCodes,
             DefaultDate = trip.StartDate,
-            Participants = trip.Participants.Count + 1
+            Participants = trip.Participants.Count
         };      
         return View(model);
     }

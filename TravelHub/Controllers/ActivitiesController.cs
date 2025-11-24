@@ -68,7 +68,7 @@ public class ActivitiesController : Controller
             return NotFound();
         }
 
-        var activity = await _activityService.GetByIdAsync(id.Value);
+        var activity = await _activityService.GetActivityWithTripAndParticipantsAsync(id.Value);
         if (activity == null)
         {
             return NotFound();
@@ -93,7 +93,13 @@ public class ActivitiesController : Controller
             TripName = activity.Trip?.Name!,
             TripId = activity.TripId,
             DayName = activity.Day?.Name,
-            Type = activity is Spot ? "Spot" : "Activity"
+            Type = activity is Spot ? "Spot" : "Activity",
+            Checklist = activity.Checklist ?? new Checklist(),
+            Participants = activity.Trip?.Participants?.Select(p => new ParticipantVm
+            {
+                Id = p.Id.ToString(),
+                DisplayName = $"{p.Person?.FirstName} {p.Person?.LastName}"
+            }).ToList() ?? new List<ParticipantVm>()
         };
 
         return View(viewModel);
@@ -500,9 +506,11 @@ public class ActivitiesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddChecklistItem(int activityId, string item)
     {
-        if (string.IsNullOrWhiteSpace(item)) return RedirectToAction("ChecklistActivity", new { activityId });
+        if (string.IsNullOrWhiteSpace(item))
+            return RedirectToAction("Details", new { id = activityId });
+
         await _activityService.AddChecklistItemAsync(activityId, item);
-        return RedirectToAction("ChecklistActivity", new { activityId });
+        return RedirectToAction("Details", new { id = activityId });
     }
 
     [HttpPost]
@@ -510,7 +518,7 @@ public class ActivitiesController : Controller
     public async Task<IActionResult> ToggleChecklistItem(int activityId, string item)
     {
         await _activityService.ToggleChecklistItemAsync(activityId, item);
-        return RedirectToAction("ChecklistActivity", new { activityId });
+        return RedirectToAction("Details", new { id = activityId });
     }
 
     [HttpPost]
@@ -519,7 +527,7 @@ public class ActivitiesController : Controller
     {
         participantId = string.IsNullOrWhiteSpace(participantId) ? null : participantId;
         await _activityService.AssignParticipantToItemAsync(activityId, itemTitle, participantId);
-        return RedirectToAction("ChecklistActivity", new { activityId });
+        return RedirectToAction("Details", new { id = activityId });
     }
 
     /// <summary>
@@ -550,26 +558,29 @@ public class ActivitiesController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditChecklistItem(EditChecklistItemViewModel vm)
+    public async Task<IActionResult> EditChecklistItem(int activityId, string oldItem, string newItem)
     {
-        if (!ModelState.IsValid)
-            return View("EditChecklistItemActivity", vm);
+        if (!ModelState.IsValid || string.IsNullOrEmpty(oldItem) || string.IsNullOrEmpty(newItem))
+        {
+            TempData["ErrorMessage"] = "Invalid item data.";
+            return RedirectToAction("Details", new { id = activityId });
+        }
 
         try
         {
-            await _activityService.RenameChecklistItemAsync(vm.ActivityId, vm.OldItem, vm.NewItem);
-            return RedirectToAction("ChecklistActivity", new { activityId = vm.ActivityId });
+            await _activityService.RenameChecklistItemAsync(activityId, oldItem, newItem);
+            TempData["SuccessMessage"] = "Checklist item updated successfully.";
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            TempData["ErrorMessage"] = "Item not found.";
         }
         catch (InvalidOperationException ex)
         {
-            // show error to user on the same edit page
-            ModelState.AddModelError(string.Empty, ex.Message);
-            return View("EditChecklistItemActivity", vm);
+            TempData["ErrorMessage"] = ex.Message;
         }
+
+        return RedirectToAction("Details", new { id = activityId });
     }
 
     [HttpPost]
@@ -577,7 +588,7 @@ public class ActivitiesController : Controller
     public async Task<IActionResult> DeleteChecklistItem(int activityId, string item)
     {
         await _activityService.RemoveChecklistItemAsync(activityId, item);
-        return RedirectToAction("ChecklistActivity", new { activityId });
+        return RedirectToAction("Details", new { id = activityId });
     }
 
     private async Task PopulateSelectListsForTrip(ActivityCreateEditViewModel viewModel, int tripId)
