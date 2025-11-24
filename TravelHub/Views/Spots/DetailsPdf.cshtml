@@ -1,0 +1,467 @@
+﻿@using TravelHub.Web.ViewModels.Activities
+@model SpotDetailsViewModel
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Spot: @Model.Name</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+            .header h1 {
+                margin: 0;
+                font-size: 28px;
+                font-weight: 300;
+            }
+
+            .header .subtitle {
+                margin-top: 10px;
+                opacity: 0.9;
+                font-size: 16px;
+            }
+
+        .container {
+            padding: 0 30px 30px 30px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            color: #667eea;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+            .section-title i {
+                margin-right: 10px;
+                width: 20px;
+                text-align: center;
+            }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .description {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .checklist {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+        }
+
+        .checklist-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+        }
+
+            .checklist-item:last-child {
+                border-bottom: none;
+            }
+
+            .checklist-item input[type="checkbox"] {
+                margin-right: 10px;
+                transform: scale(1.2);
+            }
+
+            .checklist-item.checked {
+                background-color: #f8fff9;
+                color: #28a745;
+            }
+
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .photo-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            text-align: center;
+            max-width: 100%;
+        }
+
+        .photo-image-container {
+            width: 100%;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #dee2e6;
+            background: white;
+            padding: 10px;
+        }
+
+        .photo-image {
+            max-width: 100%;
+            max-height: 130px;
+            width: auto;
+            height: auto;
+            object-fit: contain; /* Zachowuje proporcje zdjęcia */
+        }
+
+        .photo-name {
+            padding: 10px;
+            font-size: 12px;
+            color: #666;
+            word-break: break-word;
+        }
+
+        .photo-placeholder {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 12px;
+            text-align: center;
+            padding: 10px;
+        }
+
+            .photo-placeholder i {
+                font-size: 24px;
+                margin-bottom: 8px;
+                color: #6c757d;
+            }
+
+        .transport-section {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .transport-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #28a745;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+
+        .rating {
+            color: #ffc107;
+            font-weight: bold;
+        }
+
+        .map-coordinates {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .icon-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            margin-right: 8px;
+        }
+
+        @@media print {
+            .header {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>@Model.Name</h1>
+        <div class="subtitle">
+            @Model.TripName • @Model.DayName • Pozycja: @Model.Order
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Basic Information -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-info-circle"></i>Informacje podstawowe
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Nazwa</div>
+                    <div class="info-value">@Model.Name</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Kategoria</div>
+                    <div class="info-value">@(Model.CategoryName ?? "Brak kategorii")</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Czas trwania</div>
+                    <div class="info-value">@Model.DurationString</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Godzina rozpoczęcia</div>
+                    <div class="info-value">@(Model.StartTimeString ?? "Nie ustalono")</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ocena</div>
+                    <div class="info-value">
+                        @if (Model.Rating > 0)
+                        {
+                            <span class="rating"><i class="fas fa-star"></i> @Model.Rating/5</span>
+                        }
+                        else
+                        {
+                            <span>Brak oceny</span>
+                        }
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Liczba zdjęć</div>
+                    <div class="info-value">@Model.PhotoCount</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-file-alt"></i>Opis
+                </div>
+                <div class="description">
+                    @Html.Raw(Model.Description.Replace("\n", "<br>"))
+                </div>
+            </div>
+        }
+
+        <!-- Location -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-map-marker-alt"></i>Lokalizacja
+            </div>
+            <div class="map-coordinates">
+                <i class="fas fa-globe"></i> Szerokość: @Model.Latitude • Długość: @Model.Longitude
+            </div>
+        </div>
+
+        <!-- Checklist -->
+        @if (Model.Checklist != null && Model.Checklist.Items != null && Model.Checklist.Items.Any())
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-check-circle"></i>Checklista
+                </div>
+                <div class="checklist">
+                    @foreach (var item in Model.Checklist.Items)
+                    {
+                        <div class="checklist-item @(item.IsCompleted ? "checked" : "")">
+                            <input type="checkbox" @(item.IsCompleted ? "checked" : "") disabled>
+                            @item.Title
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Transports From -->
+        @if (Model.TransportsFrom != null && Model.TransportsFrom.Any())
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-car-side"></i>Transport z tego miejsca
+                </div>
+                @foreach (var transport in Model.TransportsFrom)
+                {
+                    <div class="transport-section">
+                        <div class="transport-item">
+                            <span class="badge">@transport.Duration min</span>
+                            <strong>@transport.Name</strong><br>
+                            <i class="fas fa-arrow-right"></i> Do: @transport.ToSpotName
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Transports To -->
+        @if (Model.TransportsTo != null && Model.TransportsTo.Any())
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-car-side"></i>Transport do tego miejsca
+                </div>
+                @foreach (var transport in Model.TransportsTo)
+                {
+                    <div class="transport-section">
+                        <div class="transport-item">
+                            <span class="badge">@transport.Duration min</span>
+                            <strong>@transport.Name</strong><br>
+                            <i class="fas fa-arrow-left"></i> Z: @transport.FromSpotName
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Photos -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-camera"></i>Zdjęcia (@Model.Photos.Count())
+            </div>
+            @if (Model.Photos != null && Model.Photos.Any())
+            {
+                <div class="photos-grid">
+                    @foreach (var photo in Model.Photos)
+                    {
+                        <div class="photo-item">
+                            @if (!string.IsNullOrEmpty(photo.Base64Content))
+                            {
+                                <div class="photo-image-container">
+                                    <img src="@photo.Base64Content" alt="@photo.Alt" class="photo-image" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="photo-placeholder">
+                                    <i class="fas fa-image"></i>
+                                    <span>@photo.Name</span>
+                                </div>
+                            }
+                            <div class="photo-name">@photo.Name</div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-data">
+                    <i class="fas fa-image fa-2x" style="margin-bottom: 10px;"></i><br>
+                    Brak zdjęć dla tego miejsca
+                </div>
+            }
+        </div>
+
+        <!-- Files -->
+        @if (Model.Files != null && Model.Files.Any())
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-paperclip"></i>Załączniki (@Model.Files.Count())
+                </div>
+                <div class="info-grid">
+                    @foreach (var file in Model.Files)
+                    {
+                        <div class="info-item">
+                            <div class="info-label">Plik</div>
+                            <div class="info-value">
+                                <i class="fas fa-file"></i> @file.Name
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Participants -->
+        @if (Model.Participants != null && Model.Participants.Any())
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-users"></i>Uczestnicy podróży
+                </div>
+                <div class="info-grid">
+                    @foreach (var participant in Model.Participants)
+                    {
+                        <div class="info-item">
+                            <div class="info-value">
+                                <i class="fas fa-user"></i> @participant.DisplayName
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</body>
+</html>

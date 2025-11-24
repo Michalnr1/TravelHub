@@ -127,6 +127,7 @@ public class PhotoViewModel
     public string? Name { get; set; }
     public string? Alt { get; set; }
     public required string FilePath { get; set; }
+    public string? Base64Content { get; set; }
 }
 
 public class FileViewModel

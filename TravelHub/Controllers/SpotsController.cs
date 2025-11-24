@@ -31,6 +31,7 @@ public class SpotsController : Controller
     private readonly ITransportService _transportService;
     private readonly IFileService _fileService;
     private readonly IPdfService _pdfService;
+    private readonly IWebHostEnvironment _webHostEnvironment;
     private readonly ICompositeViewEngine _viewEngine;
     private readonly ITempDataProvider _tempDataProvider;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -58,6 +59,7 @@ public class SpotsController : Controller
         IConfiguration configuration,
         UserManager<Person> userManager,
         IPdfService pdfService,
+        IWebHostEnvironment webHostEnvironment,
         ICompositeViewEngine viewEngine,
         ITempDataProvider tempDataProvider,
         IHttpContextAccessor httpContextAccessor)
@@ -78,6 +80,7 @@ public class SpotsController : Controller
         _configuration = configuration;
         _userManager = userManager;
         _pdfService = pdfService;
+        _webHostEnvironment = webHostEnvironment;
         _viewEngine = viewEngine;
         _tempDataProvider = tempDataProvider;
         _httpContextAccessor = httpContextAccessor;
@@ -593,33 +596,89 @@ public class SpotsController : Controller
         if (spot == null)
             return NotFound();
 
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(spot.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
         var vm = new SpotDetailsViewModel
         {
             Id = spot.Id,
             TripName = spot.Trip!.Name!,
             Name = spot.Name,
             Description = spot.Description!,
+            Checklist = spot.Checklist ?? new Checklist(),
             Latitude = spot.Latitude,
             Longitude = spot.Longitude,
             Rating = spot.Rating,
             Duration = spot.Duration,
+            DurationString = ConvertDecimalToTimeString(spot.Duration),
             Order = spot.Order,
+            StartTime = spot.StartTime,
+            StartTimeString = spot.StartTime != null ? ConvertDecimalToTimeString(spot.StartTime.Value) : null,
             CategoryName = spot.Category?.Name,
             DayName = spot.Day?.Name,
-            Photos = (await _photoService.GetBySpotIdAsync(spot.Id))
-              .Select(p => new PhotoViewModel
-              {
-                  Id = p.Id,
-                  Name = p.Name,
-                  Alt = p.Alt,
-                  FilePath = p.FilePath
-              })
-              .ToList()
+            PhotoCount = spot.Photos?.Count ?? 0,
+            Participants = spot.Trip?.Participants?.Select(p => new ParticipantVm
+            {
+                Id = p.Id.ToString(),
+                DisplayName = $"{p.Person?.FirstName} {p.Person?.LastName}"
+            }).ToList() ?? new List<ParticipantVm>()
         };
 
-        // Render the view to HTML string
-        var htmlString = await RenderViewToStringAsync("Details", vm);
+        // Pobieranie transportów
+        var transportsFrom = await _transportService.GetTransportsFromSpotAsync(spot.Id);
+        vm.TransportsFrom = transportsFrom.Select(t => new TransportBasicViewModel
+        {
+            Id = t.Id,
+            Duration = t.Duration,
+            Name = t.Name,
+            FromSpotId = t.FromSpotId,
+            ToSpotId = t.ToSpotId,
+            FromSpotName = t.FromSpot?.Name,
+            ToSpotName = t.ToSpot?.Name
+        }).ToList();
 
+        var transportsTo = await _transportService.GetTransportsToSpotAsync(spot.Id);
+        vm.TransportsTo = transportsTo.Select(t => new TransportBasicViewModel
+        {
+            Id = t.Id,
+            Duration = t.Duration,
+            Name = t.Name,
+            FromSpotId = t.FromSpotId,
+            ToSpotId = t.ToSpotId,
+            FromSpotName = t.FromSpot?.Name,
+            ToSpotName = t.ToSpot?.Name
+        }).ToList();
+
+        // Zdjęcia z konwersją do Base64
+        var photos = await _photoService.GetBySpotIdAsync(spot.Id);
+        var photoViewModels = new List<PhotoViewModel>();
+
+        foreach (var photo in photos)
+        {
+            var base64Image = await ConvertImageToBase64(photo.FilePath);
+            photoViewModels.Add(new PhotoViewModel
+            {
+                Id = photo.Id,
+                Name = photo.Name,
+                Alt = photo.Alt,
+                FilePath = photo.FilePath,
+                Base64Content = base64Image
+            });
+        }
+        vm.Photos = photoViewModels;
+
+        var files = await _fileService.GetBySpotIdAsync(spot.Id);
+        vm.Files = files.Select(f => new FileViewModel
+        {
+            Id = f.Id,
+            Name = f.DisplayName,
+            spotId = spot.Id
+        }).ToList();
+
+        // Renderuj widok PDF
+        var htmlString = await RenderViewToStringAsync("DetailsPdf", vm);
         var bytes = await _pdfService.GeneratePdfFromHtmlAsync(htmlString, $"Spot_{spot.Name}.pdf");
 
         return File(bytes, "application/pdf", $"Spot_{spot.Name}.pdf");
@@ -652,6 +711,47 @@ public class SpotsController : Controller
         await viewResult.View.RenderAsync(viewContext);
 
         return sw.ToString();
+    }
+
+    private async Task<string> ConvertImageToBase64(string imagePath)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(imagePath))
+                return null;
+
+            // Usuń początkowe slashy i ścieżki względne
+            var cleanPath = imagePath.TrimStart('~', '/', '\\');
+            var fullPath = Path.Combine(_webHostEnvironment.WebRootPath, cleanPath);
+
+            if (System.IO.File.Exists(fullPath))
+            {
+                var imageBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+                var extension = Path.GetExtension(fullPath).ToLowerInvariant();
+
+                var mimeType = extension switch
+                {
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".gif" => "image/gif",
+                    ".bmp" => "image/bmp",
+                    ".webp" => "image/webp",
+                    _ => "image/jpeg"
+                };
+
+                return $"data:{mimeType};base64,{Convert.ToBase64String(imageBytes)}";
+            }
+            else
+            {
+                _logger.LogWarning("Image file not found: {FullPath}", fullPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not convert image to base64: {ImagePath}", imagePath);
+        }
+
+        return null;
     }
 
     private async Task PopulateSelectListsForTrip(SpotCreateEditViewModel viewModel, int tripId)

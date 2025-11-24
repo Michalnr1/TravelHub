@@ -5,6 +5,12 @@
 }
 
 <div class="flight-search-container">
+    <div class="mb-4">
+        <a href="@Url.Action("Details", "Trips", new { id = Model.TripId })" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Trip
+        </a>
+    </div>
+
     <form id="flightForm" class="flight-form">
         <div class="form-row">
             <div class="form-group">

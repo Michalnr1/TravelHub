@@ -5,6 +5,7 @@ namespace TravelHub.Web.ViewModels.Trips;
 
 public class FlightSearchViewModel
 {
+    public int TripId { get; set; }
     public string? FromAirportCode { get; set; }
     public string? ToAirportCode { get; set; }
     public CurrencyCode? DefaultCurrencyCode { get; set; }
