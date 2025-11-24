@@ -1,20 +1,16 @@
 ﻿@using TravelHub.Domain.Entities
-@model TravelHub.Domain.Entities.Day
+@using TravelHub.Web.ViewModels.Activities
+@model TravelHub.Web.ViewModels.Days.DayDetailsViewModel
+
 @{
     bool isGroup = Model.Number == null;
     ViewData["Title"] = isGroup ? "Group Details" : $"Day {Model.Number} Details";
 
     // Grupowanie aktywności
     var otherActivities = Model.Activities?
-        .Where(a => a is not Accommodation)
+        .Where(a => a.Type != "Accommodation")
         .OrderBy(a => a.Order)
-        .ToList() ?? new List<Activity>();
-
-    // Wszystkie aktywności z podróży (do wyświetlenia po prawej stronie)
-    var allTripActivities = Model.Trip?.Activities?
-        .Where(a => a.DayId == null && a is not Accommodation)
-        .OrderBy(a => a.Name)
-        .ToList() ?? new List<Activity>();
+        .ToList() ?? new List<ActivityDetailsViewModel>();
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -63,53 +59,46 @@
         <i class="fas fa-hotel text-warning"></i> Accommodation
     </h4>
 
-    @if (Model.Accommodation != null)
+    @{
+        var accommodation = Model.Accommodation;
+    }
+
+    @if (accommodation != null)
     {
         <div class="row">
             <div class="col-md-6 mb-3">
                 <div class="card border-warning">
                     <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">
-                            <i class="fas fa-hotel"></i> @Model.Accommodation.Name
+                            <i class="fas fa-hotel"></i> @accommodation.Name
                         </h6>
                         <span class="badge bg-warning">Accommodation</span>
                     </div>
                     <div class="card-body">
-                        @if (!string.IsNullOrEmpty(Model.Accommodation.Description))
+                        @if (!string.IsNullOrEmpty(accommodation.Description))
                         {
-                            <p class="card-text">@Model.Accommodation.Description</p>
+                            <p class="card-text">@accommodation.Description</p>
                         }
 
                         <div class="row small text-muted">
                             <div class="col-6">
                                 <strong>Check-in:</strong><br>
-                                @Model.Accommodation.CheckIn.ToString("MMM dd, yyyy")<br>
-                                @TimeSpan.FromHours((double)Model.Accommodation.CheckInTime).ToString(@"hh\:mm")
+                                @accommodation.CheckIn.ToString("MMM dd, yyyy")<br>
+                                @TimeSpan.FromHours((double)accommodation.CheckInTime).ToString(@"hh\:mm")
                             </div>
                             <div class="col-6">
                                 <strong>Check-out:</strong><br>
-                                @Model.Accommodation.CheckOut.ToString("MMM dd, yyyy")<br>
-                                @TimeSpan.FromHours((double)Model.Accommodation.CheckOutTime).ToString(@"hh\:mm")
+                                @accommodation.CheckOut.ToString("MMM dd, yyyy")<br>
+                                @TimeSpan.FromHours((double)accommodation.CheckOutTime).ToString(@"hh\:mm")
                             </div>
                         </div>
 
                         <div class="mt-2">
                             <small class="text-muted">
                                 <i class="fas fa-map-marker-alt"></i>
-                                @Model.Accommodation.Latitude.ToString("F6"), @Model.Accommodation.Longitude.ToString("F6")
+                                @accommodation.Latitude.ToString("F6"), @accommodation.Longitude.ToString("F6")
                             </small>
                         </div>
-
-                        @if (Model.Accommodation.Rating.HasValue)
-                        {
-                            <div class="mt-2">
-                                <strong>Rating: </strong>
-                                @for (int i = 0; i < 5; i++)
-                                {
-                                    <i class="fas fa-star @(i < (int)Model.Accommodation.Rating ? "text-warning" : "text-muted")"></i>
-                                }
-                            </div>
-                        }
                     </div>
                 </div>
             </div>
@@ -139,11 +128,11 @@
             <div class="list-group" id="activitiesContainer">
                 @foreach (var activity in otherActivities)
                 {
-                    var isSpot = activity is Spot;
-                    var isRegularActivity = !isSpot;
+                    var isSpot = activity.Type == "Spot";
+                    var isRegularActivity = activity.Type == "Activity";
 
                     <div class="list-group-item d-flex justify-content-between align-items-start
-                                    @(isSpot ? "border-success" : "border-primary") activity-item"
+                                            @(isSpot ? "border-success" : "border-primary") activity-item"
                          style="border-left-width: 4px;"
                          data-activity-id="@activity.Id"
                          data-order="@activity.Order"
@@ -164,14 +153,7 @@
                                         @activity.Name
 
                                         <span class="badge @(isSpot ? "bg-success" : "bg-primary") ms-2">
-                                            @if (isSpot)
-                                            {
-                                                @:Spot
-                                            }
-                                            else
-                                            {
-                                                @:Activity
-                                            }
+                                            @activity.Type
                                         </span>
                                     </h6>
                                 </div>
@@ -195,40 +177,21 @@
 
                             <div class="mt-2">
                                 <small class="text-muted">
-                                    <strong>Duration:</strong> @($"{(int)activity.Duration:D2}:{(int)((activity.Duration - (int)activity.Duration) * 60):D2}")
+                                    <strong>Duration:</strong> @activity.DurationString
                                 </small>
 
-                                @if (activity.Category != null)
+                                @if (!string.IsNullOrEmpty(activity.CategoryName))
                                 {
                                     <small class="text-muted ms-3">
-                                        <strong>Category:</strong> @activity.Category.Name
+                                        <strong>Category:</strong> @activity.CategoryName
                                     </small>
                                 }
 
-                                <!-- Dodatkowe informacje dla Spot -->
-                                @if (isSpot)
+                                @if (activity.StartTime.HasValue)
                                 {
-                                    var spot = (Spot)activity;
                                     <small class="text-muted ms-3">
-                                        <i class="fas fa-location-arrow"></i>
-                                        @spot.Latitude.ToString("F4"), @spot.Longitude.ToString("F4")
+                                        <strong>Start:</strong> @activity.StartTimeString
                                     </small>
-                                    @* @if (spot.Cost > 0)
-                                    {
-                                        <small class="text-muted ms-3">
-                                            <strong>Cost:</strong> @spot.Cost.ToString("C")
-                                        </small>
-                                    } *@
-                                    @if (spot.Rating.HasValue)
-                                    {
-                                        <small class="text-muted ms-3">
-                                            <strong>Rating:</strong>
-                                            @for (int i = 0; i < 5; i++)
-                                            {
-                                                <i class="fas fa-star @(i < (int)spot.Rating ? "text-warning" : "text-muted")" style="font-size: 0.8em;"></i>
-                                            }
-                                        </small>
-                                    }
                                 }
                             </div>
                         </div>
@@ -286,20 +249,20 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4>
                 <i class="fas fa-list text-secondary"></i> Available Activities
-                <span class="badge bg-secondary">@allTripActivities.Count</span>
+                <span class="badge bg-secondary">@Model.AvailableActivities.Count</span>
             </h4>
         </div>
 
-        @if (allTripActivities.Any())
+        @if (Model.AvailableActivities.Any())
         {
             <div class="list-group">
-                @foreach (var activity in allTripActivities)
+                @foreach (var activity in Model.AvailableActivities)
                 {
-                    var isSpot = activity is Spot;
-                    var isRegularActivity = !isSpot;
+                    var isSpot = activity.Type == "Spot";
+                    var isAccommodation = activity.Type == "Accommodation";
 
                     <div class="list-group-item d-flex justify-content-between align-items-start
-                                                @(isSpot ? "border-success" : "border-primary")"
+                                    @(isSpot ? "border-success" : isAccommodation ? "border-warning" : "border-primary")"
                          style="border-left-width: 4px; opacity: 0.8;">
 
                         <div class="flex-grow-1">
@@ -308,21 +271,18 @@
                                 {
                                     <i class="fas fa-map-marker-alt text-success"></i>
                                 }
+                                else if (isAccommodation)
+                                {
+                                    <i class="fas fa-hotel text-warning"></i>
+                                }
                                 else
                                 {
                                     <i class="fas fa-running text-primary"></i>
                                 }
                                 @activity.Name
 
-                                <span class="badge @(isSpot ? "bg-success" : "bg-primary") ms-2">
-                                    @if (isSpot)
-                                    {
-                                        @:Spot
-                                    }
-                                    else
-                                    {
-                                        @:Activity
-                                    }
+                                <span class="badge @(isSpot ? "bg-success" : isAccommodation ? "bg-warning" : "bg-primary") ms-2">
+                                    @activity.Type
                                 </span>
                             </h6>
 
@@ -333,8 +293,22 @@
 
                             <div class="mt-1">
                                 <small class="text-muted">
-                                    <strong>Duration:</strong> @activity.Duration hours
+                                    <strong>Duration:</strong> @activity.DurationString
                                 </small>
+
+                                @if (!string.IsNullOrEmpty(activity.CategoryName))
+                                {
+                                    <small class="text-muted ms-3">
+                                        <strong>Category:</strong> @activity.CategoryName
+                                    </small>
+                                }
+
+                                @if (activity.StartTime.HasValue)
+                                {
+                                    <small class="text-muted ms-3">
+                                        <strong>Start:</strong> @activity.StartTimeString
+                                    </small>
+                                }
                             </div>
                         </div>
 
@@ -377,7 +351,7 @@
     </a>
 
     <a asp-action="MapView" asp-route-id="@Model.Id" class="btn btn-secondary">
-        <i class="fas fa-arrow-left"></i> View on Map
+        <i class="fas fa-map"></i> View on Map
     </a>
 </div>
 
@@ -530,75 +504,16 @@
                         console.log('Order updated successfully');
                     } else {
                         console.error('Failed to update order:', data.message);
-                        // Optional: show error message to user
                     }
                 })
                 .catch(error => {
                     console.error('Error updating order:', error);
-                    // Optional: show error message to user and revert order
                 })
                 .finally(() => {
-                    // Hide loading indicator
                     if (loadingIndicator) {
                         loadingIndicator.style.display = 'none';
                     }
                     isUpdating = false;
-                });
-            }
-
-            // Add touch support for mobile devices
-            if ('ontouchstart' in window) {
-                let touchStartY = 0;
-                let touchCurrentY = 0;
-                let touchDraggedItem = null;
-
-                items.forEach(item => {
-                    item.addEventListener('touchstart', function(e) {
-                        touchStartY = e.touches[0].clientY;
-                        touchDraggedItem = this;
-                        this.classList.add('touch-dragging');
-                    });
-
-                    item.addEventListener('touchmove', function(e) {
-                        if (!touchDraggedItem) return;
-
-                        e.preventDefault();
-                        touchCurrentY = e.touches[0].clientY;
-
-                        const deltaY = touchCurrentY - touchStartY;
-                        if (Math.abs(deltaY) > 10) {
-                            touchDraggedItem.style.transform = `translateY(${deltaY}px)`;
-                        }
-                    });
-
-                    item.addEventListener('touchend', function(e) {
-                        if (!touchDraggedItem) return;
-
-                        const allItems = Array.from(container.querySelectorAll('.activity-item'));
-                        const draggedIndex = allItems.indexOf(touchDraggedItem);
-
-                        // Calculate new position based on movement
-                        const deltaY = touchCurrentY - touchStartY;
-                        const itemHeight = touchDraggedItem.offsetHeight;
-                        const positionsMoved = Math.round(deltaY / itemHeight);
-
-                        let newIndex = draggedIndex + positionsMoved;
-                        newIndex = Math.max(0, Math.min(newIndex, allItems.length - 1));
-
-                        if (newIndex !== draggedIndex) {
-                            if (newIndex > draggedIndex) {
-                                allItems[newIndex].parentNode.insertBefore(touchDraggedItem, allItems[newIndex].nextSibling);
-                            } else {
-                                allItems[newIndex].parentNode.insertBefore(touchDraggedItem, allItems[newIndex]);
-                            }
-
-                            updateActivityOrder();
-                        }
-
-                        touchDraggedItem.style.transform = '';
-                        touchDraggedItem.classList.remove('touch-dragging');
-                        touchDraggedItem = null;
-                    });
                 });
             }
         });
@@ -625,11 +540,6 @@
                 background-color: rgba(0, 123, 255, 0.1);
             }
 
-            .list-group-item.touch-dragging {
-                z-index: 1000;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            }
-
         .border-warning {
             border-left-color: #ffc107 !important;
         }
@@ -653,13 +563,5 @@
             .drag-handle:hover {
                 color: #007bff !important;
             }
-
-        /* Improve drag handle visibility on touch devices */
-        @@media (max-width: 768px) {
-            .drag-handle {
-                font-size: 1.2em;
-                padding: 8px;
-            }
-        }
     </style>
 }
