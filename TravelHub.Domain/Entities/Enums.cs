@@ -87,6 +87,9 @@ public enum CurrencyCode
     [Display(Name = "Hong Kong Dollar")]
     HKD,
 
+    [Display(Name = "Singapore Dollar")]
+    SGD,
+
     // Other Major Currencies
     [Display(Name = "Russian Ruble")]
     RUB,

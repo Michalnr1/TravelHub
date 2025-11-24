@@ -10,7 +10,7 @@ public class PhotoService : GenericService<Photo>, IPhotoService
 {
     private readonly IPhotoRepository _photoRepository;
     private static readonly string[] AllowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-    private const long MaxFileBytes = 5 * 1024 * 1024; // 5 MB
+    private const long MaxFileBytes = 10 * 1024 * 1024; // 10 MB
 
     public PhotoService(IPhotoRepository photoRepository) : base(photoRepository)
     {
