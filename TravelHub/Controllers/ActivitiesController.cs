@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Extensions;
 using TravelHub.Domain.Interfaces.Services;
@@ -506,28 +505,32 @@ public class ActivitiesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddChecklistItem(int activityId, string item)
     {
+        var activity = await _activityService.GetByIdAsync(activityId);
+
         if (string.IsNullOrWhiteSpace(item))
-            return RedirectToAction("Details", new { id = activityId });
+            return RedirectToDetails(activity);
 
         await _activityService.AddChecklistItemAsync(activityId, item);
-        return RedirectToAction("Details", new { id = activityId });
+        return RedirectToDetails(activity);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleChecklistItem(int activityId, string item)
     {
+        var activity = await _activityService.GetByIdAsync(activityId);
         await _activityService.ToggleChecklistItemAsync(activityId, item);
-        return RedirectToAction("Details", new { id = activityId });
+        return RedirectToDetails(activity);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AssignParticipant(int activityId, string itemTitle, string? participantId)
     {
+        var activity = await _activityService.GetByIdAsync(activityId);
         participantId = string.IsNullOrWhiteSpace(participantId) ? null : participantId;
         await _activityService.AssignParticipantToItemAsync(activityId, itemTitle, participantId);
-        return RedirectToAction("Details", new { id = activityId });
+        return RedirectToDetails(activity);
     }
 
     /// <summary>
@@ -560,10 +563,12 @@ public class ActivitiesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditChecklistItem(int activityId, string oldItem, string newItem)
     {
+        var activity = await _activityService.GetByIdAsync(activityId);
+
         if (!ModelState.IsValid || string.IsNullOrEmpty(oldItem) || string.IsNullOrEmpty(newItem))
         {
             TempData["ErrorMessage"] = "Invalid item data.";
-            return RedirectToAction("Details", new { id = activityId });
+            return RedirectToDetails(activity);
         }
 
         try
@@ -580,15 +585,28 @@ public class ActivitiesController : Controller
             TempData["ErrorMessage"] = ex.Message;
         }
 
-        return RedirectToAction("Details", new { id = activityId });
+        return RedirectToDetails(activity);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteChecklistItem(int activityId, string item)
     {
+        var activity = await _activityService.GetByIdAsync(activityId);
         await _activityService.RemoveChecklistItemAsync(activityId, item);
-        return RedirectToAction("Details", new { id = activityId });
+        return RedirectToDetails(activity);
+    }
+
+    private IActionResult RedirectToDetails(Activity activity)
+    {
+        if (activity is Spot)
+        {
+            // kontroler Spot
+            return RedirectToAction("Details", "Spots", new { id = activity.Id });
+        }
+
+        // kontroler Activity (domyślny)
+        return RedirectToAction("Details", "Activities", new { id = activity.Id });
     }
 
     private async Task PopulateSelectListsForTrip(ActivityCreateEditViewModel viewModel, int tripId)
