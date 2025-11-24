@@ -901,6 +901,7 @@ public class TripsController : Controller
             .ToList();
         FlightSearchViewModel model = new FlightSearchViewModel
         {
+            TripId = id,
             FromAirportCode = fromAirport,
             ToAirportCode = toAirport,
             DefaultCurrencyCode = trip.CurrencyCode,
