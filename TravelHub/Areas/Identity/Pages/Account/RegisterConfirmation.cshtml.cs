@@ -19,31 +19,18 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account
     public class RegisterConfirmationModel : PageModel
     {
         private readonly UserManager<Person> _userManager;
-        private readonly IEmailSender _sender;
+        private readonly Domain.Interfaces.IEmailSender _sender;
 
-        public RegisterConfirmationModel(UserManager<Person> userManager, IEmailSender sender)
+        public RegisterConfirmationModel(UserManager<Person> userManager, Domain.Interfaces.IEmailSender sender)
         {
             _userManager = userManager;
             _sender = sender;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public string Email { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public bool DisplayConfirmAccountLink { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public string EmailConfirmationUrl { get; set; }
+        public bool CanResendEmail { get; set; }
 
         public async Task<IActionResult> OnGetAsync(string email, string returnUrl = null)
         {
@@ -60,8 +47,22 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account
             }
 
             Email = email;
-            // Once you add a real email sender, you should remove this code that lets you confirm the account
-            DisplayConfirmAccountLink = true;
+
+            // Sprawdź czy użytkownik już potwierdził email
+            if (user.EmailConfirmed)
+            {
+                // Email już potwierdzony - przekieruj do logowania
+                return RedirectToPage("./Login");
+            }
+
+            // Umożliwij ponowne wysłanie emaila
+            CanResendEmail = true;
+
+            // Dla środowiska development - pokaż link bezpośredni
+            // W produkcji to powinno być false
+            DisplayConfirmAccountLink = false; // Zmień na true tylko w development
+
+            // Wygeneruj URL dla linku potwierdzającego (tylko jeśli DisplayConfirmAccountLink = true)
             if (DisplayConfirmAccountLink)
             {
                 var userId = await _userManager.GetUserIdAsync(user);
@@ -75,6 +76,45 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account
             }
 
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostResendConfirmationAsync(string email, string returnUrl = null)
+        {
+            if (string.IsNullOrEmpty(email))
+            {
+                return RedirectToPage("Trips/MyTrips");
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                // Nie pokazuj że użytkownik nie istnieje (ze względów bezpieczeństwa)
+                return RedirectToPage("./RegisterConfirmation", new { email = email, returnUrl = returnUrl });
+            }
+
+            if (user.EmailConfirmed)
+            {
+                return RedirectToPage("./Login");
+            }
+
+            // Wygeneruj nowy token i wyślij email
+            var userId = await _userManager.GetUserIdAsync(user);
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+            var callbackUrl = Url.Page(
+                "/Account/ConfirmEmail",
+                pageHandler: null,
+                values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
+                protocol: Request.Scheme);
+
+            await _sender.SendEmailAsync(
+                email,
+                "Confirm your email",
+                $"Please confirm your account by <a href='{callbackUrl}'>clicking here</a>.");
+
+            // Dodaj komunikat o sukcesie
+            TempData["ResendSuccess"] = true;
+            return RedirectToPage("./RegisterConfirmation", new { email = email, returnUrl = returnUrl });
         }
     }
 }
