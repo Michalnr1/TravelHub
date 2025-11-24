@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -6,11 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Activities;
+using TravelHub.Web.ViewModels.Checklists;
 using TravelHub.Web.ViewModels.Expenses;
 using TravelHub.Web.ViewModels.Transports;
 using CategorySelectItem = TravelHub.Web.ViewModels.Activities.CategorySelectItem;
@@ -142,9 +143,14 @@ public class SpotsController : Controller
             DayName = spot.Day?.Name,
             Longitude = spot.Longitude,
             Latitude = spot.Latitude,
-            // Cost = spot.Cost,
             Rating = spot.Rating,
-            PhotoCount = spot.Photos?.Count ?? 0
+            PhotoCount = spot.Photos?.Count ?? 0,
+            Checklist = spot.Checklist ?? new Checklist(),
+            Participants = spot.Trip?.Participants?.Select(p => new ParticipantVm
+            {
+                Id = p.Id.ToString(),
+                DisplayName = $"{p.Person?.FirstName} {p.Person?.LastName}"
+            }).ToList() ?? new List<ParticipantVm>()
         };
 
         // Pobieranie transportów FROM tego spota
@@ -187,7 +193,7 @@ public class SpotsController : Controller
         viewModel.Files = files.Select(f => new FileViewModel
         {
             Id = f.Id,
-            Name = f.DisplayName, 
+            Name = f.DisplayName,
             spotId = spot.Id
         }).ToList();
 

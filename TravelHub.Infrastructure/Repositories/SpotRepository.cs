@@ -17,6 +17,8 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
             .Include(s => s.Category)
             .Include(s => s.Day)
             .Include(s => s.Trip)
+                .ThenInclude(t => t!.Participants)
+                    .ThenInclude(tp => tp.Person)
             .Include(s => s.Expense)
                 .ThenInclude(e => e!.ExchangeRate)
             .Include(s => s.Photos)

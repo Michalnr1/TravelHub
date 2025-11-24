@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using TravelHub.Domain.Entities;
+using TravelHub.Web.ViewModels.Checklists;
 using TravelHub.Web.ViewModels.Expenses;
 using TravelHub.Web.ViewModels.Transports;
 
@@ -42,6 +43,8 @@ public class ActivityDetailsViewModel
     [Display(Name = "Day name")]
     public string? DayName { get; set; }
     public string? Type { get; set; } // "Activity" or "Spot"
+    public Checklist Checklist { get; set; } = new Checklist();
+    public List<ParticipantVm> Participants { get; set; } = new List<ParticipantVm>();
 }
 
 public class ActivityCreateEditViewModel
@@ -114,6 +117,8 @@ public class SpotCreateEditViewModel : ActivityCreateEditViewModel
     public CurrencyCode TripCurrency { get; set; }
 
     public Rating? Rating { get; set; }
+    public Checklist Checklist { get; set; } = new Checklist();
+    public List<ParticipantVm> Participants { get; set; } = new List<ParticipantVm>();
 }
 
 public class PhotoViewModel
