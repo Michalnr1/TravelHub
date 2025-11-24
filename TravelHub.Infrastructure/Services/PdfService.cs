@@ -1,52 +1,64 @@
 ﻿using DinkToPdf;
 using DinkToPdf.Contracts;
-using Microsoft.AspNetCore.Mvc.ViewEngines;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.AspNetCore.Mvc;
-using System.IO;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using TravelHub.Domain.Interfaces.Services;
 
-namespace TravelHub.Infrastructure.Services
+namespace TravelHub.Infrastructure.Services;
+
+public class PdfService : IPdfService
 {
-    public interface IPdfService
+    private readonly IConverter _converter;
+    private readonly IWebHostEnvironment _environment;
+
+    public PdfService(IConverter converter, IWebHostEnvironment environment)
     {
-        Task<byte[]> GeneratePdfFromHtmlAsync(string htmlContent, string fileName = "export.pdf");
+        _converter = converter;
+        _environment = environment;
     }
 
-    public class PdfService : IPdfService
+    public async Task<byte[]> GeneratePdfFromHtmlAsync(string htmlContent, string fileName = "export.pdf")
     {
-        private readonly IConverter _converter;
-
-        public PdfService(IConverter converter)
+        var doc = new HtmlToPdfDocument()
         {
-            _converter = converter;
-        }
-
-        public async Task<byte[]> GeneratePdfFromHtmlAsync(string htmlContent, string fileName = "export.pdf")
-        {
-            var doc = new HtmlToPdfDocument()
-            {
-                GlobalSettings = {
-                    ColorMode = ColorMode.Color,
-                    PaperSize = PaperKind.A4,
-                    Orientation = Orientation.Portrait,
-                    DPI = 300,
+            GlobalSettings = {
+                ColorMode = ColorMode.Color,
+                PaperSize = PaperKind.A4,
+                Orientation = Orientation.Portrait,
+                DPI = 300,
+                Margins = new MarginSettings {
+                    Top = 15,
+                    Bottom = 15,
+                    Left = 10,
+                    Right = 10
                 },
-                Objects = {
-                    new ObjectSettings()
-                    {
-                        HtmlContent = htmlContent,
-                        WebSettings = {
-                            DefaultEncoding = "utf-8",
-                            LoadImages = true,
-                            EnableJavascript = true,
-                            PrintMediaType = true
-                        },
+                DocumentTitle = fileName
+            },
+            Objects = {
+                new ObjectSettings()
+                {
+                    HtmlContent = htmlContent,
+                    WebSettings = {
+                        DefaultEncoding = "utf-8",
+                        LoadImages = true,
+                        EnableJavascript = false, // Wyłącz JavaScript dla lepszej kompatybilności
+                        PrintMediaType = true
+                    },
+                    HeaderSettings = {
+                        FontSize = 9,
+                        Right = "Strona [page] z [toPage]",
+                        Line = false,
+                        Spacing = 5
+                    },
+                    FooterSettings = {
+                        FontSize = 9,
+                        Center = $"Wygenerowano: {DateTime.Now:dd.MM.yyyy HH:mm}",
+                        Line = false,
+                        Spacing = 5
                     }
                 }
-            };
-            return _converter.Convert(doc);
-        }
+            }
+        };
+
+        return await Task.Run(() => _converter.Convert(doc));
     }
 }
