@@ -300,16 +300,43 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Edit item functionality
             const editButtons = document.querySelectorAll('.edit-item');
-            const editModal = new bootstrap.Modal(document.getElementById('editItemModal'));
+            const editModalElement = document.getElementById('editItemModal');
+
+            // Check if modal exists before proceeding
+            if (!editModalElement) {
+                console.warn('Edit item modal not found');
+                return;
+            }
+
+            const editModal = new bootstrap.Modal(editModalElement);
             const oldItemInput = document.getElementById('oldItem');
             const newItemInput = document.getElementById('newItem');
             const editForm = document.getElementById('editItemForm');
+
+            // Check if required elements exist
+            if (!oldItemInput || !newItemInput) {
+                console.warn('Required form elements not found');
+                return;
+            }
 
             editButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const itemTitle = this.getAttribute('data-item-title');
                     const row = this.closest('tr');
-                    const currentItemText = row.querySelector('td:nth-child(2)').textContent.trim();
+
+                    if (!row) {
+                        console.warn('Row element not found');
+                        return;
+                    }
+
+                    // Get the item text from the second table cell
+                    const itemTextCell = row.querySelector('td:nth-child(2)');
+                    if (!itemTextCell) {
+                        console.warn('Item text cell not found');
+                        return;
+                    }
+
+                    const currentItemText = itemTextCell.textContent.trim();
 
                     oldItemInput.value = itemTitle;
                     newItemInput.value = currentItemText;
