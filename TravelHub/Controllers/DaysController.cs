@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
@@ -48,7 +49,7 @@ public class DaysController : Controller
     }
 
     // GET: Days/Details/5
-    public async Task<IActionResult> Details(int id, string source = "")
+    public async Task<IActionResult> Details(int id, string source = "", string? returnUrl = null)
     {
         var day = await _dayService.GetDayWithDetailsAsync(id);
         if (day == null)
@@ -115,7 +116,9 @@ public class DaysController : Controller
                 Type = a is Spot ? "Spot" : "Activity"
             }).ToList()
         };
-
+        if (returnUrl != null)
+            returnUrl = source == "public" ? returnUrl + "?source=public" : returnUrl;
+        ViewData["ReturnUrl"] = returnUrl ?? (source == "public" ? Url.Action("Details", "TripsSearch", new { id = day.TripId }) : Url.Action("Details", "Trips", new { id = day.TripId }));
         return View(viewModel);
     }
 

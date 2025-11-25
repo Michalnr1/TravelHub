@@ -236,8 +236,8 @@
         </div>
     </div>
     <div class="mt-4 d-flex flex-wrap gap-2">
-        <a asp-controller="Days" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Day
+        <a asp-controller="Days" asp-action="Details" asp-route-id="@Model.Id" asp-route-source="@(isPublicView ? "public" : "")" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Day 
         </a>
         <a href="@backUrl" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Back to Trip

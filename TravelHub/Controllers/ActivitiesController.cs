@@ -100,7 +100,9 @@ public class ActivitiesController : Controller
                 DisplayName = $"{p.Person?.FirstName} {p.Person?.LastName}"
             }).ToList() ?? new List<ParticipantVm>()
         };
-        ViewData["ReturnUrl"] = returnUrl;
+        if (returnUrl != null)
+            returnUrl = source == "public" ? returnUrl + "?source=public" : returnUrl;
+        ViewData["ReturnUrl"] = returnUrl ?? (source == "public" ? Url.Action("Details", "TripsSearch", new { id = activity.TripId }) : Url.Action("Details", "Trips", new { id = activity.TripId }));
         return View(viewModel);
     }
 
