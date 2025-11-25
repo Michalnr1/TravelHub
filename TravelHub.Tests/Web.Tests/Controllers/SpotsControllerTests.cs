@@ -46,6 +46,8 @@ public class SpotsControllerTests
         var viewEngineMock = new Mock<ICompositeViewEngine>();
         var tempDataProviderMock = new Mock<ITempDataProvider>();
         var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+        var webHostEnvironmentMock = new Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        var transportMock = new Mock<ITransportService>();
 
         // create the controller with all required parameters in correct order
         var controller = new SpotsController(
@@ -56,6 +58,7 @@ public class SpotsControllerTests
             tripParticipantMock.Object,
             dayMock.Object,
             photoMock.Object,
+            transportMock.Object,
             fileMock.Object,                // IFileService
             reverseGeoMock.Object,
             expenseMock.Object,
@@ -64,6 +67,7 @@ public class SpotsControllerTests
             configuration,
             userManager,                   // UserManager<Person>
             pdfMock.Object,                // IPdfService
+            webHostEnvironmentMock.Object, // IWebHostEnvironment
             viewEngineMock.Object,         // ICompositeViewEngine
             tempDataProviderMock.Object,   // ITempDataProvider
             httpContextAccessorMock.Object // IHttpContextAccessor
