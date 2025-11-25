@@ -622,7 +622,8 @@ public class TripsController : Controller
             StartDate = trip.StartDate,
             EndDate = trip.EndDate,
             Status = trip.Status,
-            IsPrivate = trip.IsPrivate
+            IsPrivate = trip.IsPrivate,
+            CurrencyCode = trip.CurrencyCode
         };
 
         return View(viewModel);
@@ -659,6 +660,7 @@ public class TripsController : Controller
                 trip.EndDate = viewModel.EndDate;
                 trip.Status = viewModel.Status;
                 trip.IsPrivate = viewModel.IsPrivate;
+                trip.CurrencyCode = viewModel.CurrencyCode;
 
                 await _tripService.UpdateAsync(trip);
                 // Nie koniecznie potrzebne
