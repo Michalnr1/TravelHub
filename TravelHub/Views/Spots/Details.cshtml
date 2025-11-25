@@ -6,7 +6,7 @@
 
     // Sprawdzamy czy to publiczny podgląd
     var isPublicView = Context.Request.Query["source"] == "public";
-    var backUrl = isPublicView ? Url.Action("Details", "TripsSearch", new { id = Model.TripId }) : Url.Action("Details", "Trips", new { id = Model.TripId });
+    var returnUrl = ViewData["ReturnUrl"];
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -22,7 +22,7 @@
                 Download as PDF
             </a>
         }
-        <a href="@backUrl" class="btn btn-outline-secondary">Back to Trip</a>
+        <a href="@returnUrl" class="btn btn-outline-secondary">Back to Trip</a>
     </div>
 </div>
 
@@ -384,7 +384,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <strong>Trip:</strong><br>
-                    <a href="@backUrl" class="text-decoration-none">
+                    <a href="@returnUrl" class="text-decoration-none">
                         @Html.DisplayFor(model => model.TripName)
                     </a>
                 </div>
@@ -514,7 +514,7 @@
                             <i class="fas fa-download"></i> Download as PDF
                         </a>
                     }
-                    <a href="@backUrl" class="btn btn-outline-secondary">
+                    <a href="@returnUrl" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Back to Trip
                     </a>
                 </div>

@@ -64,7 +64,7 @@ public class TransportsController : Controller
     }
 
     // GET: Transports/Details/5
-    public async Task<IActionResult> Details(int? id, string source = "")
+    public async Task<IActionResult> Details(int? id, string source = "", string? returnUrl = null)
     {
         if (id == null)
         {
@@ -99,6 +99,10 @@ public class TransportsController : Controller
             ToSpotCoordinates = transport.ToSpot != null ?
                 $"{transport.ToSpot.Latitude:F4}, {transport.ToSpot.Longitude:F4}" : "N/A"
         };
+
+        if (returnUrl != null)
+            returnUrl = source == "public" ? returnUrl + "?source=public" : returnUrl;
+        ViewData["ReturnUrl"] = returnUrl ?? (source == "public" ? Url.Action("Details", "TripsSearch", new { id = transport.TripId }) : Url.Action("Details", "Trips", new { id = transport.TripId }));
 
         return View(viewModel);
     }

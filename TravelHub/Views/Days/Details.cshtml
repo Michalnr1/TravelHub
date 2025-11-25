@@ -11,10 +11,10 @@
         .Where(a => a.Type != "Accommodation")
         .OrderBy(a => a.Order)
         .ToList() ?? new List<ActivityDetailsViewModel>();
-    
+
     // Sprawdzamy czy to publiczny podgląd
     var isPublicView = Context.Request.Query["source"] == "public";
-    var backUrl = isPublicView ? Url.Action("Details", "TripsSearch", new { id = Model.TripId }) : Url.Action("Details", "Trips", new { id = Model.TripId });
+    var returnUrl = ViewData["ReturnUrl"];    
 }
 }
 
@@ -366,7 +366,7 @@
         </a>
     }
 
-    <a href="@backUrl" class="btn btn-secondary">
+    <a href="@returnUrl" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back to Trip
     </a>
 

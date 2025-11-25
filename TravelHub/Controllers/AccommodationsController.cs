@@ -75,7 +75,7 @@ public class AccommodationsController : Controller
     }
 
     // GET: Accommodations/Details/5
-    public async Task<IActionResult> Details(int? id, string source = "")
+    public async Task<IActionResult> Details(int? id, string source = "", string? returnUrl = null)
     {
         if (id == null)
         {
@@ -114,7 +114,9 @@ public class AccommodationsController : Controller
             TripId = accommodation.TripId,
             TripName = accommodation.Trip?.Name
         };
-
+        if (returnUrl != null)
+            returnUrl = source == "public" ? returnUrl + "?source=public" : returnUrl;
+        ViewData["ReturnUrl"] = returnUrl ?? (source == "public" ? Url.Action("Details", "TripsSearch", new { id = accommodation.TripId }) : Url.Action("Details", "Trips", new { id = accommodation.TripId }));
         return View(viewModel);
     }
 
