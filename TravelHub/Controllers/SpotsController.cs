@@ -23,7 +23,7 @@ public class SpotsController : Controller
 {
     private readonly ISpotService _spotService;
     private readonly IActivityService _activityService;
-    private readonly IGenericService<Category> _categoryService;
+    private readonly ICategoryService _categoryService;
     private readonly ITripService _tripService;
     private readonly ITripParticipantService _tripParticipantService;
     private readonly IGenericService<Day> _dayService;
@@ -45,7 +45,7 @@ public class SpotsController : Controller
     public SpotsController(
         ISpotService spotService,
         IActivityService activityService,
-        IGenericService<Category> categoryService,
+        ICategoryService categoryService,
         ITripService tripService,
         ITripParticipantService tripParticipantService,
         IGenericService<Day> dayService,
@@ -722,7 +722,7 @@ public class SpotsController : Controller
         try
         {
             if (string.IsNullOrEmpty(imagePath))
-                return null;
+                return string.Empty;
 
             // Usuń początkowe slashy i ścieżki względne
             var cleanPath = imagePath.TrimStart('~', '/', '\\');
@@ -755,13 +755,13 @@ public class SpotsController : Controller
             _logger.LogWarning(ex, "Could not convert image to base64: {ImagePath}", imagePath);
         }
 
-        return null;
+        return string.Empty;
     }
 
     private async Task PopulateSelectListsForTrip(SpotCreateEditViewModel viewModel, int tripId)
     {
         // Categories
-        var categories = await _categoryService.GetAllAsync();
+        var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
         viewModel.Categories = categories.Select(c => new CategorySelectItem
         {
             Id = c.Id,

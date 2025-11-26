@@ -8,4 +8,8 @@ public interface ICategoryService : IGenericService<Category>
 
     // Sprawdza czy kategoria jest używana (Activity/Spot/Expense)
     Task<bool> IsInUseAsync(int categoryId);
+
+    Task<ICollection<Category>> GetAllCategoriesByUserAsync(string userId);
+
+    Task<ICollection<Category>> GetAllCategoriesByTripAsync(int tripId);
 }

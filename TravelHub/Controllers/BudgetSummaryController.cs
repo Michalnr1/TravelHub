@@ -13,13 +13,13 @@ public class BudgetSummaryController : Controller
 {
     private readonly IExpenseService _expenseService;
     private readonly ITripService _tripService;
-    private readonly IGenericService<Category> _categoryService;
+    private readonly ICategoryService _categoryService;
     private readonly ITripParticipantService _tripParticipantService;
 
     public BudgetSummaryController(
         IExpenseService expenseService,
         ITripService tripService,
-        IGenericService<Category> categoryService,
+        ICategoryService categoryService,
         ITripParticipantService tripParticipantService)
     {
         _expenseService = expenseService;
@@ -187,7 +187,7 @@ public class BudgetSummaryController : Controller
     private async Task PopulatePublicFilterLists(BudgetSummaryViewModel viewModel, int tripId)
     {
         // Pobierz tylko kategorie (bez osób)
-        var categories = await _categoryService.GetAllAsync();
+        var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
 
         // Dodaj kategorie do ViewModel
         viewModel.AvailableCategories = categories.Select(c => new CategoryFilterItem
@@ -248,7 +248,7 @@ public class BudgetSummaryController : Controller
         }).ToList();
 
         // Pobierz kategorie
-        var categories = await _categoryService.GetAllAsync();
+        var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
 
         // Dodaj kategorie do ViewModel
         viewModel.AvailableCategories = categories.Select(c => new CategoryFilterItem

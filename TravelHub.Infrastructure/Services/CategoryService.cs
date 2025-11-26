@@ -22,4 +22,14 @@ public class CategoryService : GenericService<Category>, ICategoryService
     {
         return await _categoryRepository.IsInUseAsync(categoryId);
     }
+
+    public async Task<ICollection<Category>> GetAllCategoriesByUserAsync(string userId)
+    {
+        return await _categoryRepository.GetAllCategoriesByUserAsync(userId);
+    }
+
+    public async Task<ICollection<Category>> GetAllCategoriesByTripAsync(int tripId)
+    {
+        return await _categoryRepository.GetAllCategoriesByTripAsync(tripId);
+    }
 }

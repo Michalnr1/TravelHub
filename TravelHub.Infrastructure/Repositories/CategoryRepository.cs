@@ -6,8 +6,15 @@ namespace TravelHub.Infrastructure.Repositories;
 
 public class CategoryRepository : GenericRepository<Category>, ICategoryRepository
 {
-    public CategoryRepository(ApplicationDbContext context) : base(context)
+    public CategoryRepository(ApplicationDbContext context, ITripParticipantRepository tripParticipantRepository) : base(context)
     {
+    }
+
+    public async Task<ICollection<Category>> GetAllCategoriesByUserAsync(string userId)
+    {
+        return await _context.Set<Category>()
+            .Where(c => c.PersonId == userId)
+            .ToListAsync();
     }
 
     public async Task<Category?> GetByIdWithRelatedDataAsync(int id)
@@ -39,5 +46,25 @@ public class CategoryRepository : GenericRepository<Category>, ICategoryReposito
             .AnyAsync(e => e.CategoryId == categoryId);
 
         return usedInExpenses;
+    }
+
+    public async Task<ICollection<Category>> GetAllCategoriesByTripAsync(int tripId)
+    {
+        var acceptedPersonIds = _context.Set<TripParticipant>()
+        .Where(tp => tp.TripId == tripId && (tp.Status == TripParticipantStatus.Accepted || tp.Status == TripParticipantStatus.Owner))
+        .Select(tp => tp.PersonId);
+
+        var uniqueCategoryIds = await _context.Set<Category>()
+            .Where(c => acceptedPersonIds.Contains(c.PersonId))
+            .GroupBy(c => c.Name)
+            .Select(g => g.Min(c => c.Id))
+            .ToListAsync();
+
+        var categories = await _context.Set<Category>()
+            .Where(c => uniqueCategoryIds.Contains(c.Id))
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        return categories;
     }
 }

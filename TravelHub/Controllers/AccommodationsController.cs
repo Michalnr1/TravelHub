@@ -647,7 +647,7 @@ public class AccommodationsController : Controller
     private async Task PopulateSelectListsForTrip(AccommodationCreateEditViewModel viewModel, int tripId)
     {
         // Categories
-        var categories = await _categoryService.GetAllAsync();
+        var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
         viewModel.Categories = categories.Select(c => new CategorySelectItem
         {
             Id = c.Id,
@@ -818,7 +818,7 @@ public class AccommodationsController : Controller
     private async Task PopulateSelectLists(AccommodationCreateEditViewModel viewModel)
     {
         // Categories
-        var categories = await _categoryService.GetAllAsync();
+        var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
         viewModel.Categories = categories.Select(c => new CategorySelectItem
         {
             Id = c.Id,

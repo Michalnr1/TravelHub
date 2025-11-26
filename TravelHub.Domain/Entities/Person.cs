@@ -42,4 +42,7 @@ public class Person : IdentityUser
 
     // A person can have many blogs (1:N)
     public ICollection<Blog> Blogs { get; set; } = new List<Blog>();
+
+    // A person can have many categories (1:N)
+    public ICollection<Category> Categories { get; set; } = new List<Category>();
 }

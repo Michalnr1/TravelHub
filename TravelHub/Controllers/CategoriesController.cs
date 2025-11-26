@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using TravelHub.Domain.Entities;
@@ -12,17 +13,21 @@ public class CategoriesController : Controller
 {
     private readonly ICategoryService _categoryService;
     private readonly ILogger<CategoriesController> _logger;
+    private readonly UserManager<Person> _userManager;
 
-    public CategoriesController(ICategoryService categoryService, ILogger<CategoriesController> logger)
+    public CategoriesController(ICategoryService categoryService, ILogger<CategoriesController> logger, UserManager<Person> userManager)
     {
         _categoryService = categoryService;
         _logger = logger;
+        _userManager = userManager;
     }
 
     // GET: Category
     public async Task<IActionResult> Index()
     {
-        var categories = await _categoryService.GetAllAsync();
+        var currentUserId = _userManager.GetUserId(User);
+
+        var categories = await _categoryService.GetAllCategoriesByUserAsync(currentUserId!);
         var vm = categories.Select(c => new CategoryViewModel
         {
             Id = c.Id,
@@ -61,13 +66,15 @@ public class CategoriesController : Controller
     {
         if (!ModelState.IsValid) return View(model);
 
-        if (await _categoryService.ExistsByNameAsync(model.Name))
-        {
-            ModelState.AddModelError(nameof(model.Name), "Category with that name already exists.");
-            return View(model);
-        }
+        //if (await _categoryService.ExistsByNameAsync(model.Name))
+        //{
+        //    ModelState.AddModelError(nameof(model.Name), "Category with that name already exists.");
+        //    return View(model);
+        //}
 
-        var category = new Category { Name = model.Name.Trim(), Color = model.Color };
+        var currentUserId = _userManager.GetUserId(User);
+
+        var category = new Category { Name = model.Name.Trim(), Color = model.Color, PersonId = currentUserId! };
         await _categoryService.AddAsync(category);
 
         TempData["SuccessMessage"] = "Category created.";
@@ -150,12 +157,12 @@ public class CategoriesController : Controller
     {
         try
         {
-            if (await _categoryService.IsInUseAsync(id))
-            {
-                // Nie usuwamy — pokazujemy komunikat i wracamy do strony potwierdzenia delete
-                TempData["ErrorMessage"] = "Category cannot be deleted — it is used in activities or expenses.";
-                return RedirectToAction(nameof(Delete), new { id });
-            }
+            //if (await _categoryService.IsInUseAsync(id))
+            //{
+            //    // Nie usuwamy — pokazujemy komunikat i wracamy do strony potwierdzenia delete
+            //    TempData["ErrorMessage"] = "Category cannot be deleted — it is used in activities or expenses.";
+            //    return RedirectToAction(nameof(Delete), new { id });
+            //}
 
             await _categoryService.DeleteAsync(id);
             TempData["SuccessMessage"] = "Category deleted.";

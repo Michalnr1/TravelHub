@@ -16,7 +16,7 @@ public class ExpensesController : Controller
 {
     private readonly IExpenseService _expenseService;
     private readonly IExchangeRateService _exchangeRateService;
-    private readonly IGenericService<Category> _categoryService;
+    private readonly ICategoryService _categoryService;
     private readonly ITripService _tripService;
     private readonly ITripParticipantService _tripParticipantService;
     private readonly ICurrencyConversionService _currencyConversionService;
@@ -27,7 +27,7 @@ public class ExpensesController : Controller
     public ExpensesController(
         IExpenseService expenseService,
         IExchangeRateService exchangeRateService,
-        IGenericService<Category> categoryService,
+        ICategoryService categoryService,
         UserManager<Person> userManager,
         ITripService tripService,
         ITripParticipantService tripParticipantService,
@@ -719,7 +719,7 @@ public class ExpensesController : Controller
         }
 
         // Categories
-        var categories = await _categoryService.GetAllAsync();
+        var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
         viewModel.Categories = categories.Select(c => new CategorySelectItem
         {
             Id = c.Id,

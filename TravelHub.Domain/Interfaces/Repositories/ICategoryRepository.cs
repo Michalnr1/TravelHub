@@ -12,4 +12,8 @@ public interface ICategoryRepository : IGenericRepository<Category>
 
     // Sprawdza, czy kategoria jest używana przez jakiekolwiek Activity/Spot lub Expense
     Task<bool> IsInUseAsync(int categoryId);
+
+    Task<ICollection<Category>> GetAllCategoriesByUserAsync(string userId);
+
+    Task<ICollection<Category>> GetAllCategoriesByTripAsync(int tripId);
 }

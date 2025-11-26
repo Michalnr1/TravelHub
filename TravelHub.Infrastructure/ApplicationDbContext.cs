@@ -486,6 +486,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .HasForeignKey<Expense>(e => e.TransportId)
                   .IsRequired(false)
                   .OnDelete(DeleteBehavior.NoAction);
+
+            // 1:N relationship with Category
+            entity.HasOne(e => e.Category)
+                  .WithMany(c => c.Expenses)
+                  .HasForeignKey(e => e.CategoryId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         // --- Category Configuration ---
@@ -495,11 +502,25 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
             entity.Property(c => c.Color).HasMaxLength(7); // e.g., #RRGGBB
 
+            // 1:N relationship with Person (Owner)
+            entity.HasOne(c => c.Person)
+                  .WithMany(p => p.Categories)
+                  .HasForeignKey(c => c.PersonId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
             // 1:N relationship with Activity
             entity.HasMany(c => c.Activities)
                   .WithOne(a => a.Category)
                   .HasForeignKey(a => a.CategoryId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // 1:N relationship with Expense
+            entity.HasMany(c => c.Expenses)
+                  .WithOne(e => e.Category)
+                  .HasForeignKey(e => e.CategoryId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(c => c.PersonId);
         });
 
         // --- ExchangeRate Configuration ---

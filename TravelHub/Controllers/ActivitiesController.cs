@@ -14,7 +14,7 @@ namespace TravelHub.Web.Controllers;
 public class ActivitiesController : Controller
 {
     private readonly IActivityService _activityService;
-    private readonly IGenericService<Category> _categoryService;
+    private readonly ICategoryService _categoryService;
     private readonly ITripService _tripService;
     private readonly ITripParticipantService _tripParticipantService;
     private readonly IGenericService<Day> _dayService;
@@ -23,7 +23,7 @@ public class ActivitiesController : Controller
 
     public ActivitiesController(
         IActivityService activityService,
-        IGenericService<Category> categoryService,
+        ICategoryService categoryService,
         ITripService tripService,
         ITripParticipantService tripParticipantService,
         IGenericService<Day> dayService,
@@ -635,7 +635,7 @@ public class ActivitiesController : Controller
     private async Task PopulateSelectListsForTrip(ActivityCreateEditViewModel viewModel, int tripId)
     {
         // Categories
-        var categories = await _categoryService.GetAllAsync();
+        var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
         viewModel.Categories = categories.Select(c => new CategorySelectItem
         {
             Id = c.Id,
@@ -684,7 +684,7 @@ public class ActivitiesController : Controller
     private async Task PopulateSelectLists(ActivityCreateEditViewModel viewModel)
     {
         // Categories
-        var categories = await _categoryService.GetAllAsync();
+        var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
         viewModel.Categories = categories.Select(c => new CategorySelectItem
         {
             Id = c.Id,
