@@ -15,4 +15,10 @@ public class PublicBlogInfoDto
     public List<Country> Countries { get; set; } = new();
     public int? LatestPostId { get; set; }
     public DateTime? LatestPostDate { get; set; }
+    public string OwnerName { get; set; } = string.Empty;
+    public string OwnerId { get; set; } = string.Empty;
+    public bool IsFriend { get; set; }
+    public BlogVisibility Visibility { get; set; }
+    public List<string> FriendParticipants { get; set; } = new();
+    public bool HasFriendParticipants => FriendParticipants.Any();
 }

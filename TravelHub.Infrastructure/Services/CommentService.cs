@@ -12,18 +12,24 @@ public class CommentService : GenericService<Comment>, ICommentService
     private readonly IPhotoService _photoService;
     private readonly ITripParticipantService _tripParticipantService;
     private readonly IPostService _postService;
+    private readonly IBlogService _blogService;
+    private readonly IFriendshipService _friendshipService;
     private readonly ILogger<CommentService> _logger;
 
     public CommentService(ICommentRepository repository,
         IPhotoService photoService,
         ITripParticipantService tripParticipantService,
         IPostService postService,
+        IBlogService blogService,
+        IFriendshipService friendshipService,
         ILogger<CommentService> logger) : base(repository)
     {
         _commentRepository = repository;
         _photoService = photoService;
         _tripParticipantService = tripParticipantService;
         _postService = postService;
+        _blogService = blogService;
+        _friendshipService = friendshipService;
         _logger = logger;
     }
 
@@ -62,16 +68,34 @@ public class CommentService : GenericService<Comment>, ICommentService
     {
         try
         {
-            // Pobierz tripId z posta
-            var tripId = await _postService.GetTripIdByPostIdAsync(postId);
-            if (!tripId.HasValue) return false;
+            // Pobierz blogId z posta
+            var blogId = await _postService.GetBlogIdByPostIdAsync(postId);
+            if (!blogId.HasValue) return false;
 
-            // Sprawdź czy użytkownik jest uczestnikiem tripa
-            return await _tripParticipantService.IsUserParticipantAsync(tripId.Value, userId);
+            // Sprawdź czy użytkownik może komentować na blogu
+            return await _blogService.CanUserCommentOnBlogAsync(blogId.Value, userId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error checking if user can create comment for post {PostId}", postId);
+            return false;
+        }
+    }
+
+    public async Task<bool> CanUserAccessCommentsAsync(int postId, string userId)
+    {
+        try
+        {
+            // Pobierz blogId z posta
+            var blogId = await _postService.GetBlogIdByPostIdAsync(postId);
+            if (!blogId.HasValue) return false;
+
+            // Sprawdź czy użytkownik ma dostęp do bloga
+            return await _blogService.CanUserAccessBlogAsync(blogId.Value, userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if user can access comments for post {PostId}", postId);
             return false;
         }
     }
@@ -82,7 +106,6 @@ public class CommentService : GenericService<Comment>, ICommentService
 
         await _commentRepository.UpdateAsync(comment);
 
-        // Dodaj nowe zdjęcia jeśli są
         if (newPhotos != null && newPhotos.Count > 0)
         {
             foreach (var photo in newPhotos)

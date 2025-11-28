@@ -1,4 +1,5 @@
-﻿@model TravelHub.Web.ViewModels.Blog.PublicBlogViewModel
+﻿@using TravelHub.Domain.Entities
+@model TravelHub.Web.ViewModels.Blog.PublicBlogViewModel
 
 @{
     ViewData["Title"] = Model.Name;
@@ -16,8 +17,8 @@
                     }
                     <p class="text-muted">
                         Blog for trip: @Model.TripName |
-                        <span class="badge bg-success">
-                            <i class="fas fa-globe me-1"></i>Public Blog
+                        <span class="badge @(Model.Visibility == BlogVisibility.Public ? "bg-success" : "bg-warning")">
+                            <i class="fas fa-globe me-1"></i>@(Model.Visibility == BlogVisibility.ForMyFriends ? "For owner's friends blog" : Model.Visibility == BlogVisibility.ForTripParticipantsFriends ? "For all participants friends blog" : "Public blog")
                         </span>
                     </p>
                 </div>

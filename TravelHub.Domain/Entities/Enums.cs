@@ -46,6 +46,21 @@ public enum FriendRequestStatus
     Blocked
 }
 
+public enum BlogVisibility
+{
+    [Display(Name = "Only trip participants")]
+    Private = 0,
+
+    [Display(Name = "Only trip owner's friends")]
+    ForMyFriends = 1,
+
+    [Display(Name = "Friends of all trip participants")]
+    ForTripParticipantsFriends = 2,
+
+    [Display(Name = "Public")]
+    Public = 3
+}
+
 public enum CurrencyCode
 {
     // Europe

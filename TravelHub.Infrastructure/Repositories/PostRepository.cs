@@ -70,4 +70,12 @@ public class PostRepository : GenericRepository<Post>, IPostRepository
             .Select(p => p.Blog!.TripId)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<int?> GetBlogIdByPostIdAsync(int postId)
+    {
+        return await _context.Posts
+            .Where(p => p.Id == postId)
+            .Select(p => (int?)p.BlogId)
+            .FirstOrDefaultAsync();
+    }
 }

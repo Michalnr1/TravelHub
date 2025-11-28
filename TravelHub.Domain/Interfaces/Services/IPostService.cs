@@ -11,4 +11,5 @@ public interface IPostService : IGenericService<Post>
     Task<bool> CanUserCreatePostAsync(int blogId, string userId);
     Task<bool> CanUserEditPostAsync(int postId, string userId);
     Task<int?> GetTripIdByPostIdAsync(int postId);
+    Task<int?> GetBlogIdByPostIdAsync(int postId);
 }
