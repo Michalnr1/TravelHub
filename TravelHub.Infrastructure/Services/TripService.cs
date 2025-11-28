@@ -1,8 +1,10 @@
-﻿using System.Diagnostics.Metrics;
+﻿using Azure.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TravelHub.Domain.Entities;
+using System.Diagnostics.Metrics;
+using TravelHub.Application.DTOs;
 using TravelHub.Domain.DTOs;
+using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Repositories;
@@ -13,14 +15,28 @@ public class TripService : GenericService<Trip>, ITripService
 {
     private readonly ITripRepository _tripRepository;
     private readonly IDayRepository _dayRepository;
+    private readonly IActivityRepository _activityRepository;
+    private readonly ISpotRepository _spotRepository;
     private readonly IAccommodationService _accommodationService;
+    private readonly ITransportRepository _transportRepository;
+    private readonly IExpenseRepository _expenseRepository;
+    private readonly IExchangeRateRepository _exchangeRateRepository;
+    private readonly ICategoryRepository _categoryRepository;
+    private readonly ICurrencyConversionService _currencyConversionService;
     private readonly ITripParticipantRepository _tripParticipantRepository;
     private readonly IBlogRepository _blogRepository;
     private readonly ILogger<TripService> _logger;
 
     public TripService(ITripRepository tripRepository,
         IDayRepository dayRepository,
+        IActivityRepository activityRepository,
+        ISpotRepository spotRepository,
         IAccommodationService accommodationService,
+        ITransportRepository transportRepository,
+        IExpenseRepository expenseRepository,
+        IExchangeRateRepository exchangeRateRepository,
+        ICategoryRepository categoryRepository,
+        ICurrencyConversionService currencyConversionService,
         ITripParticipantRepository tripParticipantRepository,
         IBlogRepository blogRepository,
         ILogger<TripService> logger)
@@ -28,7 +44,14 @@ public class TripService : GenericService<Trip>, ITripService
     {
         _tripRepository = tripRepository;
         _dayRepository = dayRepository;
+        _activityRepository = activityRepository;
+        _spotRepository = spotRepository;
         _accommodationService = accommodationService;
+        _transportRepository = transportRepository;
+        _expenseRepository = expenseRepository;
+        _exchangeRateRepository = exchangeRateRepository;
+        _categoryRepository = categoryRepository;
+        _currencyConversionService = currencyConversionService;
         _tripParticipantRepository = tripParticipantRepository;
         _blogRepository = blogRepository;
         _logger = logger;
@@ -545,5 +568,514 @@ public class TripService : GenericService<Trip>, ITripService
     public async Task MarkAllChecklistItemsAsync(int tripId, bool completed)
     {
         await _tripRepository.MarkAllChecklistItemsAsync(tripId, completed);
+    }
+
+    public async Task<Trip> CloneTripAsync(int sourceTripId, string cloningUserId, CloneTripRequestDto request)
+    {
+        // Pobierz oryginalną wycieczkę z wszystkimi danymi
+        var sourceTrip = await _tripRepository.GetByIdAsync(sourceTripId);
+        if (sourceTrip == null)
+            throw new ArgumentException("Source trip not found");
+
+        if (sourceTrip.IsPrivate)
+            throw new InvalidOperationException("Cannot clone private trip");
+
+        // Pobierz kategorie użytkownika klonującego
+        var userCategories = await _categoryRepository.GetAllCategoriesByUserAsync(cloningUserId);
+        var categoryMap = userCategories.ToDictionary(c => c.Name, c => c.Id);
+
+        // Stwórz nową wycieczkę
+        var newTrip = new Trip
+        {
+            Name = request.Name,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            Status = Status.Planning,
+            IsPrivate = request.IsPrivate,
+            CurrencyCode = request.TargetCurrency,
+            PersonId = cloningUserId,
+            Catalog = sourceTrip.Catalog,
+            Checklist = CleanChecklist(sourceTrip.Checklist),
+            Participants = new List<TripParticipant>(),
+            Days = new List<Day>(),
+            Activities = new List<Activity>(),
+            Transports = new List<Transport>(),
+            Expenses = new List<Expense>(),
+            ExchangeRates = new List<ExchangeRate>(),
+            ChatMessages = new List<ChatMessage>()
+        };
+
+        // Zapisz nową wycieczkę
+        var savedTrip = await _tripRepository.AddAsync(newTrip);
+
+        try
+        {
+            // Słowniki do mapowania ID oryginalnych encji na nowe
+            var accommodationMap = new Dictionary<int, Accommodation>();
+            var spotMap = new Dictionary<int, Spot>();
+            var transportMap = new Dictionary<int, Transport>();
+            var dayMap = new Dictionary<int, Day>();
+
+            // Klonuj wybrane elementy
+            if (request.CloneDays || request.CloneGroups)
+            {
+                await CloneDaysAndGroupsAsync(sourceTrip, savedTrip, request, cloningUserId, categoryMap, dayMap, spotMap);
+            }
+
+            // Klonuj aktywności bez dnia (jeśli wybrano)
+            if (request.CloneActivities)
+            {
+                await CloneActivitiesWithoutDayAsync(sourceTrip, savedTrip, cloningUserId, categoryMap, request.CloneSpots, spotMap);
+            }
+
+            // Klonuj zakwaterowania
+            if (request.CloneAccommodations)
+            {
+                await CloneAccommodationsAsync(sourceTrip, savedTrip, cloningUserId, categoryMap, accommodationMap);
+
+                // Przypisz zakwaterowania do odpowiednich dni
+                if (request.CloneDays || request.CloneGroups)
+                {
+                    await AssignAccommodationsToDaysAsync(sourceTrip, savedTrip, accommodationMap, dayMap);
+                }
+            }
+
+            if (request.CloneTransport)
+            {
+                await CloneTransportAsync(sourceTrip, savedTrip, cloningUserId, categoryMap, spotMap, transportMap);
+            }
+
+            if (request.CloneExpenses)
+            {
+                await CloneExpensesAsync(sourceTrip, savedTrip, cloningUserId, categoryMap, request.TargetCurrency, spotMap, transportMap);
+            }
+
+            return savedTrip;
+        }
+        catch
+        {
+            // W przypadku błędu, wycofaj utworzenie wycieczki
+            await _tripRepository.DeleteAsync(savedTrip);
+            throw;
+        }
+    }
+
+    private Checklist? CleanChecklist(Checklist? sourceChecklist)
+    {
+        if (sourceChecklist == null) return new Checklist();
+
+        var cleanChecklist = new Checklist();
+        foreach (var item in sourceChecklist.Items)
+        {
+            var cleanItem = new ChecklistItem
+            {
+                Title = item.Title,
+                IsCompleted = false,
+                AssignedParticipantId = null,
+                AssignedParticipantName = null
+            };
+            cleanChecklist.Items.Add(cleanItem);
+        }
+        return cleanChecklist;
+    }
+
+    private async Task CloneDaysAndGroupsAsync(Trip sourceTrip, Trip newTrip, CloneTripRequestDto request, string cloningUserId,
+        Dictionary<string, int> categoryMap, Dictionary<int, Day> dayMap, Dictionary<int, Spot> spotMap)
+    {
+        var sourceDays = await _dayRepository.GetByTripIdAsync(sourceTrip.Id);
+
+        foreach (var sourceDay in sourceDays)
+        {
+            // Sprawdź czy klonować dzień lub grupę
+            bool isDay = sourceDay.Number.HasValue;
+            bool isGroup = !string.IsNullOrEmpty(sourceDay.Name);
+
+            if ((isDay && !request.CloneDays) || (isGroup && !request.CloneGroups))
+                continue;
+
+            var newDay = new Day
+            {
+                Number = sourceDay.Number,
+                Name = sourceDay.Name,
+                Date = sourceDay.Date,
+                TripId = newTrip.Id,
+                Activities = new List<Activity>(),
+                Posts = new List<Post>()
+            };
+
+            var savedDay = await _dayRepository.AddAsync(newDay);
+            dayMap[sourceDay.Id] = savedDay;
+
+            // Klonuj aktywności jeśli wybrano
+            if (request.CloneActivities && sourceDay.Activities.Any())
+            {
+                await CloneActivitiesAsync(sourceDay.Activities, savedDay, newTrip, cloningUserId, categoryMap, request.CloneSpots, spotMap);
+            }
+        }
+    }
+
+    private async Task CloneActivitiesWithoutDayAsync(Trip sourceTrip, Trip newTrip, string cloningUserId, Dictionary<string, int> categoryMap, bool cloneSpots, Dictionary<int, Spot> spotMap)
+    {
+        // Pobierz wszystkie aktywności z wycieczki które nie mają przypisanego dnia
+        var allActivities = await _activityRepository.GetTripActivitiesWithDetailsAsync(sourceTrip.Id);
+        var activitiesWithoutDay = allActivities.Where(a => a.DayId == null).ToList();
+
+        foreach (var sourceActivity in activitiesWithoutDay)
+        {
+            // Pomijamy Spot i Accommodation w podstawowej pętli
+            if (sourceActivity is Spot)
+                continue;
+
+            var newActivity = new Activity
+            {
+                Name = sourceActivity.Name,
+                Description = sourceActivity.Description,
+                Duration = sourceActivity.Duration,
+                Order = sourceActivity.Order,
+                StartTime = sourceActivity.StartTime,
+                Checklist = CleanChecklist(sourceActivity.Checklist),
+                CategoryId = GetMatchingCategoryId(sourceActivity.Category?.Name, categoryMap),
+                TripId = newTrip.Id,
+                DayId = null
+            };
+
+            await _activityRepository.AddAsync(newActivity);
+        }
+
+        // Klonuj Spoty i Accommodations jeśli wybrano
+        if (cloneSpots)
+        {
+            var spotsWithoutDay = activitiesWithoutDay.OfType<Spot>().ToList();
+            await CloneSpotsAsync(spotsWithoutDay, null, newTrip, cloningUserId, categoryMap, spotMap);
+        }
+    }
+
+    private async Task CloneActivitiesAsync(ICollection<Activity> sourceActivities, Day newDay, Trip newTrip, string cloningUserId,
+        Dictionary<string, int> categoryMap, bool cloneSpots, Dictionary<int, Spot> spotMap)
+    {
+        foreach (var sourceActivity in sourceActivities)
+        {
+            // Pomijamy Spot i Accommodation w podstawowej pętli
+            if (sourceActivity is Spot)
+                continue;
+
+            var newActivity = new Activity
+            {
+                Name = sourceActivity.Name,
+                Description = sourceActivity.Description,
+                Duration = sourceActivity.Duration,
+                Order = sourceActivity.Order,
+                StartTime = sourceActivity.StartTime,
+                Checklist = CleanChecklist(sourceActivity.Checklist),
+                CategoryId = GetMatchingCategoryId(sourceActivity.Category?.Name, categoryMap),
+                TripId = newTrip.Id,
+                DayId = newDay.Id
+            };
+
+            await _activityRepository.AddAsync(newActivity);
+        }
+
+        // Klonuj Spoty i Accommodations jeśli wybrano
+        if (cloneSpots)
+        {
+            await CloneSpotsAsync(sourceActivities, newDay, newTrip, cloningUserId, categoryMap, spotMap);
+        }
+    }
+
+    private async Task CloneSpotsAsync(IEnumerable<Activity> sourceActivities, Day? newDay, Trip newTrip, string cloningUserId,
+        Dictionary<string, int> categoryMap, Dictionary<int, Spot> spotMap)
+    {
+        var sourceSpots = sourceActivities.OfType<Spot>().ToList();
+
+        foreach (var sourceSpot in sourceSpots)
+        {
+            // Dla Accommodation - pomiń
+            if (sourceSpot is Accommodation)
+                continue;
+
+            var newSpot = await CloneSpotAsync(sourceSpot, newDay, newTrip, cloningUserId, categoryMap);
+
+            // Dodaj do mapy
+            spotMap[sourceSpot.Id] = newSpot;
+        }
+    }
+
+    private async Task<Spot> CloneSpotAsync(Spot sourceSpot, Day? newDay, Trip newTrip, string cloningUserId, Dictionary<string, int> categoryMap)
+    {
+        var newSpot = new Spot
+        {
+            Name = sourceSpot.Name,
+            Description = sourceSpot.Description,
+            Duration = sourceSpot.Duration,
+            Order = sourceSpot.Order,
+            StartTime = sourceSpot.StartTime,
+            Checklist = CleanChecklist(sourceSpot.Checklist),
+            CategoryId = GetMatchingCategoryId(sourceSpot.Category?.Name, categoryMap),
+            TripId = newTrip.Id,
+            DayId = newDay?.Id,
+            Longitude = sourceSpot.Longitude,
+            Latitude = sourceSpot.Latitude,
+            Rating = sourceSpot.Rating,
+            CountryCode = sourceSpot.CountryCode,
+            CountryName = sourceSpot.CountryName,
+            Photos = new List<Photo>(),
+            Files = new List<Domain.Entities.File>()
+        };
+
+        await _spotRepository.AddAsync(newSpot);
+        return newSpot;
+    }
+
+    private async Task CloneAccommodationsAsync(Trip sourceTrip, Trip newTrip, string cloningUserId, Dictionary<string, int> categoryMap, Dictionary<int, Accommodation> accommodationMap)
+    {
+        var sourceAccommodations = await _accommodationService.GetTripAccommodationsAsync(sourceTrip.Id);
+
+        foreach (var sourceAccommodation in sourceAccommodations)
+        {
+            var newAccommodation = new Accommodation
+            {
+                Name = sourceAccommodation.Name,
+                Description = sourceAccommodation.Description,
+                Duration = sourceAccommodation.Duration,
+                Order = sourceAccommodation.Order,
+                StartTime = sourceAccommodation.StartTime,
+                Checklist = CleanChecklist(sourceAccommodation.Checklist),
+                CategoryId = GetMatchingCategoryId(sourceAccommodation.Category?.Name, categoryMap),
+                TripId = newTrip.Id,
+                DayId = null, // Tymczasowo bez dnia
+                Longitude = sourceAccommodation.Longitude,
+                Latitude = sourceAccommodation.Latitude,
+                Rating = sourceAccommodation.Rating,
+                CountryCode = sourceAccommodation.CountryCode,
+                CountryName = sourceAccommodation.CountryName,
+                CheckIn = sourceAccommodation.CheckIn,
+                CheckOut = sourceAccommodation.CheckOut,
+                CheckInTime = sourceAccommodation.CheckInTime,
+                CheckOutTime = sourceAccommodation.CheckOutTime,
+                Photos = new List<Photo>(),
+                Files = new List<Domain.Entities.File>()
+            };
+
+            var savedAccommodation = await _accommodationService.AddAsync(newAccommodation);
+            accommodationMap[sourceAccommodation.Id] = savedAccommodation;
+        }
+    }
+
+    private async Task AssignAccommodationsToDaysAsync(Trip sourceTrip, Trip newTrip, Dictionary<int, Accommodation> accommodationMap, Dictionary<int, Day> dayMap)
+    {
+        var sourceDays = await _dayRepository.GetByTripIdAsync(sourceTrip.Id);
+
+        foreach (var sourceDay in sourceDays)
+        {
+            if (sourceDay.Accommodation != null && accommodationMap.ContainsKey(sourceDay.Accommodation.Id))
+            {
+                var newDay = dayMap[sourceDay.Id];
+                var newAccommodation = accommodationMap[sourceDay.Accommodation.Id];
+
+                // Znajdź wszystkie dni w nowej wycieczce które pasują do zakresu dat zakwaterowania
+                var matchingDays = await TryFindDaysForAccommodation(newTrip.Id, newAccommodation.CheckIn, newAccommodation.CheckOut);
+
+                if (matchingDays != null && matchingDays.Any())
+                {
+                    await AddAccommodationToDays(matchingDays, newAccommodation.Id);
+                }
+            }
+        }
+    }
+
+    private async Task<IEnumerable<Day>> TryFindDaysForAccommodation(int tripId, DateTime checkIn, DateTime checkOut)
+    {
+        var days = await _dayRepository.GetByTripIdAsync(tripId);
+        return days.Where(d => d.Date.Date >= checkIn.Date && d.Date.Date < checkOut.Date);
+    }
+
+    private async Task AddAccommodationToDays(IEnumerable<Day> days, int accommodationId)
+    {
+        foreach (var day in days)
+        {
+            day.AccommodationId = accommodationId;
+            await _dayRepository.UpdateAsync(day);
+        }
+    }
+
+    private async Task CloneTransportAsync(Trip sourceTrip, Trip newTrip, string cloningUserId, Dictionary<string, int> categoryMap, Dictionary<int, Spot> spotMap, Dictionary<int, Transport> transportMap)
+    {
+        var sourceTransports = await _transportRepository.GetTransportsByTripIdAsync(sourceTrip.Id);
+
+        // Najpierw upewnij się, że wszystkie spoty używane w transporcie są sklonowane
+        foreach (var transport in sourceTransports)
+        {
+            if (!spotMap.ContainsKey(transport.FromSpotId))
+            {
+                var newFromSpot = await CloneTransportSpotAsync(transport.FromSpot!, newTrip, cloningUserId, categoryMap);
+                spotMap[transport.FromSpotId] = newFromSpot;
+            }
+
+            if (!spotMap.ContainsKey(transport.ToSpotId))
+            {
+                var newToSpot = await CloneTransportSpotAsync(transport.ToSpot!, newTrip, cloningUserId, categoryMap);
+                spotMap[transport.ToSpotId] = newToSpot;
+            }
+        }
+
+        // Teraz sklonuj transporty używając już sklonowanych spotów
+        foreach (var sourceTransport in sourceTransports)
+        {
+            var newTransport = new Transport
+            {
+                Name = sourceTransport.Name,
+                Type = sourceTransport.Type,
+                Duration = sourceTransport.Duration,
+                TripId = newTrip.Id,
+                FromSpotId = spotMap[sourceTransport.FromSpotId].Id,
+                ToSpotId = spotMap[sourceTransport.ToSpotId].Id
+            };
+
+            var savedTransport = await _transportRepository.AddAsync(newTransport);
+            transportMap[sourceTransport.Id] = savedTransport;
+        }
+    }
+
+    private async Task<Spot> CloneTransportSpotAsync(Spot sourceSpot, Trip newTrip, string cloningUserId, Dictionary<string, int> categoryMap)
+    {
+        var newSpot = new Spot
+        {
+            Name = sourceSpot.Name,
+            Description = sourceSpot.Description,
+            Duration = sourceSpot.Duration,
+            Order = sourceSpot.Order,
+            StartTime = sourceSpot.StartTime,
+            Checklist = CleanChecklist(sourceSpot.Checklist),
+            CategoryId = GetMatchingCategoryId(sourceSpot.Category?.Name, categoryMap),
+            TripId = newTrip.Id,
+            DayId = null, // Spoty transportowe nie są przypisane do dnia
+            Longitude = sourceSpot.Longitude,
+            Latitude = sourceSpot.Latitude,
+            Rating = sourceSpot.Rating,
+            CountryCode = sourceSpot.CountryCode,
+            CountryName = sourceSpot.CountryName,
+            Photos = new List<Photo>(),
+            Files = new List<Domain.Entities.File>()
+        };
+
+        return await _spotRepository.AddAsync(newSpot);
+    }
+
+    private async Task CloneExpensesAsync(Trip sourceTrip, Trip newTrip, string cloningUserId, Dictionary<string, int> categoryMap, CurrencyCode targetCurrency,
+        Dictionary<int, Spot> spotMap, Dictionary<int, Transport> transportMap)
+    {
+        var sourceExpenses = await _expenseRepository.GetByTripIdWithParticipantsAsync(sourceTrip.Id);
+        var estimatedExpenses = sourceExpenses.Where(e => e.IsEstimated).ToList();
+
+        // Pobierz kursy wymiany
+        var exchangeRates = await GetOrCreateExchangeRatesAsync(sourceTrip, newTrip, targetCurrency);
+
+        foreach (var sourceExpense in estimatedExpenses)
+        {
+            // Znajdź odpowiedni kurs wymiany
+            var sourceCurrency = sourceExpense.ExchangeRate?.CurrencyCodeKey ?? sourceTrip.CurrencyCode;
+            var exchangeRate = exchangeRates.FirstOrDefault(er => er.CurrencyCodeKey == sourceCurrency);
+
+            if (exchangeRate == null) continue;
+
+            // Mapuj SpotId i TransportId jeśli istnieją
+            int? newSpotId = null;
+            int? newTransportId = null;
+
+            if (sourceExpense.SpotId.HasValue && spotMap.ContainsKey(sourceExpense.SpotId.Value))
+            {
+                newSpotId = spotMap[sourceExpense.SpotId.Value].Id;
+            }
+
+            if (sourceExpense.TransportId.HasValue && transportMap.ContainsKey(sourceExpense.TransportId.Value))
+            {
+                newTransportId = transportMap[sourceExpense.TransportId.Value].Id;
+            }
+
+            var newExpense = new Expense
+            {
+                Name = sourceExpense.Name,
+                Value = sourceExpense.Value,
+                EstimatedValue = sourceExpense.EstimatedValue,
+                IsEstimated = true,
+                Multiplier = sourceExpense.Multiplier,
+                AdditionalFee = sourceExpense.AdditionalFee,
+                PercentageFee = sourceExpense.PercentageFee,
+                PaidById = cloningUserId,
+                TransferredToId = null,
+                CategoryId = GetMatchingCategoryId(sourceExpense.Category?.Name, categoryMap),
+                TripId = newTrip.Id,
+                ExchangeRateId = exchangeRate.Id,
+                SpotId = newSpotId,
+                TransportId = newTransportId,
+                Participants = new List<ExpenseParticipant>()
+            };
+
+            await _expenseRepository.AddAsync(newExpense);
+        }
+    }
+
+    private async Task<List<ExchangeRate>> GetOrCreateExchangeRatesAsync(Trip sourceTrip, Trip newTrip, CurrencyCode targetCurrency)
+    {
+        var exchangeRates = new List<ExchangeRate>();
+
+        // Pobierz unikalne waluty z wydatków oryginalnej wycieczki
+        var sourceCurrencies = new HashSet<CurrencyCode> {  };
+        var sourceExpenses = await _expenseRepository.GetByTripIdWithParticipantsAsync(sourceTrip.Id);
+
+        foreach (var expense in sourceExpenses.Where(e => e.IsEstimated))
+        {
+            if (expense.ExchangeRate != null)
+            {
+                sourceCurrencies.Add(expense.ExchangeRate.CurrencyCodeKey);
+            }
+        }
+
+        // Dla każdej waluty źródłowej pobierz kurs do waluty docelowej
+        foreach (var sourceCurrency in sourceCurrencies)
+        {
+            if (sourceCurrency == targetCurrency)
+            {
+                // Kurs 1:1 dla tej samej waluty
+                var rate = new ExchangeRate
+                {
+                    CurrencyCodeKey = sourceCurrency,
+                    ExchangeRateValue = 1.0m,
+                    TripId = newTrip.Id
+                };
+                var savedRate = await _exchangeRateRepository.AddAsync(rate);
+                exchangeRates.Add(savedRate);
+            }
+            else
+            {
+                try
+                {
+                    var rateValue = await _currencyConversionService.GetExchangeRate(sourceCurrency.ToString(), targetCurrency.ToString());
+
+                    var rate = new ExchangeRate
+                    {
+                        CurrencyCodeKey = sourceCurrency,
+                        ExchangeRateValue = rateValue,
+                        TripId = newTrip.Id
+                    };
+                    var savedRate = await _exchangeRateRepository.AddAsync(rate);
+                    exchangeRates.Add(savedRate);
+                }
+                catch
+                {
+                    // W przypadku błędu pobierania kursu, pomiń tę walutę
+                    continue;
+                }
+            }
+        }
+
+        return exchangeRates;
+    }
+
+    private int? GetMatchingCategoryId(string? categoryName, Dictionary<string, int> categoryMap)
+    {
+        if (string.IsNullOrEmpty(categoryName)) return null;
+
+        return categoryMap.ContainsKey(categoryName) ? categoryMap[categoryName] : null;
     }
 }

@@ -1,0 +1,181 @@
+﻿@using TravelHub.Domain.Entities
+@model TravelHub.Web.ViewModels.TripsSearch.CloneTripViewModel
+
+@{
+    ViewData["Title"] = "Clone Trip";
+}
+
+<h1>Clone Trip</h1>
+<p class="text-muted">Cloning: <strong>@Model.SourceTripName</strong></p>
+
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Clone">
+            <input type="hidden" asp-for="SourceTripId" />
+            <input type="hidden" asp-for="SourceTripName" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
+                        <label asp-for="Name" class="control-label"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="StartDate" class="control-label"></label>
+                                <input asp-for="StartDate" type="date" class="form-control" />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="EndDate" class="control-label"></label>
+                                <input asp-for="EndDate" type="date" class="form-control" />
+                                <span asp-validation-for="EndDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="TargetCurrency" class="control-label"></label>
+                                <select asp-for="TargetCurrency" asp-items="Html.GetEnumSelectList<CurrencyCode>()" class="form-control"></select>
+                                <span asp-validation-for="TargetCurrency" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="IsPrivate" class="control-label"></label>
+                                <select asp-for="IsPrivate" class="form-control">
+                                    <option value="true">Private</option>
+                                    <option value="false">Public</option>
+                                </select>
+                                <span asp-validation-for="IsPrivate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Elements to Clone</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input asp-for="CloneDays" class="form-check-input" />
+                                <label asp-for="CloneDays" class="form-check-label"></label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input asp-for="CloneGroups" class="form-check-input" />
+                                <label asp-for="CloneGroups" class="form-check-label"></label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input asp-for="CloneAccommodations" class="form-check-input" />
+                                <label asp-for="CloneAccommodations" class="form-check-label"></label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input asp-for="CloneActivities" class="form-check-input" />
+                                <label asp-for="CloneActivities" class="form-check-label"></label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input asp-for="CloneSpots" class="form-check-input" />
+                                <label asp-for="CloneSpots" class="form-check-label"></label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input asp-for="CloneTransport" class="form-check-input" />
+                                <label asp-for="CloneTransport" class="form-check-label"></label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input asp-for="CloneExpenses" class="form-check-input" />
+                                <label asp-for="CloneExpenses" class="form-check-label"></label>
+                                <p><small class="form-text text-muted">Only estimated expenses will be cloned</small></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-copy"></i> Clone Trip
+                </button>
+                <a href="@Url.Action("Details", new { id = Model.SourceTripId })" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Trip
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Cloning Information</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted">
+                    <strong>Note:</strong> When cloning a trip:
+                </p>
+                <ul class="small text-muted">
+                    <li>Only estimated expenses will be copied</li>
+                    <li>You will be set as the payer for all expenses</li>
+                    <li>Categories will be matched by name with your personal categories</li>
+                    <li>Exchange rates will be updated to current values</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            // Set min date to today
+            const today = new Date().toISOString().split('T')[0];
+            $('#StartDate').attr('min', today);
+            $('#EndDate').attr('min', today);
+
+            // Update end date min when start date changes
+            $('#StartDate').change(function() {
+                const startDate = $(this).val();
+                $('#EndDate').attr('min', startDate);
+
+                // If end date is before start date, update it
+                if ($('#EndDate').val() < startDate) {
+                    $('#EndDate').val(startDate);
+                }
+            });
+
+            // Add dependencies between elements
+            $('#CloneSpots').change(function() {
+                if (!$(this).is(':checked')) {
+                    $('#CloneActivities').prop('checked', false);
+                }
+            });
+
+            $('#CloneActivities').change(function() {
+                if ($(this).is(':checked')) {
+                    $('#CloneSpots').prop('checked', true);
+                }
+            });
+        });
+    </script>
+}

@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using TravelHub.Application.DTOs;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
@@ -19,13 +22,15 @@ public class TripsSearchController : Controller
     private readonly ISpotService _spotService;
     private readonly IActivityService _activityService;
     private readonly IExpenseService _expenseService;
+    private readonly UserManager<Person> _userManager;
 
     public TripsSearchController(ITripService tripService,
         IAccommodationService accommodationService,
         ITransportService transportService,
         ISpotService spotService,
         IActivityService activityService,
-        IExpenseService expenseService
+        IExpenseService expenseService,
+        UserManager<Person> userManager
         )
     {
         _tripService = tripService;
@@ -34,6 +39,7 @@ public class TripsSearchController : Controller
         _spotService = spotService;
         _activityService = activityService;
         _expenseService = expenseService;
+        _userManager = userManager;
     }
 
     [HttpGet]
@@ -271,6 +277,92 @@ public class TripsSearchController : Controller
         return View(viewModel);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Clone(int id)
+    {
+        var trip = await _tripService.GetTripWithDetailsAsync(id);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        // Sprawdzamy czy wycieczka jest publiczna
+        if (trip.IsPrivate)
+        {
+            return Forbid();
+        }
+
+        var viewModel = new CloneTripViewModel
+        {
+            SourceTripId = trip.Id,
+            SourceTripName = trip.Name,
+            Name = $"{trip.Name} (Copy)",
+            StartDate = DateTime.Today,
+            EndDate = DateTime.Today.AddDays((trip.EndDate - trip.StartDate).Days),
+            TargetCurrency = trip.CurrencyCode,
+            IsPrivate = true
+        };
+
+        return View(viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Clone(CloneTripViewModel viewModel)
+    {
+        if (!ModelState.IsValid)
+        {
+            // Ponowne załadowanie danych źródłowej wycieczki w przypadku błędu
+            var sourceTrip = await _tripService.GetTripWithDetailsAsync(viewModel.SourceTripId);
+            if (sourceTrip != null)
+            {
+                viewModel.SourceTripName = sourceTrip.Name;
+            }
+            return View(viewModel);
+        }
+
+        try
+        {
+            var cloneRequest = new CloneTripRequestDto
+            {
+                Name = viewModel.Name,
+                StartDate = viewModel.StartDate,
+                EndDate = viewModel.EndDate,
+                TargetCurrency = viewModel.TargetCurrency,
+                IsPrivate = viewModel.IsPrivate,
+                CloneDays = viewModel.CloneDays,
+                CloneGroups = viewModel.CloneGroups,
+                CloneAccommodations = viewModel.CloneAccommodations,
+                CloneActivities = viewModel.CloneActivities,
+                CloneSpots = viewModel.CloneSpots,
+                CloneTransport = viewModel.CloneTransport,
+                CloneExpenses = viewModel.CloneExpenses
+            };
+
+            var userId = GetCurrentUserId();
+
+            var clonedTrip = await _tripService.CloneTripAsync(viewModel.SourceTripId, userId, cloneRequest);
+
+            // Przekierowanie do szczegółów nowo stworzonej wycieczki
+            return RedirectToAction("Details", "Trips", new { id = clonedTrip.Id });
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return View(viewModel);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return View(viewModel);
+        }
+        catch (Exception)
+        {
+            ModelState.AddModelError("", "An error occurred while cloning the trip. Please try again.");
+            return View(viewModel);
+        }
+    }
+
     private string ConvertDecimalToTimeString(decimal duration)
     {
         int hours = (int)duration;
@@ -278,9 +370,8 @@ public class TripsSearchController : Controller
         return $"{hours:D2}:{minutes:D2}";
     }
 
-    private IEnumerable<Spot> GetAllSpotsFromTrip(Trip trip)
+    private string GetCurrentUserId()
     {
-        var allActivities = trip.Activities.Union(trip.Days?.SelectMany(d => d.Activities) ?? Enumerable.Empty<Activity>());
-        return allActivities.OfType<Spot>().GroupBy(s => s.Id).Select(g => g.First());
+        return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
     }
 }

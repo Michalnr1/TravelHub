@@ -5,6 +5,7 @@
 
     // Sprawdzamy czy to publiczny podgląd
     var isPublicView = Context.Request.Query["source"] == "public";
+    var backUrl = isPublicView ? Url.Action("Details", "TripsSearch", new { id = Model.TripId }) : Url.Action("Details", "Trips", new { id = Model.TripId });
     var returnUrl = ViewData["ReturnUrl"];
 }
 
@@ -215,7 +216,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <strong>Trip:</strong><br>
-                    <a href="@returnUrl" class="text-decoration-none">
+                    <a href="@backUrl" class="text-decoration-none">
                         @Html.DisplayFor(model => model.TripName)
                     </a>
                 </div>
