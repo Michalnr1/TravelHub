@@ -757,7 +757,6 @@ function displayOptimizedActivityOrder(data) {
     // Re-append in correct order
     itemsToBeSorted.forEach(item => container.appendChild(item));
 
-
     // --- UPDATE ACTIVITIES ARRAY ---
     let activitiesToBeSorted = activities.slice(ia, nextAccommodation ? activities.length - 1 : activities.length);
     activitiesToBeSorted.sort((a, b) => orderMap.get(a.id) - orderMap.get(b.id));
@@ -782,8 +781,7 @@ function displayOptimizedActivityOrder(data) {
             spotCounter++;
         }
     });
-    if (ib < items.length) newPoints.push(points[ib]);
-
+    if (ib < items.length) newPoints.push(points[points.length - 1]);
     points = newPoints;
     // --- RESET MAP & ROUTE DISPLAY ---
     clearPolylines();
