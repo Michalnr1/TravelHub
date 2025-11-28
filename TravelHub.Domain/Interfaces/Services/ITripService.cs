@@ -1,5 +1,6 @@
 ﻿using TravelHub.Domain.Entities;
 using TravelHub.Domain.DTOs;
+using TravelHub.Application.DTOs;
 
 namespace TravelHub.Domain.Interfaces.Services;
 
@@ -31,4 +32,5 @@ public interface ITripService : IGenericService<Trip>
     int CountAllSpotsInTrip(Trip trip);
     List<string> GetUniqueCountriesFromTrip(Trip trip);
     Task MarkAllChecklistItemsAsync(int tripId, bool completed);
+    Task<Trip> CloneTripAsync(int sourceTripId, string cloningUserId, CloneTripRequestDto request);
 }

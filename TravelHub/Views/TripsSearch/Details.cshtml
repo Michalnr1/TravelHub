@@ -7,6 +7,10 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>@Model.Name</h1>
     <div>
+        <a href="@Url.Action("Clone", "TripsSearch", new { id = Model.Id })"
+           class="btn btn-outline-success">
+            <i class="fas fa-copy"></i> Clone This Trip
+        </a>
         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#countriesModal">
             <i class="fas fa-globe"></i> View Countries
         </button>
