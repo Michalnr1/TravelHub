@@ -93,13 +93,10 @@ async function initMap() {
     });
 
     let walkRouteBtn = document.getElementById("route-walk-btn");
-    walkRouteBtn.addEventListener('click', (event) => { showRoute('WALKING') });
+    walkRouteBtn.addEventListener('click', (event) => { showRoute() });
 
-    let driveRouteBtn = document.getElementById("route-drive-btn");
-    driveRouteBtn.addEventListener('click', (event) => { showRoute('DRIVING') });
-
-    let transitRouteBtn = document.getElementById("route-transit-btn");
-    transitRouteBtn.addEventListener('click', (event) => { showRoute('TRANSIT') });
+    bindGlobalTravelModeSelector();
+    hideLastTravelCard();
 }
 
 
@@ -110,43 +107,71 @@ function getStartDatetime() {
     return clampToAllowedRange(time);
 }
 
-async function showRoute(travelMode) {
+async function showRoute() {
     if (points.length < 2) return;
 
     let startTime = getStartDatetime();
+    let travelModes = getTravelModes();
 
-    let baseTravelMode = travelMode == 'TRANSIT' ? 'WALKING' : travelMode;
-    let route = await fetchBaseRoute(baseTravelMode);
-    if (!route || route.routes.length === 0) {
-        alert('Unable to compute route');
-        return;
+    let segments = getModalSegments(points, travelModes);
+    let legs = [];
+
+    for await (const s of segments) {
+        let route = await fetchBaseRoute(s);
+        if (!route || route.routes.length === 0) {
+            alert('Unable to compute route');
+            return;
+        }
+        let segmentLegs = route.routes[0].legs;
+        segmentLegs.forEach((l, i) => {
+            l.desiredTravelMode = s.travelModes[i];
+        });
+        legs.push(...segmentLegs);
     }
 
     clearPolylines();
     clearTravelCards();
     clearWarnings();
 
-    legs = route.routes[0].legs;
+    legs = await processLegs(legs, startTime);
 
-    legs = await processLegs(legs, travelMode == 'TRANSIT', startTime);
-
-    await renderRoute(legs, travelMode);
+    await renderRoute(legs);
 
     let endTime = activities[activities.length - 1].endTime;
     showRouteSummary(startTime, endTime);
     validatePlan(activities, startTime, endTime);
 }
 
-async function fetchBaseRoute(travelMode) {
-    const intermediates = points.slice(1, -1).map(p => ({
+function getModalSegments(points, travelModes) {
+    segments = []
+    let segment = { points: [points[0]], travelModes: [] };
+    let basicTravelMode = getBasicTravelMode(travelModes[0]);
+    for (let i = 0; i < travelModes.length; i++) {
+        if (getBasicTravelMode(travelModes[i]) != basicTravelMode) {
+            basicTravelMode = getBasicTravelMode(travelModes[i]);
+            segments.push(segment);
+            segment = { points: [points[i]], travelModes: [] };
+        }
+        segment.points.push(points[i + 1]);
+        segment.travelModes.push(travelModes[i]);
+    }
+    segments.push(segment);
+    return segments;
+}
+
+function getBasicTravelMode(travelMode) {
+    return travelMode == "TRANSIT" ? "WALKING" : travelMode;
+}
+
+async function fetchBaseRoute(segment) {
+    const intermediates = segment.points.slice(1, -1).map(p => ({
         lat: parseFloat(p.latitude),
         lng: parseFloat(p.longitude)
     }));
-
-    return await getRoute(points[0], points[points.length - 1], intermediates, travelMode);
+    return await getRoute(segment.points[0], segment.points[segment.points.length - 1], intermediates, getBasicTravelMode(segment.travelModes[0]));
 }
 
-async function processLegs(legs, useTransit, time) {
+async function processLegs(legs, time) {
     const threshold = parseInt(document.getElementById('transit-threshold').value) * 60 * 1000;
     let spotNum = 0;
     const newLegs = [];
@@ -155,7 +180,7 @@ async function processLegs(legs, useTransit, time) {
             if (spotNum > 0) {
                 const leg = legs[spotNum - 1];
                 let newLeg = leg;
-                if (useTransit && !hasFixedDuration(points[spotNum - 1]) && leg.durationMillis > threshold) {
+                if (leg.desiredTravelMode == "TRANSIT" && !hasFixedDuration(points[spotNum - 1]) && leg.durationMillis > threshold) {
                     newLeg = await getTransitLeg(leg, time);
                     newLeg.type = 'Transit';
                 } else {
@@ -187,38 +212,31 @@ async function getTransitLeg(leg, time) {
     return transitRoute.routes[0].legs[0];
 }
 
-async function renderRoute(legs, travelMode) {
+async function renderRoute(legs) {
     const { Polyline } = await google.maps.importLibrary("maps");
     for (let i = 0; i < legs.length; i++) {
         const leg = legs[i];
 
-        let cardId = `spot-${points[i + 1].id}`;
+        let travelId = `travel-${points[i].id}`;
+        let travelDiv = document.querySelector(`#${travelId} .travel-info`);
 
-        if (i == 0 && previousAccommodation?.id == points[i + 1].id) {
-            cardId = cardId + "-prev";
-        } else if (i == legs.length - 1 && nextAccommodation?.id == points[i + 1].id) {
-            cardId = cardId + "-next";
-        }
-        const locationCard = document.getElementById(cardId);
+        travelDiv.innerHTML = ""; // Clear previous content
 
-        if (leg.type == 'Transit') {
-            const card = buildTravelCard(i);
-            locationCard.before(card);
-            await renderTransitSteps(leg, card);
+        if (leg.type === 'Transit') {
+            await renderTransitSteps(leg, travelDiv);
         } else {
             const durationMillis = getTransportDuration(points[i], leg);
-            const card = buildTravelCard(i, durationMillis, travelMode);
-            locationCard.before(card);
+            addEntryToTravelCard(
+                travelDiv,
+                `...${durationStringMillis(durationMillis)} ${leg.desiredTravelMode.toLowerCase()}...`
+            );
 
-            const polyline = new Polyline({ map, path: leg.path });
-            setPolylineEventBindings(polyline, card);
+            const polyline = new Polyline({ map, path: leg.path, strokeColor: leg.desiredTravelMode == 'DRIVING' ? 'yellow' : 'black' });
+            setPolylineEventBindings(polyline, travelDiv);
             polylines.push(polyline);
-
         }
     }
 }
-
-
 
 async function renderTransitSteps(leg, card) {
     const { Polyline } = await google.maps.importLibrary("maps");
@@ -241,8 +259,7 @@ async function renderTransitSteps(leg, card) {
                 partialDurationMillis = 0;
             }
 
-            addIconToTravelCard(card, step.transitDetails.transitLine.vehicle.iconURL);
-            addTransitEntryToTravelCard(card, step);
+            addTransitEntryToTravelCard(card, step, step.transitDetails.transitLine.vehicle.iconURL);
             setPolylineEventBindings(polyline, card);
         }
     });
@@ -275,6 +292,73 @@ function getTransportDuration(point, leg) {
 }
 function hasFixedDuration(point) {
     return Object.hasOwn(point, 'fixedDurationFrom') && point.fixedDurationFrom != null;
+}
+
+function bindGlobalTravelModeSelector() {
+    document.querySelectorAll('input[name="global-travel-mode"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            const selectedMode = this.value;
+
+            document
+                .querySelectorAll('.travel-mode-radio-button[value="' + selectedMode + '"]')
+                .forEach(r => {
+                    r.checked = true;
+                    r.dispatchEvent(new Event('change'));
+                });
+        });
+    });
+}
+
+function setAllTravelModes(mode) {
+    document
+        .querySelectorAll('.travel-mode-radio-button[value="' + mode + '"]')
+        .forEach(radio => {
+            radio.checked = true;
+        });
+}
+
+function realignTravelSelectors() {
+    const container = document.getElementById('activitiesContainer');
+
+    // Get all activity items in their CURRENT order
+    const activityItems = Array.from(container.querySelectorAll('.activity-item'));
+
+    activityItems.forEach(activity => {
+        const activityId = activity.dataset.activityId;
+
+        // Only spots have travel selectors
+        const travelDiv = document.getElementById('travel-' + activityId);
+
+        if (!travelDiv) return;
+
+        travelDiv.hidden = false;
+
+        // If the travel div is not directly after the activity, move it
+        if (activity.nextElementSibling !== travelDiv) {
+            container.insertBefore(travelDiv, activity.nextElementSibling);
+        }
+    });
+
+    hideLastTravelCard();
+}
+
+function hideLastTravelCard() {
+    const container = document.getElementById('activitiesContainer');
+    const activityItems = Array.from(container.querySelectorAll('.activity-item'));
+    const finalId = activityItems[activityItems.length - 1].dataset.activityId;
+    const finalTravelDiv = document.getElementById('travel-' + finalId);
+    if (!finalTravelDiv) return;
+    finalTravelDiv.hidden = true;
+}
+
+function getTravelModes() {
+    const container = document.getElementById('activitiesContainer');
+    const travelDivs = Array.from(container.querySelectorAll('[id^="travel-"]'));
+    return travelDivs.slice(0, travelDivs.length - 1)
+        .map(div => {
+            const checked = div.querySelector('input[type="radio"]:checked');
+            return checked ? checked.value : "WALKING";
+        });
 }
 
 function addActivityDuration(time, activity) {
@@ -317,8 +401,9 @@ function clearPolylines() {
     polylines = [];
 }
 
-function addTransitEntryToTravelCard(card, step) {
+function addTransitEntryToTravelCard(card, step, imgUrl) {
     let span = document.createElement("span");
+    addIconToTravelCard(span, step.transitDetails.transitLine.vehicle.iconURL);
     let lineNumberSpan = document.createElement('span');
     lineNumberSpan.innerHTML = step.transitDetails.transitLine.shortName;
     lineNumberSpan.classList.add('transit-line');
@@ -352,6 +437,8 @@ function addEntryToTravelCard(card, text) {
 
 function addIconToTravelCard(card, url) {
     let img = document.createElement('img');
+    //img.width = 32;
+    //img.height = 32;
     img.src = url;
     card.appendChild(img);
 }
@@ -371,24 +458,11 @@ function setPolylineEventBindings(polyline, card) {
     });
 }
 
-function buildTravelCard(i, durationMillis = 0, travelMode = '') {
-    let div = document.createElement("div");
-    div.setAttribute("id", 'travel-' + i);
-    div.classList.add('list-group-item');
-    div.classList.add('travel-card');
-    if (durationMillis > 0) {
-        let span = document.createElement("span");
-        span.innerHTML = "..." + durationStringMillis(durationMillis) + " " + travelMode.toLowerCase() + "...";
-        div.appendChild(span);
-    }
-    return div;
-}
-
 function clearTravelCards() {
-    var cards = document.getElementsByClassName('travel-card');
+    const cards = document.getElementsByClassName('travel-info');
 
-    while (cards[0]) {
-        cards[0].parentNode.removeChild(cards[0]);
+    for (const card of cards) {
+        card.innerHTML = "";
     }
 }
 
@@ -528,6 +602,7 @@ document.addEventListener('DOMContentLoaded', function () {
         clearPolylines();
         clearTravelCards();
         clearWarnings();
+        realignTravelSelectors();
         routeInfoWindow.close();
 
         const items = container.querySelectorAll('.activity-item');
@@ -552,8 +627,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
         points = newPoints;
-
-        //alert(JSON.stringify(points.map(e => e.name)));
 
         // recompute fixed durations
         fillFixedDurations(points);
@@ -716,6 +789,7 @@ function displayOptimizedActivityOrder(data) {
     clearPolylines();
     clearTravelCards();
     clearWarnings();
+    realignTravelSelectors();
     routeInfoWindow.close();
 
     // recompute fixed durations based on new order
