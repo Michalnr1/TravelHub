@@ -23,4 +23,9 @@ public class AccommodationService : GenericService<Accommodation>, IAccommodatio
     {
         return await _accommodationRepository.GetTripAccommodationsAsync(tripId);
     }
+
+    public async Task<IReadOnlyList<Accommodation>> GetTripAccommodationsAsync(int tripId)
+    {
+        return await _accommodationRepository.GetTripAccommodationsAsync(tripId);
+    }
 }
