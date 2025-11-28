@@ -112,7 +112,7 @@ public class AccommodationCreateEditViewModel
     public decimal? ExpenseValue { get; set; }
 
     [Display(Name = "Currency")]
-    public CurrencyCode? ExpenseCurrencyCode { get; set; } = CurrencyCode.PLN;
+    public CurrencyCode? ExpenseCurrencyCode { get; set; }
 
     [Display(Name = "Exchange rate (to base)")]
     [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]

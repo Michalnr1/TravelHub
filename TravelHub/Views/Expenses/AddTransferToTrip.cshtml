@@ -83,7 +83,7 @@
                                 @foreach (var currency in allCurrencies)
                                 {
                                     <option value="@currency.Key"
-                                            selected="@(Model.SelectedCurrencyCode == currency.Key && Model.ExchangeRateValue == 1.0M)">
+                                            selected="@(Model.TripCurrency == currency.Key)">
                                         @currency.DropdownText
                                     </option>
                                 }

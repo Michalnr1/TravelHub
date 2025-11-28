@@ -702,22 +702,6 @@ public class ExpensesController : Controller
             .Concat(allCurrencies)
             .ToList();
 
-        if (viewModel.Id == 0)
-        {
-            if (viewModel.ExchangeRateValue == 1.0M)
-            {
-                var defaultCurrency = usedCurrencies.FirstOrDefault()
-                                      ?? allCurrencies.FirstOrDefault(c => c.Key == CurrencyCode.PLN)
-                                      ?? allCurrencies.FirstOrDefault();
-
-                if (defaultCurrency != null)
-                {
-                    viewModel.SelectedCurrencyCode = defaultCurrency.Key;
-                    viewModel.ExchangeRateValue = defaultCurrency.ExchangeRate;
-                }
-            }
-        }
-
         // Categories
         var categories = await _categoryService.GetAllCategoriesByTripAsync(viewModel.TripId);
         viewModel.Categories = categories.Select(c => new CategorySelectItem

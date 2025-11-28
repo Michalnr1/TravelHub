@@ -163,7 +163,7 @@ public class ExpenseCreateEditViewModel
 
     [Required(ErrorMessage = "Currency is required")]
     [Display(Name = "Currency")]
-    public CurrencyCode SelectedCurrencyCode { get; set; } = CurrencyCode.PLN;
+    public CurrencyCode SelectedCurrencyCode { get; set; }
 
     [Required(ErrorMessage = "Exchange Rate is required")]
     [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]

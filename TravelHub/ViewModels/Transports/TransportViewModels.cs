@@ -88,7 +88,7 @@ public class TransportCreateEditViewModel
     public decimal? ExpenseValue { get; set; }
 
     [Display(Name = "Currency")]
-    public CurrencyCode? ExpenseCurrencyCode { get; set; } = CurrencyCode.PLN;
+    public CurrencyCode? ExpenseCurrencyCode { get; set; }
 
     [Display(Name = "Exchange Rate (to Base)")]
     [Range(0.000001, (double)decimal.MaxValue, ErrorMessage = "Exchange Rate must be greater than 0")]

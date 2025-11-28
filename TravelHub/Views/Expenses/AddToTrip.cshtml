@@ -82,7 +82,7 @@
                                 @foreach (var currency in allCurrencies)
                                 {
                                     <option value="@currency.Key"
-                                            selected="@(Model.SelectedCurrencyCode == currency.Key && Model.ExchangeRateValue == 1.0M)">
+                                            selected="@(Model.TripCurrency == currency.Key)">
                                         @currency.DropdownText
                                     </option>
                                 }
@@ -273,10 +273,15 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
+    <script src="~/js/currency-utils.js"></script>
+
+    <script src="~/js/currency-conversion-module.js"></script>
+
     <script>
-        $(document).ready(function () {
-            var $currencySelect = $('#currencySelect');
-            var $exchangeRateInput = $('#ExchangeRateValue');
+        var $currencySelect = $('#currencySelect');
+        var $exchangeRateInput = $('#ExchangeRateValue');
+        var tripCurrency = "@Html.Raw(Model.TripCurrency)";
+        $(document).ready(function () {        
             var $totalAmountInput = $('#totalAmount');
             var $participantsSection = $('#participantsSection');
             var $sharesSection = $('#sharesSection');
@@ -285,7 +290,6 @@
             var $isEstimatedCheckbox = $('#isEstimatedCheckbox');
             var $isEstimatedHidden = $('#isEstimatedHidden');
             var shareIndex = 0;
-            var tripCurrency = "@Html.Raw(Model.TripCurrency)";
             var $includeFeesCheckbox = $('#includeFeesCheckbox');
             var $feesFields = $('#feesFields');
             var $feesSection = $('#feesSection');
@@ -423,41 +427,6 @@
                 }
 
                 return isValid;
-            }
-
-            function fetchExchangeRate(target){
-                $.ajax({
-                  url: "/Expenses/ExchangeRate",
-                  type: "get",
-                  data: {
-                      from: target,
-                      to: tripCurrency
-                  },
-                  success: function( result ) {
-                    $exchangeRateInput.val(result);
-                  }
-                });
-            }
-
-            function setExchangeRate(selectedOption) {
-                var rate = selectedOption.data('rate');
-                if (rate) {
-                    $exchangeRateInput.val(parseFloat(rate).toFixed(6));
-                } else {
-                    fetchExchangeRate(selectedOption.val());
-                }
-            }
-
-            // Obsługa zmiany waluty
-            $currencySelect.on('change', function () {
-                var $selected = $(this).find('option:selected');
-                setExchangeRate($selected);
-            });
-
-            // Inicjalizacja kursu waluty
-            var $initialSelectedOption = $currencySelect.find('option:selected');
-            if ($initialSelectedOption.length > 0 && $exchangeRateInput.val() === '') {
-                setExchangeRate($initialSelectedOption);
             }
 
             // Obsługa checkboxów uczestników
