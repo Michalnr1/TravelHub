@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Web.ViewModels.Activities;
@@ -80,7 +81,7 @@ public class BlogController : Controller
             Name = blog.Name,
             Description = blog.Description,
             Catalog = blog.Catalog,
-            IsPrivate = blog.IsPrivate,
+            Visibility = blog.Visibility,
             TripId = blog.TripId,
             TripName = blog.Trip?.Name ?? string.Empty,
             OwnerId = blog.OwnerId,
@@ -189,7 +190,7 @@ public class BlogController : Controller
             Name = model.Name,
             Description = model.Description,
             Catalog = model.Catalog,
-            IsPrivate = model.IsPrivate,
+            Visibility = model.Visibility,
             OwnerId = currentUserId!,
             TripId = model.TripId
         };
@@ -222,7 +223,7 @@ public class BlogController : Controller
             Name = blog.Name,
             Description = blog.Description,
             Catalog = blog.Catalog,
-            IsPrivate = blog.IsPrivate,
+            Visibility = blog.Visibility,
             TripId = blog.TripId,
             TripName = blog.Trip?.Name ?? "Unknown Trip"
         };
@@ -262,7 +263,7 @@ public class BlogController : Controller
             existingBlog.Name = model.Name;
             existingBlog.Description = model.Description;
             existingBlog.Catalog = model.Catalog;
-            existingBlog.IsPrivate = model.IsPrivate;
+            existingBlog.Visibility = model.Visibility;
 
             await _blogService.UpdateAsync(existingBlog);
 
@@ -725,21 +726,31 @@ public class BlogController : Controller
 
     // GET: Blog/PublicBlogs
     [HttpGet]
-    public async Task<IActionResult> PublicBlogs(string? countryCode, string? searchTerm)
+    public async Task<IActionResult> PublicBlogs(string? countryCode, string? searchTerm, bool showFriendsOnly = false)
     {
-        var publicBlogs = await _blogService.GetPublicBlogsAsync();
+        var currentUserId = User.Identity!.IsAuthenticated ? _userManager.GetUserId(User) : null;
+
+        List<PublicBlogInfoDto> accessibleBlogs;
+        if (showFriendsOnly && currentUserId != null)
+        {
+            accessibleBlogs = await _blogService.GetFriendsBlogsAsync(currentUserId);
+        }
+        else
+        {
+            accessibleBlogs = await _blogService.GetAccessibleBlogsAsync(currentUserId);
+        }
 
         // Apply country filter
         if (!string.IsNullOrEmpty(countryCode))
         {
-            publicBlogs = publicBlogs.Where(b => b.Countries.Any(c => c.Code == countryCode)).ToList();
+            accessibleBlogs = accessibleBlogs.Where(b => b.Countries.Any(c => c.Code == countryCode)).ToList();
         }
 
         // Apply search filter
         if (!string.IsNullOrEmpty(searchTerm))
         {
             var search = searchTerm.ToLower();
-            publicBlogs = publicBlogs.Where(b =>
+            accessibleBlogs = accessibleBlogs.Where(b =>
                 b.Name.ToLower().Contains(search) ||
                 b.Description?.ToLower().Contains(search) == true ||
                 b.TripName.ToLower().Contains(search) ||
@@ -748,10 +759,11 @@ public class BlogController : Controller
         }
 
         var availableCountries = await _blogService.GetCountriesWithPublicBlogsAsync();
+        var friendsBlogsCount = currentUserId != null ? (await _blogService.GetFriendsBlogsAsync(currentUserId)).Count : 0;
 
         var viewModel = new PublicBlogsViewModel
         {
-            Blogs = publicBlogs.Select(b => new PublicBlogItemViewModel
+            Blogs = accessibleBlogs.Select(b => new PublicBlogItemViewModel
             {
                 Id = b.Id,
                 Name = b.Name,
@@ -763,7 +775,12 @@ public class BlogController : Controller
                 CommentsCount = b.CommentsCount,
                 Countries = b.Countries.Select(c => c.Name).ToList(),
                 LatestPostId = b.LatestPostId,
-                LatestPostDate = b.LatestPostDate
+                LatestPostDate = b.LatestPostDate,
+                OwnerName = b.OwnerName,
+                OwnerId = b.OwnerId,
+                IsFriend = b.IsFriend,
+                Visibility = b.Visibility,
+                FriendParticipants = b.FriendParticipants
             }).ToList(),
             AvailableCountries = availableCountries.Select(c => new CountryViewModel
             {
@@ -773,10 +790,12 @@ public class BlogController : Controller
             }).ToList(),
             SelectedCountryCode = countryCode,
             SearchTerm = searchTerm,
-            TotalBlogs = publicBlogs.Count,
-            TotalPosts = publicBlogs.Sum(b => b.PostsCount),
-            TotalComments = publicBlogs.Sum(b => b.CommentsCount),
-            TotalCountries = availableCountries.Count
+            ShowFriendsOnly = showFriendsOnly,
+            TotalBlogs = accessibleBlogs.Count,
+            TotalPosts = accessibleBlogs.Sum(b => b.PostsCount),
+            TotalComments = accessibleBlogs.Sum(b => b.CommentsCount),
+            TotalCountries = availableCountries.Count,
+            FriendsBlogsCount = friendsBlogsCount
         };
 
         return View(viewModel);
@@ -794,7 +813,7 @@ public class BlogController : Controller
         }
 
         // Sprawdź czy blog jest publiczny
-        if (blog.IsPrivate)
+        if (blog.Visibility == BlogVisibility.Private)
         {
             return Forbid();
         }
@@ -807,7 +826,7 @@ public class BlogController : Controller
             Catalog = blog.Catalog,
             TripName = blog.Trip?.Name ?? string.Empty,
             TripId = blog.TripId,
-            IsPrivate = blog.IsPrivate,
+            Visibility = blog.Visibility,
             Posts = blog.Posts.Select(p => new PublicPostViewModel
             {
                 Id = p.Id,
@@ -859,11 +878,20 @@ public class BlogController : Controller
             return NotFound();
         }
 
-        // Sprawdź czy blog jest publiczny
-        if (post.Blog?.IsPrivate == true)
+        // Sprawdź czy użytkownik ma dostęp do bloga
+        var currentUserId = User.Identity!.IsAuthenticated ? _userManager.GetUserId(User) : null;
+        var canAccessBlog = currentUserId != null
+            ? await _blogService.CanUserAccessBlogAsync(post.BlogId, currentUserId)
+            : post.Blog?.Visibility == BlogVisibility.Public;
+
+        if (!canAccessBlog)
         {
             return Forbid();
         }
+
+        // Sprawdź czy użytkownik może komentować
+        var canComment = currentUserId != null
+            && await _blogService.CanUserCommentOnBlogAsync(post.BlogId, currentUserId);
 
         var viewModel = new PublicPostViewModel
         {
@@ -906,6 +934,9 @@ public class BlogController : Controller
         ViewBag.BlogId = post.BlogId;
         ViewBag.BlogName = post.Blog?.Name;
         ViewBag.IsPublicView = true;
+        ViewBag.CanComment = canComment;
+        ViewBag.IsAuthenticated = User.Identity.IsAuthenticated;
+        ViewBag.BlogVisibility = post.Blog?.Visibility;
 
         return View(viewModel);
     }

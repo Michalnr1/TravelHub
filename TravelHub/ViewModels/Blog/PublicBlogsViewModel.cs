@@ -1,4 +1,4 @@
-﻿using TravelHub.Web.ViewModels.Trips;
+﻿using TravelHub.Domain.Entities;
 
 namespace TravelHub.Web.ViewModels.Blog;
 
@@ -8,10 +8,12 @@ public class PublicBlogsViewModel
     public List<CountryViewModel> AvailableCountries { get; set; } = new();
     public string? SelectedCountryCode { get; set; }
     public string? SearchTerm { get; set; }
+    public bool ShowFriendsOnly { get; set; }
     public int TotalBlogs { get; set; }
     public int TotalPosts { get; set; }
     public int TotalComments { get; set; }
     public int TotalCountries { get; set; }
+    public int FriendsBlogsCount { get; set; }
 }
 
 public class PublicBlogItemViewModel
@@ -27,6 +29,12 @@ public class PublicBlogItemViewModel
     public List<string> Countries { get; set; } = new();
     public int? LatestPostId { get; set; }
     public DateTime? LatestPostDate { get; set; }
+    public string OwnerName { get; set; } = string.Empty;
+    public string OwnerId { get; set; } = string.Empty;
+    public bool IsFriend { get; set; }
+    public BlogVisibility Visibility { get; set; }
+    public List<string> FriendParticipants { get; set; } = new();
+    public bool HasFriendParticipants => FriendParticipants.Any();
 }
 
 public class CountryViewModel
@@ -44,7 +52,7 @@ public class PublicBlogViewModel
     public string? Catalog { get; set; }
     public string TripName { get; set; } = string.Empty;
     public int TripId { get; set; }
-    public bool IsPrivate { get; set; }
+    public BlogVisibility Visibility { get; set; } = BlogVisibility.Private;
     public List<PublicPostViewModel> Posts { get; set; } = new();
 }
 

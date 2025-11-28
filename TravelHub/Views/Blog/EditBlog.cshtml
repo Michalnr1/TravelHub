@@ -1,4 +1,5 @@
 ﻿@model TravelHub.Web.ViewModels.Blog.EditBlogViewModel
+@using TravelHub.Domain.Entities
 
 @{
     ViewData["Title"] = "Edit Blog";
@@ -36,15 +37,19 @@
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="IsPrivate" class="form-label">Blog Visibility *</label>
-                            <select asp-for="IsPrivate" class="form-select">
-                                <option value="true">Private</option>
-                                <option value="false">Public</option>
+                            <label asp-for="Visibility" class="form-label">Blog Visibility *</label>
+                            <select asp-for="Visibility" class="form-select">
+                                <option value="@BlogVisibility.Private">Private - Only trip participants</option>
+                                <option value="@BlogVisibility.ForMyFriends">For My Friends</option>
+                                <option value="@BlogVisibility.ForTripParticipantsFriends">For Trip Participants' Friends</option>
+                                <option value="@BlogVisibility.Public">Public - Everyone</option>
                             </select>
-                            <span asp-validation-for="IsPrivate" class="text-danger"></span>
+                            <span asp-validation-for="Visibility" class="text-danger"></span>
                             <div class="form-text">
-                                <strong>Private:</strong> Only trip participants can view this blog<br>
-                                <strong>Public:</strong> Anyone can view this blog
+                                <strong>Private:</strong> Only trip participants can view and comment<br>
+                                <strong>For My Friends:</strong> Your friends can view and comment<br>
+                                <strong>For Trip Participants' Friends:</strong> Friends of any trip participant can view and comment<br>
+                                <strong>Public:</strong> Anyone can view and comment
                             </div>
                         </div>
 

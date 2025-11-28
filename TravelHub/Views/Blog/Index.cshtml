@@ -1,4 +1,5 @@
-﻿@model TravelHub.Web.ViewModels.Blog.BlogViewModel
+﻿@using TravelHub.Domain.Entities
+@model TravelHub.Web.ViewModels.Blog.BlogViewModel
 
 @{
     ViewData["Title"] = Model.Name;
@@ -14,8 +15,8 @@
             }
             <p class="text-muted">
                 Blog for trip: @Model.TripName |
-                <span class="badge @(Model.IsPrivate ? "bg-danger" : "bg-success")">
-                    @(Model.IsPrivate ? "Private" : "Public")
+                <span class="badge @(Model.Visibility == BlogVisibility.Private ? "bg-danger" : Model.Visibility == BlogVisibility.Public ? "bg-success" : "bg-warning")">
+                    @(Model.Visibility == BlogVisibility.Private ? "Private" : Model.Visibility == BlogVisibility.ForMyFriends ? "For owner's friends" : Model.Visibility == BlogVisibility.ForTripParticipantsFriends ? "For all participants friends" : "Public")
                 </span>
             </p>
         </div>
@@ -103,8 +104,8 @@
                     <p><strong>Trip:</strong> @Model.TripName</p>
                     <p>
                         <strong>Visibility:</strong>
-                        <span class="badge @(Model.IsPrivate ? "bg-danger" : "bg-success")">
-                            @(Model.IsPrivate ? "Private" : "Public")
+                        <span class="badge @(Model.Visibility == BlogVisibility.Private ? "bg-danger" : Model.Visibility == BlogVisibility.Public ? "bg-success" : "bg-warning")">
+                            @(Model.Visibility == BlogVisibility.Private ? "Private" : Model.Visibility == BlogVisibility.ForMyFriends ? "For owner's friends" : Model.Visibility == BlogVisibility.ForTripParticipantsFriends ? "For all participants friends" : "Public")
                         </span>
                     </p>
                     <p><strong>Number of Posts:</strong> @Model.Posts.Count</p>

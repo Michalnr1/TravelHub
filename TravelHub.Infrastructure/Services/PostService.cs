@@ -77,4 +77,9 @@ public class PostService : GenericService<Post>, IPostService
         var post = await _postRepository.GetByIdAsync(postId);
         return post?.AuthorId == userId;
     }
+
+    public async Task<int?> GetBlogIdByPostIdAsync(int postId)
+    {
+        return await _postRepository.GetBlogIdByPostIdAsync(postId);
+    }
 }

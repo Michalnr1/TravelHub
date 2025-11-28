@@ -56,8 +56,19 @@ public class BlogRepository : GenericRepository<Blog>, IBlogRepository
                 .ThenInclude(p => p.Comments)
             .Include(b => b.Posts)
                 .ThenInclude(p => p.Photos)
-            .Where(b => !b.IsPrivate)
+            .Where(b => b.Visibility == BlogVisibility.Public)
             .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public new async Task<IReadOnlyList<Blog>> GetAllAsync()
+    {
+        return await _context.Blogs
+            .Include(b => b.Trip)
+            .Include(b => b.Posts)
+                .ThenInclude(p => p.Comments)
+            .Include(b => b.Posts)
+                .ThenInclude(p => p.Photos)
             .ToListAsync();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using TravelHub.Domain.Entities;
 using TravelHub.Web.ViewModels.Activities;
 
 namespace TravelHub.Web.ViewModels.Blog;
@@ -9,7 +10,7 @@ public class BlogViewModel
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Catalog { get; set; }
-    public bool IsPrivate { get; set; } = true;
+    public BlogVisibility Visibility { get; set; }
     public int TripId { get; set; }
     public string TripName { get; set; } = string.Empty;
     public required string OwnerId { get; set; }
@@ -33,7 +34,7 @@ public class CreateBlogViewModel
 
     [Required(ErrorMessage = "Please select blog visibility")]
     [Display(Name = "Blog Visibility")]
-    public bool IsPrivate { get; set; } = true;
+    public BlogVisibility Visibility { get; set; } = BlogVisibility.Private;
 }
 
 public class EditBlogViewModel
@@ -54,7 +55,7 @@ public class EditBlogViewModel
 
     [Required(ErrorMessage = "Blog visibility is required")]
     [Display(Name = "Blog Visibility")]
-    public bool IsPrivate { get; set; }
+    public BlogVisibility Visibility { get; set; }
 }
 
 public class PostViewModel
