@@ -153,6 +153,10 @@
                                 id = "activity-" + activity.Id;
                                 controller = "Activities";
                             }
+                            if (activity is AccommodationBasicViewModel)
+                            {
+                                controller = "Accommodations";
+                            }
                             <div class="list-group-item d-flex justify-content-between align-items-start
                                             @(isSpot ? "border-success" : "border-primary") activity-item"
                                  style="border-left-width: 4px;"
