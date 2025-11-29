@@ -58,6 +58,14 @@
     </div>
 }
 
+@if ((bool)ViewData["Conflict"]!)
+{
+    <div id="warning-box" class="alert alert-warning">
+        <strong> Time conflict! </strong><br />
+        <strong> @(ViewData["ConflictAName"]) </strong>@(ViewData["ConflictATimeString"]) conflicts with<strong> @(ViewData["ConflictBName"]) </strong>@(ViewData["ConflictBTimeString"])!
+    </div>
+}
+
 <!-- Sekcja Accommodations -->
 <div class="mt-4">
     <h4>

@@ -122,9 +122,7 @@ public class DayService : GenericService<Day>, IDayService
                 decimal otherStartTime = activity.StartTime.Value;
                 decimal otherEndTime = otherStartTime + activity.Duration;
 
-                if ((otherStartTime < startTime && startTime < otherEndTime)
-                    || (otherStartTime < endTime && endTime < otherEndTime)
-                    || (startTime < otherStartTime && otherStartTime < endTime))
+                if (startTime <= otherEndTime && endTime >= otherStartTime)
                 {
                     return activity;
                 }
@@ -148,5 +146,36 @@ public class DayService : GenericService<Day>, IDayService
         }
 
         return 0;
+    }
+
+    public async Task<(Activity, Activity)?> CheckAllForCollisions(int id)
+    {
+        var activities = await _activityService.GetOrderedDailyActivitiesAsync(id);
+
+        var ordered = activities
+            .Where(a => a.StartTime != null)
+            .OrderBy(a => a.StartTime)
+            .ToList();
+
+        for (int i = 0; i < ordered.Count; i++)
+        {
+            var a = ordered[i];
+            decimal startA = a.StartTime!.Value;
+            decimal endA = startA + a.Duration;
+
+            for (int j = i + 1; j < ordered.Count; j++)
+            {
+                var b = ordered[j];
+                decimal startB = b.StartTime!.Value;
+                decimal endB = startB + b.Duration;
+
+                if (startA <= endB && endA >= startB)
+                {
+                    return (a, b);
+                }
+            }
+        }
+
+        return null;
     }
 }
