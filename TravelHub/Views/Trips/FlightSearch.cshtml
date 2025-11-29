@@ -17,7 +17,7 @@
                 <label for="from">From</label>
                 <div class="autocomplete-container">
                     <input type="text" id="from" name="from" placeholder="Enter airport..." autocomplete="off" />
-                    <div id="autocompleteResultsFrom" class="autocomplete-results"></div>
+                    <div id="autocompleteResultsFrom" class="autocomplete-results" hidden></div>
                 </div>
             </div>
 
@@ -31,7 +31,7 @@
                 <label for="to">To</label>
                 <div class="autocomplete-container">
                     <input type="text" id="to" name="to" placeholder="Enter airport..." autocomplete="off" />
-                    <div id="autocompleteResultsTo" class="autocomplete-results"></div>
+                    <div id="autocompleteResultsTo" class="autocomplete-results" hidden></div>
                 </div>
             </div>
 
@@ -127,6 +127,8 @@
 
     <script src="~/lib/luxon/luxon.js"></script>
 
+    <script src="~/js/airport-search-module.js"></script>
+
     <script>
         const defaultToAirportCode = "@Html.Raw(Model.ToAirportCode)";
         const defaultFromAirportCode = "@Html.Raw(Model.FromAirportCode)";
@@ -169,7 +171,7 @@
             toggleIcon.textContent = advancedOptions.classList.contains('hidden') ? '▼' : '▲';
             toggleText.textContent = advancedOptions.classList.contains('hidden') ? 'Advanced Options' : 'Hide Options';
         });
-
+        
         // Currency display update
         document.getElementById('currency').addEventListener('change', function() {
             const currencyDisplay = document.getElementById('currencyDisplay');
@@ -445,77 +447,13 @@
             // Here you would typically handle flight selection
         }
 
-        // Autocomplete functionality
-        async function getAutocompleteResults(query) {
-            const params = new URLSearchParams();
-            params.append("query", query);
-            return await fetch(`/Trips/Airports?${params}`, {
-                method: "GET",
-            })
-            .then(response => response.json())
-            .catch(error => console.error('Error:', error));
-        }
-
-        const MIN_CHARS = 3;
-        const DEBOUNCE_MS = 300;
-
         const inputFrom = document.getElementById("from");
         const resultsDivFrom = document.getElementById("autocompleteResultsFrom");
         const inputTo = document.getElementById("to");
         const resultsDivTo = document.getElementById("autocompleteResultsTo");
 
-        let debounceTimer;
-
-        function addAutocompleteFunctionality(input, resultsDiv){
-            input.addEventListener("input", () => {
-                clearTimeout(debounceTimer);
-                const query = input.value.trim();
-
-                if (query.length < MIN_CHARS) {
-                    resultsDiv.innerHTML = "";
-                    return;
-                }
-
-                debounceTimer = setTimeout(async () => {
-                    const results = await getAutocompleteResults(query);
-                    showResults(results, resultsDiv, input);
-                }, DEBOUNCE_MS);
-            });
-
-            document.addEventListener("click", (e) => {
-                if (!e.target.closest(".autocomplete-container")) {
-                    resultsDiv.innerHTML = "";
-                }
-            });
-        }
-
         addAutocompleteFunctionality(inputFrom, resultsDivFrom);
         addAutocompleteFunctionality(inputTo, resultsDivTo);
-
-        function showResults(results, resultsDiv, input) {
-            resultsDiv.innerHTML = "";
-
-            if (!results || results.length === 0) {
-                resultsDiv.innerHTML = "<div class='autocomplete-item'>No results</div>";
-                return;
-            }
-
-            results.forEach(airport => {
-                const div = document.createElement("div");
-                div.className = "autocomplete-item";
-                div.innerHTML = `
-                    <strong>${airport.airportName}</strong>
-                    <span>${airport.airportCode}</span>
-                `;
-
-                div.addEventListener("click", () => {
-                    input.value = airport.airportCode;
-                    resultsDiv.innerHTML = "";
-                });
-
-                resultsDiv.appendChild(div);
-            });
-        }
     </script>
 }
 
