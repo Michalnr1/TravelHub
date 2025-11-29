@@ -439,17 +439,7 @@ public class BlogController : Controller
             CreationDate = DateTime.UtcNow
         };
 
-        var createdComment = await _commentService.AddAsync(comment);
-
-        if (model.Photos != null && model.Photos.Count > 0)
-        {
-            await _photoService.AddMultipleBlogPhotosAsync(
-                model.Photos,
-                _webHostEnvironment.WebRootPath,
-                "comments",
-                commentId: createdComment.Id
-            );
-        }
+        var createdComment = await _commentService.CreateCommentAsync(comment, model.Photos, _webHostEnvironment.WebRootPath);
 
         TempData["Success"] = "Comment added successfully!";
         return RedirectToAction("Post", new { id = model.PostId });

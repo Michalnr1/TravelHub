@@ -8,4 +8,5 @@ public class EmailSettings
     public required string SenderEmail { get; set; }
     public required string UserName { get; set; }
     public required string Password { get; set; }
+    public required string WebsiteUrl { get; set; }
 }
