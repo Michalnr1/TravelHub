@@ -14,18 +14,6 @@
     adjusted = adjusted.set({ hour: dt.hour, minute: dt.minute, second: 0 });
     return adjusted;
 }
-function getMapBounds(points) {
-
-    const bounds = new google.maps.LatLngBounds();
-
-    for (let i = 0; i < points.length; i++) {
-        let coords = { lat: parseFloat(points[i].latitude), lng: parseFloat(points[i].longitude) };
-
-        bounds.extend(coords);
-    }
-
-    return bounds;
-}
 
 async function getRoute(origin, destination, intermediates = [], travelMode = 'WALKING', departure_time = '', fields = ['durationMillis', 'distanceMeters', 'path', 'legs']) {
     const { Route } = await google.maps.importLibrary("routes");

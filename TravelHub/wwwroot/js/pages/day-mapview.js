@@ -1,4 +1,10 @@
-﻿let map;
+﻿//Requires route-functions.js, map-functions.js
+
+//-------------------------------
+//------------SET UP-------------
+//-------------------------------
+
+let map;
 let involvesCheckout = previousAccommodation != null && (nextAccommodation == null || previousAccommodation.id != nextAccommodation.id);
 let polylines = [];
 let routeInfoWindow;
@@ -20,14 +26,7 @@ async function initMap() {
     infoWindow = new google.maps.InfoWindow({});
     routeInfoWindow = new google.maps.InfoWindow({});
 
-    const bounds = getMapBounds(points);
-
-    if (points.length <= 1) {
-        map.setCenter(center);
-        map.setZoom(14);
-    } else {
-        map.fitBounds(bounds, 20);
-    }
+    calibrateMap(map, points, center);
 
     points.forEach((point, i) => {
         let coords = { lat: parseFloat(point.latitude), lng: parseFloat(point.longitude) }
@@ -49,20 +48,6 @@ async function initMap() {
             content: iconImage.element,
         });
 
-        // Add a click listener for each marker, and set up the info window.
-        marker.addListener("click", () => {
-            if (infoWindow.isOpen && infoWindow.anchor == marker) {
-                infoWindow.close();
-            } else if (infoWindow.anchor != marker) {
-                infoWindow.close();
-                infoWindow.setContent(marker.title);
-                infoWindow.open(map, marker);
-            } else {
-                infoWindow.setContent(marker.title);
-                infoWindow.open(map, marker);
-            }
-        });
-
         let cardId = `spot-${point.id}`;
 
         if (i == 0 && previousAccommodation?.id == point.id) {
@@ -71,25 +56,7 @@ async function initMap() {
             cardId = cardId + "-next";
         }
 
-        let listElem = document.getElementById(cardId);
-        listElem.addEventListener("mouseenter", (event) => {
-            infoWindow.close();
-            infoWindow.setContent(marker.title);
-            infoWindow.open(map, marker);
-        });
-
-        listElem.addEventListener("mouseleave", (event) => {
-            infoWindow.close();
-        });
-
-        marker.addEventListener('mouseenter', (event) => {
-            listElem.classList.add("selected-item");
-        });
-
-        marker.addEventListener('mouseleave', (event) => {
-            listElem.classList.remove("selected-item");
-        });
-
+        bindActivityListElems(map, cardId, marker, infoWindow);
     });
 
     let walkRouteBtn = document.getElementById("route-walk-btn");
@@ -99,13 +66,32 @@ async function initMap() {
     hideLastTravelCard();
 }
 
+function bindGlobalTravelModeSelector() {
+    document.querySelectorAll('input[name="global-travel-mode"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            const selectedMode = this.value;
 
-
-function getStartDatetime() {
-    let [startHours, startMinutes] = document.getElementById('start-time').value.split(':');
-    let time = dayDate.set({ hour: parseInt(startHours), minute: parseInt(startMinutes) });
-    return clampToAllowedRange(time);
+            document
+                .querySelectorAll('.travel-mode-radio-button[value="' + selectedMode + '"]')
+                .forEach(r => {
+                    r.checked = true;
+                    r.dispatchEvent(new Event('change'));
+                });
+        });
+    });
 }
+
+function setAllTravelModes(mode) {
+    document
+        .querySelectorAll('.travel-mode-radio-button[value="' + mode + '"]')
+        .forEach(radio => {
+            radio.checked = true;
+        });
+}
+
+//-------------------------------
+//--------ROUTING LOGIC----------
+//-------------------------------
 
 async function showRoute() {
     if (points.length < 2) return;
@@ -142,6 +128,21 @@ async function showRoute() {
     validatePlan(activities, startTime, endTime);
 }
 
+function getStartDatetime() {
+    let [startHours, startMinutes] = document.getElementById('start-time').value.split(':');
+    let time = dayDate.set({ hour: parseInt(startHours), minute: parseInt(startMinutes) });
+    return clampToAllowedRange(time);
+}
+
+function getTravelModes() {
+    const container = document.getElementById('activitiesContainer');
+    const travelDivs = Array.from(container.querySelectorAll('[id^="travel-"]'));
+    return travelDivs.slice(0, travelDivs.length - 1)
+        .map(div => {
+            const checked = div.querySelector('input[type="radio"]:checked');
+            return checked ? checked.value : "WALKING";
+        });
+}
 function getModalSegments(points, travelModes) {
     segments = []
     let segment = { points: [points[0]], travelModes: [] };
@@ -284,6 +285,23 @@ function validatePlan(activities, startTime, endTime) {
     }
 }
 
+function showRouteSummary(startTime, endTime) {
+    routeInfoWindow.close();
+
+    const midPolyline = polylines[Math.round((polylines.length - 1) / 2)];
+    const path = midPolyline.getPath().getArray();
+    const pos = path[Math.round((path.length - 1) / 2)];
+
+    const duration = endTime.diff(startTime, ["hours", "minutes"]);
+    routeInfoWindow.setContent(durationString(duration));
+    routeInfoWindow.setPosition(pos);
+    routeInfoWindow.open(map);
+}
+
+//----------------------------
+//--ROUTING HELPER FUNCTIONS--
+//----------------------------
+
 function getTransportDuration(point, leg) {
     if (hasFixedDuration(point)) {
         return point.fixedDurationFrom * 3600 * 1000;
@@ -293,74 +311,6 @@ function getTransportDuration(point, leg) {
 function hasFixedDuration(point) {
     return Object.hasOwn(point, 'fixedDurationFrom') && point.fixedDurationFrom != null;
 }
-
-function bindGlobalTravelModeSelector() {
-    document.querySelectorAll('input[name="global-travel-mode"]').forEach(radio => {
-        radio.addEventListener('change', function () {
-            const selectedMode = this.value;
-
-            document
-                .querySelectorAll('.travel-mode-radio-button[value="' + selectedMode + '"]')
-                .forEach(r => {
-                    r.checked = true;
-                    r.dispatchEvent(new Event('change'));
-                });
-        });
-    });
-}
-
-function setAllTravelModes(mode) {
-    document
-        .querySelectorAll('.travel-mode-radio-button[value="' + mode + '"]')
-        .forEach(radio => {
-            radio.checked = true;
-        });
-}
-
-function realignTravelSelectors() {
-    const container = document.getElementById('activitiesContainer');
-
-    // Get all activity items in their CURRENT order
-    const activityItems = Array.from(container.querySelectorAll('.activity-item'));
-
-    activityItems.forEach(activity => {
-        const activityId = activity.dataset.activityId;
-
-        // Only spots have travel selectors
-        const travelDiv = document.getElementById('travel-' + activityId);
-
-        if (!travelDiv) return;
-
-        travelDiv.hidden = false;
-
-        // If the travel div is not directly after the activity, move it
-        if (activity.nextElementSibling !== travelDiv) {
-            container.insertBefore(travelDiv, activity.nextElementSibling);
-        }
-    });
-
-    hideLastTravelCard();
-}
-
-function hideLastTravelCard() {
-    const container = document.getElementById('activitiesContainer');
-    const activityItems = Array.from(container.querySelectorAll('.activity-item'));
-    const finalId = activityItems[activityItems.length - 1].dataset.activityId;
-    const finalTravelDiv = document.getElementById('travel-' + finalId);
-    if (!finalTravelDiv) return;
-    finalTravelDiv.hidden = true;
-}
-
-function getTravelModes() {
-    const container = document.getElementById('activitiesContainer');
-    const travelDivs = Array.from(container.querySelectorAll('[id^="travel-"]'));
-    return travelDivs.slice(0, travelDivs.length - 1)
-        .map(div => {
-            const checked = div.querySelector('input[type="radio"]:checked');
-            return checked ? checked.value : "WALKING";
-        });
-}
-
 function addActivityDuration(time, activity) {
     if (activity.startTime > 0) {
         //Not sure about this
@@ -381,24 +331,6 @@ function addActivityDuration(time, activity) {
         hours: Math.floor(parseFloat(activity.duration)),
         minutes: Math.round(60 * (parseFloat(activity.duration) % 1))
     });
-}
-
-function showRouteSummary(startTime, endTime) {
-    routeInfoWindow.close();
-
-    const midPolyline = polylines[Math.round((polylines.length - 1) / 2)];
-    const path = midPolyline.getPath().getArray();
-    const pos = path[Math.round((path.length - 1) / 2)];
-
-    const duration = endTime.diff(startTime, ["hours", "minutes"]);
-    routeInfoWindow.setContent(durationString(duration));
-    routeInfoWindow.setPosition(pos);
-    routeInfoWindow.open(map);
-}
-
-function clearPolylines() {
-    polylines.forEach((polyline) => { polyline.setMap(null) });
-    polylines = [];
 }
 
 function addTransitEntryToTravelCard(card, step, imgUrl) {
@@ -458,14 +390,6 @@ function setPolylineEventBindings(polyline, card) {
     });
 }
 
-function clearTravelCards() {
-    const cards = document.getElementsByClassName('travel-info');
-
-    for (const card of cards) {
-        card.innerHTML = "";
-    }
-}
-
 function displayWarning(message) {
     const container = document.getElementById("warning-container");
 
@@ -485,6 +409,19 @@ function displayWarning(message) {
     container.appendChild(div);
 }
 
+function clearPolylines() {
+    polylines.forEach((polyline) => { polyline.setMap(null) });
+    polylines = [];
+}
+
+function clearTravelCards() {
+    const cards = document.getElementsByClassName('travel-info');
+
+    for (const card of cards) {
+        card.innerHTML = "";
+    }
+}
+
 function clearWarnings() {
     var warnings = document.getElementsByClassName('route-warning');
 
@@ -493,9 +430,9 @@ function clearWarnings() {
     }
 }
 
-
-
-//REORDERING ACTIVITIES
+//-------------------------------
+//----------REORDERING-----------
+//-------------------------------
 
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('order-apply').disabled = true;
@@ -864,4 +801,38 @@ function applyActivityOrder() {
             }
             isUpdating = false;
         });
+}
+
+function realignTravelSelectors() {
+    const container = document.getElementById('activitiesContainer');
+
+    // Get all activity items in their CURRENT order
+    const activityItems = Array.from(container.querySelectorAll('.activity-item'));
+
+    activityItems.forEach(activity => {
+        const activityId = activity.dataset.activityId;
+
+        // Only spots have travel selectors
+        const travelDiv = document.getElementById('travel-' + activityId);
+
+        if (!travelDiv) return;
+
+        travelDiv.hidden = false;
+
+        // If the travel div is not directly after the activity, move it
+        if (activity.nextElementSibling !== travelDiv) {
+            container.insertBefore(travelDiv, activity.nextElementSibling);
+        }
+    });
+
+    hideLastTravelCard();
+}
+
+function hideLastTravelCard() {
+    const container = document.getElementById('activitiesContainer');
+    const activityItems = Array.from(container.querySelectorAll('.activity-item'));
+    const finalId = activityItems[activityItems.length - 1].dataset.activityId;
+    const finalTravelDiv = document.getElementById('travel-' + finalId);
+    if (!finalTravelDiv) return;
+    finalTravelDiv.hidden = true;
 }

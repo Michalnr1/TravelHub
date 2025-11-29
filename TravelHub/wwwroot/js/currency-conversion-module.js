@@ -1,4 +1,6 @@
-﻿$(() => {
+﻿//Needs defined $selected and tripCurrency
+
+$(() => {
     function setExchangeRate(selectedOption) {
         var rate = selectedOption.data('rate');
         if (rate) {
