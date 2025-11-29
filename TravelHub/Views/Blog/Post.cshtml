@@ -1,6 +1,8 @@
 ﻿@model TravelHub.Web.ViewModels.Blog.PostViewModel
 @{
     ViewData["Title"] = Model.Title;
+    var canComment = ViewBag.CanComment ?? true;
+    var isScheduledPost = ViewBag.IsScheduledPost ?? false;
 }
 
 <div class="container mt-4">
@@ -50,6 +52,18 @@
                                             <i class="fas fa-edit me-2"></i>Edit
                                         </a>
                                     </li>
+                                    @if (Model.IsScheduled)
+                                    {
+                                        <li>
+                                            <form asp-action="PublishNow" method="post" class="d-inline">
+                                                <input type="hidden" name="postId" value="@Model.Id" />
+                                                <button type="submit" class="dropdown-item text-info"
+                                                        onclick="return confirm('Are you sure you want to publish this post immediately?')">
+                                                    <i class="fas fa-paper-plane me-2"></i>Publish Now
+                                                </button>
+                                            </form>
+                                        </li>
+                                    }
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form asp-action="DeletePost" method="post" class="d-inline">
@@ -67,15 +81,49 @@
 
                     <!-- Post Meta -->
                     <div class="post-meta mb-4">
+                        <!-- Status postu -->
+                        @if (Model.IsScheduled)
+                        {
+                            <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>Scheduled Post</strong> - This post is scheduled for publication on
+                                <strong>@Model.ScheduledFor?.ToString("MM/dd/yyyy HH:mm")</strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
                         <div class="d-flex flex-wrap align-items-center text-muted small">
+                            <!-- Author -->
                             <div class="me-3">
                                 <i class="fas fa-user me-1"></i>
                                 @Model.AuthorName
                             </div>
+
+                            <!-- Creation Date -->
                             <div class="me-3">
                                 <i class="fas fa-calendar me-1"></i>
-                                @Model.CreationDate.ToString("MM/dd/yyyy HH:mm")
+                                Created: @Model.CreationDate.ToString("MM/dd/yyyy HH:mm")
                             </div>
+
+                            <!-- Published Date -->
+                            @if (Model.PublishedDate.HasValue)
+                            {
+                                <div class="me-3">
+                                    <i class="fas fa-paper-plane me-1"></i>
+                                    Published: @Model.PublishedDate.Value.ToString("MM/dd/yyyy HH:mm")
+                                </div>
+                            }
+
+                            <!-- Scheduled Date -->
+                            @if (Model.IsScheduled && Model.ScheduledFor.HasValue)
+                            {
+                                <div class="me-3">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Scheduled: @Model.ScheduledFor.Value.ToString("MM/dd/yyyy HH:mm")
+                                </div>
+                            }
+
+                            <!-- Edit Date -->
                             @if (Model.EditDate.HasValue)
                             {
                                 <div class="me-3">
@@ -83,6 +131,8 @@
                                     Edited: @Model.EditDate.Value.ToString("MM/dd/yyyy HH:mm")
                                 </div>
                             }
+
+                            <!-- Trip Day -->
                             @if (!string.IsNullOrEmpty(Model.DayName))
                             {
                                 <div class="me-3">
@@ -90,12 +140,28 @@
                                     @Model.DayName
                                 </div>
                             }
+
+                            <!-- Status Badge -->
+                            <div class="me-3">
+                                @if (Model.IsScheduled)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-clock me-1"></i>Scheduled
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Published
+                                    </span>
+                                }
+                            </div>
                         </div>
                     </div>
 
                     <!-- Post Content -->
                     <div class="post-content mb-4">
-                        @Html.Raw(Model.Content.Replace("\n", "<br>"))
+                        @Html.Raw(Model.Content)
                     </div>
 
                     <!-- Post Photos -->
@@ -111,7 +177,8 @@
                                     <div class="col-sm-6 col-lg-4">
                                         <div class="card h-100">
                                             <img src="@photo.FilePath" class="card-img-top photo-thumbnail"
-                                                 alt="@photo.Alt" style="height: 200px; object-fit: cover;">
+                                                 alt="@photo.Alt" style="height: 200px; object-fit: cover; cursor: pointer;"
+                                                 onclick="openImageModal('@photo.FilePath', '@photo.Alt')">
                                             <div class="card-body p-2">
                                                 <p class="card-text small text-muted mb-0">@photo.Name</p>
                                             </div>
@@ -133,137 +200,159 @@
                     </h3>
                 </div>
 
-                <!-- Comments List -->
-                @if (Model.Comments.Any())
+                @if (isScheduledPost)
                 {
-                    <div class="comments-list">
-                        @foreach (var comment in Model.Comments)
-                        {
-                            <div class="card mb-3" id="comment-@comment.Id">
-                                <div class="card-body">
-                                    <!-- Comment Header -->
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <h6 class="card-subtitle mb-1 fw-bold">@comment.AuthorName</h6>
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>
-                                                @comment.CreationDate.ToString("MM/dd/yyyy HH:mm")
-                                                @if (comment.EditDate.HasValue)
-                                                {
-                                                    <span class="ms-2">
-                                                        <i class="fas fa-edit me-1"></i>
-                                                        Edited: @comment.EditDate.Value.ToString("MM/dd/yyyy HH:mm")
-                                                    </span>
-                                                }
-                                            </small>
-                                        </div>
-                                        @if (comment.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
-                                        {
-                                            <div class="dropdown">
-                                                <button class="btn btn-sm btn-outline-secondary border-0 dropdown-toggle"
-                                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    <i class="fas fa-ellipsis-v"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li>
-                                                        <a class="dropdown-item" href="@Url.Action("EditComment", new { id = comment.Id })">
-                                                            <i class="fas fa-edit me-2"></i>Edit
-                                                        </a>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li>
-                                                        <form asp-action="DeleteComment" method="post" class="d-inline">
-                                                            <input type="hidden" name="id" value="@comment.Id" />
-                                                            <button type="submit" class="dropdown-item text-danger"
-                                                                    onclick="return confirm('Are you sure you want to delete this comment?')">
-                                                                <i class="fas fa-trash me-2"></i>Delete
-                                                            </button>
-                                                        </form>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        }
-                                    </div>
-
-                                    <!-- Comment Content -->
-                                    <div class="card-text comment-content">@Html.Raw(comment.Content)</div>
-
-                                    <!-- Comment Photos -->
-                                    @if (comment.Photos.Any())
-                                    {
-                                        <div class="comment-photos mt-3">
-                                            <div class="row g-2">
-                                                @foreach (var photo in comment.Photos)
-                                                {
-                                                    <div class="col-4 col-md-3">
-                                                        <div class="position-relative">
-                                                            <img src="@photo.FilePath" class="img-fluid rounded"
-                                                                 alt="@photo.Alt" style="height: 100px; object-fit: cover;">
-                                                            @if (comment.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
-                                                            {
-                                                                <button type="button"
-                                                                        class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 m-1"
-                                                                        style="width: 24px; height: 24px; padding: 0;"
-                                                                        onclick="deleteCommentPhoto(@photo.Id, @comment.Id)">
-                                                                    <i class="fas fa-times" style="font-size: 0.7rem;"></i>
-                                                                </button>
-                                                            }
-                                                        </div>
-                                                    </div>
-                                                }
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
+                    <div class="alert alert-info">
+                        <i class="fas fa-comment-slash me-2"></i>
+                        <strong>Comments are disabled</strong> - This post is scheduled for publication and cannot be commented on yet.
+                        Comments will be enabled after the post is published.
                     </div>
                 }
                 else
                 {
-                    <div class="text-center py-4">
-                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No comments yet. Be the first to comment!</p>
-                    </div>
+                    <!-- Comments List -->
+                    @if (Model.Comments.Any())
+                    {
+                        <div class="comments-list">
+                            @foreach (var comment in Model.Comments)
+                            {
+                                <div class="card mb-3" id="comment-@comment.Id">
+                                    <div class="card-body">
+                                        <!-- Comment Header -->
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h6 class="card-subtitle mb-1 fw-bold">@comment.AuthorName</h6>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    @comment.CreationDate.ToString("MM/dd/yyyy HH:mm")
+                                                    @if (comment.EditDate.HasValue)
+                                                    {
+                                                        <span class="ms-2">
+                                                            <i class="fas fa-edit me-1"></i>
+                                                            Edited: @comment.EditDate.Value.ToString("MM/dd/yyyy HH:mm")
+                                                        </span>
+                                                    }
+                                                </small>
+                                            </div>
+                                            @if (comment.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                                            {
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-outline-secondary border-0 dropdown-toggle"
+                                                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" href="@Url.Action("EditComment", new { id = comment.Id })">
+                                                                <i class="fas fa-edit me-2"></i>Edit
+                                                            </a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li>
+                                                            <form asp-action="DeleteComment" method="post" class="d-inline">
+                                                                <input type="hidden" name="id" value="@comment.Id" />
+                                                                <button type="submit" class="dropdown-item text-danger"
+                                                                        onclick="return confirm('Are you sure you want to delete this comment?')">
+                                                                    <i class="fas fa-trash me-2"></i>Delete
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Comment Content -->
+                                        <div class="card-text comment-content">@Html.Raw(comment.Content)</div>
+
+                                        <!-- Comment Photos -->
+                                        @if (comment.Photos.Any())
+                                        {
+                                            <div class="comment-photos mt-3">
+                                                <div class="row g-2">
+                                                    @foreach (var photo in comment.Photos)
+                                                    {
+                                                        <div class="col-4 col-md-3">
+                                                            <div class="position-relative">
+                                                                <img src="@photo.FilePath" class="img-fluid rounded"
+                                                                     alt="@photo.Alt" style="height: 100px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="openImageModal('@photo.FilePath', '@photo.Alt')">
+                                                                @if (comment.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                                                                {
+                                                                    <button type="button"
+                                                                            class="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 m-1"
+                                                                            style="width: 24px; height: 24px; padding: 0;"
+                                                                            onclick="deleteCommentPhoto(@photo.Id, @comment.Id)">
+                                                                        <i class="fas fa-times" style="font-size: 0.7rem;"></i>
+                                                                    </button>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No comments yet. Be the first to comment!</p>
+                        </div>
+                    }
+
+                    <!-- Add Comment Form -->
+                    @if (canComment)
+                    {
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-plus me-2"></i>Add Comment
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form asp-action="CreateComment" method="post" enctype="multipart/form-data" id="commentForm">
+                                    <input type="hidden" name="PostId" value="@Model.Id" />
+
+                                    <div class="mb-3">
+                                        <label for="CommentContent" class="form-label">Content *</label>
+                                        <div id="commentEditor" style="height: 150px;"></div>
+                                        <textarea name="Content" id="CommentContent" class="form-control d-none"></textarea>
+                                        <span class="text-danger" id="commentContentValidation"></span>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="Photos" class="form-label">Photos (optional)</label>
+                                        <input type="file" name="Photos" class="form-control" multiple
+                                               accept="image/*" id="commentPhotos">
+                                        <div class="form-text">You can add up to 5 photos</div>
+                                    </div>
+
+                                    <!-- Photo Preview -->
+                                    <div id="photoPreview" class="row g-2 mb-3 d-none"></div>
+
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-paper-plane me-2"></i>Add Comment
+                                        </button>
+                                        <small class="text-muted">* required fields</small>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            You don't have permission to comment on this post.
+                        </div>
+                    }
                 }
-
-                <!-- Add Comment Form -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-plus me-2"></i>Add Comment
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <form asp-action="CreateComment" method="post" enctype="multipart/form-data" id="commentForm">
-                            <input type="hidden" name="PostId" value="@Model.Id" />
-
-                            <div class="mb-3">
-                                <label for="CommentContent" class="form-label">Content *</label>
-                                <div id="commentEditor" style="height: 150px;"></div>
-                                <textarea name="Content" id="CommentContent" class="form-control d-none"></textarea>
-                                <span class="text-danger" id="commentContentValidation"></span>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="Photos" class="form-label">Photos (optional)</label>
-                                <input type="file" name="Photos" class="form-control" multiple
-                                       accept="image/*" id="commentPhotos">
-                                <div class="form-text">You can add up to 5 photos</div>
-                            </div>
-
-                            <!-- Photo Preview -->
-                            <div id="photoPreview" class="row g-2 mb-3 d-none"></div>
-
-                            <div class="d-flex justify-content-between align-items-center">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-paper-plane me-2"></i>Add Comment
-                                </button>
-                                <small class="text-muted">* required fields</small>
-                            </div>
-                        </form>
-                    </div>
-                </div>
             </section>
         </div>
 
@@ -283,9 +372,27 @@
                             @Model.AuthorName
                         </div>
                         <div class="mb-3">
-                            <strong>Publication Date:</strong><br>
-                            @Model.CreationDate.ToString("MM/dd/yyyy HH:mm")
+                            <strong>Status:</strong><br>
+                            @if (Model.IsScheduled)
+                            {
+                                <span class="badge bg-warning text-dark">Scheduled</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Published</span>
+                            }
                         </div>
+                        <div class="mb-3">
+                            <strong>Publication Date:</strong><br>
+                            @Model.PublishedDate?.ToString("MM/dd/yyyy HH:mm")
+                        </div>
+                        @if (Model.ScheduledFor.HasValue && Model.IsScheduled)
+                        {
+                            <div class="mb-3">
+                                <strong>Scheduled For:</strong><br>
+                                @Model.ScheduledFor.Value.ToString("MM/dd/yyyy HH:mm")
+                            </div>
+                        }
                         @if (!string.IsNullOrEmpty(Model.DayName))
                         {
                             <div class="mb-3">
@@ -316,8 +423,33 @@
                            class="btn btn-success w-100 mb-2">
                             <i class="fas fa-plus me-2"></i>New Post
                         </a>
+                        @if (Model.IsScheduled && Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                        {
+                            <form asp-action="PublishNow" method="post" class="d-inline w-100">
+                                <input type="hidden" name="postId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-warning w-100"
+                                        onclick="return confirm('Are you sure you want to publish this post immediately?')">
+                                    <i class="fas fa-paper-plane me-2"></i>Publish Now
+                                </button>
+                            </form>
+                        }
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">Photo Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" alt="" class="img-fluid">
             </div>
         </div>
     </div>
@@ -327,7 +459,6 @@
     <style>
         .photo-thumbnail {
             transition: transform 0.2s ease-in-out;
-            cursor: pointer;
         }
 
             .photo-thumbnail:hover {
@@ -345,13 +476,22 @@
         .dropdown-toggle::after {
             display: none;
         }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .comment-content img {
+            max-width: 100%;
+            height: auto;
+        }
     </style>
 
     @if (ViewBag.IsPublicView ?? false)
     {
-        <!-- Ukryj przyciski edycji/dodawania -->
         <style>
-            .dropdown-menu, .btn-group, #commentForm {
+            .dropdown-menu, .btn-group, #commentForm, .btn-danger {
                 display: none !important;
             }
         </style>
@@ -360,6 +500,7 @@
 
 @section Scripts {
     <script>
+        // Quill Editor for Comments
         var commentQuill = new Quill('#commentEditor', {
             theme: 'snow',
             modules: {
@@ -376,7 +517,7 @@
                     [{ 'color': [] }, { 'background': [] }],
                     [{ 'font': [] }],
                     [{ 'align': [] }],
-                    ['link'],
+                    ['link', 'image'],
                     ['clean']
                 ]
             },
@@ -427,7 +568,7 @@
         });
 
         // Form validation
-        document.getElementById('commentForm').addEventListener('submit', function(e) {
+        document.getElementById('commentForm')?.addEventListener('submit', function(e) {
             const content = this.querySelector('textarea[name="Content"]');
             if (!content.value.trim()) {
                 e.preventDefault();
@@ -462,6 +603,15 @@
                 console.error('Error:', error);
                 alert('Error deleting photo. Please try again.');
             });
+        }
+
+        // Image modal function
+        function openImageModal(src, alt) {
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = src;
+            modalImage.alt = alt;
+            const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+            imageModal.show();
         }
 
         // Smooth scroll to comment after form submission

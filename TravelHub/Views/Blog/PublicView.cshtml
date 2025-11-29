@@ -67,7 +67,7 @@
                         <div class="card-footer text-muted">
                             <small>
                                 Author: @post.AuthorName |
-                                Date: @post.CreationDate.ToString("MM/dd/yyyy HH:mm") |
+                                Date: @post.PublishedDate?.ToString("MM/dd/yyyy HH:mm") |
                                 Comments: @post.Comments.Count
                                 @if (post.DayName != null)
                                 {

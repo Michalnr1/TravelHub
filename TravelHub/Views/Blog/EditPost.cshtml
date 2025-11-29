@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Edit Post";
     var photos = ViewBag.Photos as List<TravelHub.Web.ViewModels.Blog.PhotoViewModel> ?? new List<TravelHub.Web.ViewModels.Blog.PhotoViewModel>();
+    var isScheduledPost = Model.IsCurrentlyScheduled;
 }
 
 <div class="container">
@@ -9,8 +10,22 @@
         <div class="col-md-8 offset-md-2">
             <h1>Edit Post</h1>
 
-            <form asp-action="EditPost" asp-route-id="@ViewBag.PostId" method="post" enctype="multipart/form-data">
+            <!-- Status Alert -->
+            @if (isScheduledPost)
+            {
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="fas fa-clock me-2"></i>
+                    <strong>Scheduled Post</strong> - This post is scheduled for publication on
+                    @Model.CurrentScheduledFor?.ToString("MM/dd/yyyy HH:mm")
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <form asp-action="EditPost" asp-route-id="@ViewBag.PostId" method="post" enctype="multipart/form-data" id="postForm">
                 @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="BlogId" />
+                <input type="hidden" asp-for="IsCurrentlyScheduled" />
+                <input type="hidden" asp-for="CurrentScheduledFor" />
 
                 <div class="mb-3">
                     <label asp-for="Title" class="form-label">Title *</label>
@@ -44,6 +59,39 @@
                         }
                     </select>
                 </div>
+
+                <!-- Sekcja planowania (tylko dla zaplanowanych postów) -->
+                @if (isScheduledPost)
+                {
+                    <div class="card mb-3 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-clock me-2"></i>Reschedule Post
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label asp-for="ScheduledFor" class="form-label">New Publish Date & Time</label>
+                                <input asp-for="ScheduledFor" type="datetime-local" class="form-control"
+                                       id="ScheduledForInput" />
+                                <span asp-validation-for="ScheduledFor" class="text-danger"></span>
+                                <div class="form-text">
+                                    <small class="text-info">Current schedule: @Model.CurrentScheduledFor?.ToString("MM/dd/yyyy HH:mm")</small>
+                                </div>
+                            </div>
+
+                            <!-- Hidden field for DateTimeOffset -->
+                            <input type="hidden" id="ScheduledForDateTimeOffset" name="ScheduledForDateTimeOffset" />
+
+                            <div class="form-check">
+                                <input asp-for="IsScheduled" class="form-check-input" type="checkbox" id="rescheduleSwitch" />
+                                <label class="form-check-label" for="rescheduleSwitch">
+                                    <strong>Reschedule this post</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                }
 
                 <!-- Existing Photos -->
                 @if (photos.Any())
@@ -86,6 +134,13 @@
                     <a href="@Url.Action("Post", "Blog", new { id = ViewBag.PostId })" class="btn btn-secondary">
                         <i class="fas fa-times me-2"></i>Cancel
                     </a>
+
+                    @if (isScheduledPost)
+                    {
+                        <button type="button" class="btn btn-warning float-end" onclick="publishNow(@ViewBag.PostId)">
+                            <i class="fas fa-paper-plane me-2"></i>Publish Now
+                        </button>
+                    }
                 </div>
             </form>
         </div>
@@ -96,43 +151,89 @@
     <partial name="_ValidationScriptsPartial" />
 
     <script>
-        var quill = new Quill('#editor', {
-            theme: 'snow',
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline', 'strike'],
-                    ['blockquote', 'code-block'],
-                    [{ 'header': 1 }, { 'header': 2 }],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    [{ 'script': 'sub'}, { 'script': 'super' }],
-                    [{ 'indent': '-1'}, { 'indent': '+1' }],
-                    [{ 'direction': 'rtl' }],
-                    [{ 'size': ['small', false, 'large', 'huge'] }],
-                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                    [{ 'color': [] }, { 'background': [] }],
-                    [{ 'font': [] }],
-                    [{ 'align': [] }],
-                    ['link'],
-                    ['clean']
-                ]
-            },
-            placeholder: 'Write your post content...',
-            theme: 'snow'
-        });
-
-        // Synchronizacja z textarea
-        quill.on('text-change', function() {
-            document.getElementById('Content').value = quill.root.innerHTML;
-        });
-
-        // Ustawienie początkowej wartości
-        var initialContent = document.getElementById('Content').value;
-        if (initialContent) {
-            quill.root.innerHTML = initialContent;
-        }
-
-        // Set selected option for dropdown
         document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('postForm');
+            const scheduledForInput = document.getElementById('ScheduledForInput');
+            const scheduledForDateTimeOffsetInput = document.getElementById('ScheduledForDateTimeOffset');
+            const rescheduleSwitch = document.getElementById('rescheduleSwitch');
+            const isScheduledPost = @Json.Serialize(isScheduledPost);
+
+            // Inicjalizacja tylko dla zaplanowanych postów
+            if (isScheduledPost) {
+                // Ustaw minimalną datę (1 minutę od teraz)
+                const minTime = new Date();
+                minTime.setMinutes(minTime.getMinutes() + 1);
+                scheduledForInput.min = formatDateTimeForInput(minTime);
+
+                // Ustaw domyślną wartość (obecna zaplanowana data lub 1 godzina od teraz)
+                const currentScheduled = '@Model.CurrentScheduledFor' ? new Date('@Model.CurrentScheduledFor') : new Date();
+                const defaultTime = currentScheduled > new Date() ? currentScheduled : new Date();
+                defaultTime.setHours(defaultTime.getHours() + 1);
+                defaultTime.setMinutes(0);
+
+                scheduledForInput.value = formatDateTimeForInput(defaultTime);
+                updateDateTimeOffset(defaultTime);
+
+                // Aktualizuj DateTimeOffset przy każdej zmianie
+                scheduledForInput.addEventListener('change', function() {
+                    const localDate = parseLocalDateTime(this.value);
+                    updateDateTimeOffset(localDate);
+                });
+
+                // Walidacja dla reschedule
+                form.addEventListener('submit', function(e) {
+                    if (rescheduleSwitch.checked) {
+                        const localDate = parseLocalDateTime(scheduledForInput.value);
+                        const currentDate = new Date();
+
+                        if (localDate <= currentDate) {
+                            e.preventDefault();
+                            alert('Please select a future date and time for rescheduling.');
+                            scheduledForInput.focus();
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+
+            // Quill editor
+            var quill = new Quill('#editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'header': 1 }, { 'header': 2 }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'script': 'sub'}, { 'script': 'super' }],
+                        [{ 'indent': '-1'}, { 'indent': '+1' }],
+                        [{ 'direction': 'rtl' }],
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'font': [] }],
+                        [{ 'align': [] }],
+                        ['link'],
+                        ['clean']
+                    ]
+                },
+                placeholder: 'Write your post content...',
+                theme: 'snow'
+            });
+
+            // Synchronizacja z textarea
+            quill.on('text-change', function() {
+                document.getElementById('Content').value = quill.root.innerHTML;
+            });
+
+            // Ustawienie początkowej wartości
+            var initialContent = document.getElementById('Content').value;
+            if (initialContent) {
+                quill.root.innerHTML = initialContent;
+            }
+
+            // Set selected option for dropdown
             const dayId = @(Model.DayId.HasValue? Model.DayId.Value : 0);
             if (dayId > 0) {
                 const select = document.querySelector('select[name="DayId"]');
@@ -140,59 +241,108 @@
                     select.value = dayId;
                 }
             }
-        });
 
-        // Photo preview functionality
-        document.getElementById('Photos').addEventListener('change', function(e) {
-            const preview = document.getElementById('photoPreview');
-            preview.innerHTML = '';
-            preview.style.display = 'none';
+            // Photo preview functionality
+            document.getElementById('Photos').addEventListener('change', function(e) {
+                const preview = document.getElementById('photoPreview');
+                preview.innerHTML = '';
+                preview.style.display = 'none';
 
-            const files = e.target.files;
-            if (files.length > 0) {
-                preview.style.display = 'flex';
-                preview.classList.add('row', 'g-2');
+                const files = e.target.files;
+                if (files.length > 0) {
+                    preview.style.display = 'flex';
+                    preview.classList.add('row', 'g-2');
 
-                for (let i = 0; i < Math.min(files.length, 10); i++) {
-                    const file = files[i];
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            const col = document.createElement('div');
-                            col.className = 'col-6 col-md-4 col-lg-3';
-                            col.innerHTML = `
-                                <div class="card">
-                                    <img src="${e.target.result}" class="card-img-top"
-                                         style="height: 120px; object-fit: cover;" alt="Preview">
-                                    <div class="card-body p-2">
-                                        <small class="text-muted d-block text-truncate">${file.name}</small>
-                                        <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                    for (let i = 0; i < Math.min(files.length, 10); i++) {
+                        const file = files[i];
+                        if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                const col = document.createElement('div');
+                                col.className = 'col-6 col-md-4 col-lg-3';
+                                col.innerHTML = `
+                                    <div class="card">
+                                        <img src="${e.target.result}" class="card-img-top"
+                                             style="height: 120px; object-fit: cover;" alt="Preview">
+                                        <div class="card-body p-2">
+                                            <small class="text-muted d-block text-truncate">${file.name}</small>
+                                            <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                                        </div>
                                     </div>
-                                </div>
-                            `;
-                            preview.appendChild(col);
-                        };
-                        reader.readAsDataURL(file);
+                                `;
+                                preview.appendChild(col);
+                            };
+                            reader.readAsDataURL(file);
+                        }
                     }
                 }
+            });
+
+            // Funkcje pomocnicze
+            function parseLocalDateTime(dateTimeString) {
+                if (!dateTimeString) return new Date();
+                const [datePart, timePart] = dateTimeString.split('T');
+                const [year, month, day] = datePart.split('-').map(Number);
+                const [hours, minutes] = timePart.split(':').map(Number);
+                return new Date(year, month - 1, day, hours, minutes);
+            }
+
+            function updateDateTimeOffset(localDate) {
+                const timezoneOffset = localDate.getTimezoneOffset();
+                const offsetHours = Math.abs(Math.floor(timezoneOffset / 60));
+                const offsetMinutes = Math.abs(timezoneOffset % 60);
+                const offsetSign = timezoneOffset <= 0 ? '+' : '-';
+                const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+
+                const year = localDate.getFullYear();
+                const month = String(localDate.getMonth() + 1).padStart(2, '0');
+                const day = String(localDate.getDate()).padStart(2, '0');
+                const hours = String(localDate.getHours()).padStart(2, '0');
+                const minutes = String(localDate.getMinutes()).padStart(2, '0');
+                const seconds = String(localDate.getSeconds()).padStart(2, '0');
+
+                const dateTimeOffsetString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetString}`;
+                if (scheduledForDateTimeOffsetInput) {
+                    scheduledForDateTimeOffsetInput.value = dateTimeOffsetString;
+                }
+            }
+
+            function formatDateTimeForInput(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
             }
         });
 
         function deletePhoto(photoId, postId) {
             if (!confirm("Are you sure you want to delete this photo?")) return;
-
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
             const form = new FormData();
             form.append("photoId", photoId);
             form.append("postId", postId);
             form.append("__RequestVerificationToken", token);
+            fetch('/Blog/DeletePostPhoto', { method: 'POST', body: form }).then(() => location.reload());
+        }
 
-            fetch('/Blog/DeletePostPhoto', {
-                method: 'POST',
-                body: form
-            })
-            .then(() => location.reload());
+        function publishNow(postId) {
+            if (!confirm("Are you sure you want to publish this post immediately? This will cancel the scheduled publication.")) return;
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const form = new FormData();
+            form.append("postId", postId);
+            form.append("__RequestVerificationToken", token);
+
+            fetch('/Blog/PublishNow', { method: 'POST', body: form })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '/Blog/Post/' + postId;
+                    } else {
+                        alert('Error publishing post. Please try again.');
+                    }
+                });
         }
     </script>
 }

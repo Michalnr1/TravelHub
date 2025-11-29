@@ -9,7 +9,7 @@
         <div class="col-md-8 offset-md-2">
             <h1>New Post</h1>
 
-            <form asp-action="CreatePost" method="post" enctype="multipart/form-data">
+            <form asp-action="CreatePost" method="post" enctype="multipart/form-data" id="postForm">
                 <input type="hidden" asp-for="BlogId" />
 
                 <div class="mb-3">
@@ -46,6 +46,32 @@
                     <div class="form-text">You can link this post to a specific trip day.</div>
                 </div>
 
+                <!-- Sekcja planowania -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsScheduled" class="form-check-input" type="checkbox" id="scheduleSwitch">
+                            <label class="form-check-label" for="scheduleSwitch">
+                                <strong>Schedule Post</strong>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body" id="scheduleSection" style="display: none;">
+                        <div class="mb-3">
+                            <label asp-for="ScheduledFor" class="form-label">Publish Date & Time</label>
+                            <input asp-for="ScheduledFor" type="datetime-local" class="form-control"
+                                   id="ScheduledForInput" />
+                            <span asp-validation-for="ScheduledFor" class="text-danger"></span>
+                            <div class="form-text">
+                                <small class="text-info">Your timezone: <span id="userTimezone"></span></small>
+                            </div>
+                        </div>
+
+                        <!-- Hidden field for DateTimeOffset -->
+                        <input type="hidden" id="ScheduledForDateTimeOffset" name="ScheduledForDateTimeOffset" />
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label asp-for="Photos" class="form-label">Photos (optional)</label>
                     <input asp-for="Photos" class="form-control" type="file" multiple accept="image/*" />
@@ -56,8 +82,8 @@
                 <div id="photoPreview" class="row mb-3" style="display: none;"></div>
 
                 <div class="mb-3">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-2"></i>Publish Post
+                    <button type="submit" class="btn btn-primary" id="submitButton">
+                        <i class="fas fa-paper-plane me-2"></i>Publish Now
                     </button>
                     <a href="@Url.Action("Index", "Blog", new { tripId = ViewBag.TripId })" class="btn btn-secondary">
                         <i class="fas fa-times me-2"></i>Cancel
@@ -142,6 +168,146 @@
                 }
             }
         });
+
+        const form = document.getElementById('postForm');
+        const scheduleSwitch = document.getElementById('scheduleSwitch');
+        const scheduleSection = document.getElementById('scheduleSection');
+        const submitButton = document.getElementById('submitButton');
+        const scheduledForInput = document.getElementById('ScheduledForInput');
+        const scheduledForDateTimeOffsetInput = document.getElementById('ScheduledForDateTimeOffset');
+        const userTimezoneSpan = document.getElementById('userTimezone');
+
+        // Pokaż strefę czasową użytkownika
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        userTimezoneSpan.textContent = userTimezone;
+
+        // Ustaw minimalną datę (1 minutę od teraz)
+        const minTime = new Date();
+        minTime.setMinutes(minTime.getMinutes() + 1);
+        scheduledForInput.min = formatDateTimeForInput(minTime);
+
+        // Ustaw domyślną wartość (1 godzinę od teraz)
+        const defaultTime = new Date();
+        defaultTime.setHours(defaultTime.getHours() + 1);
+        defaultTime.setMinutes(0);
+        scheduledForInput.value = formatDateTimeForInput(defaultTime);
+
+        // Ustaw początkową wartość DateTimeOffset
+        updateDateTimeOffset(defaultTime);
+
+        // Obsługa przełącznika planowania
+        function toggleScheduleSection() {
+            if (scheduleSwitch.checked) {
+                scheduleSection.style.display = 'block';
+                submitButton.innerHTML = '<i class="fas fa-clock me-2"></i>Schedule Post';
+
+                // Ustaw domyślną datę jeśli nie ustawiona
+                if (!scheduledForInput.value) {
+                    const now = new Date();
+                    now.setHours(now.getHours() + 1);
+                    now.setMinutes(0);
+                    scheduledForInput.value = formatDateTimeForInput(now);
+                    updateDateTimeOffset(now);
+                }
+            } else {
+                scheduleSection.style.display = 'none';
+                submitButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Publish Now';
+            }
+        }
+
+        scheduleSwitch.addEventListener('change', toggleScheduleSection);
+        toggleScheduleSection(); // Inicjalne ustawienie
+
+        // Aktualizuj DateTimeOffset przy każdej zmianie
+        scheduledForInput.addEventListener('change', function() {
+            const localDate = parseLocalDateTime(this.value);
+            updateDateTimeOffset(localDate);
+        });
+
+        // Custom validation for scheduled posts
+        form.addEventListener('submit', function(e) {
+            const title = document.querySelector('input[name="Title"]');
+            const content = document.querySelector('textarea[name="Content"]');
+
+            // Walidacja tytułu i treści
+            if (!title.value.trim()) {
+                e.preventDefault();
+                title.focus();
+                alert('Please enter post title.');
+                return false;
+            }
+
+            if (!content.value.trim()) {
+                e.preventDefault();
+                content.focus();
+                alert('Please enter post content.');
+                return false;
+            }
+
+            // Walidacja zaplanowanych postów
+            if (scheduleSwitch.checked) {
+                const localDate = parseLocalDateTime(scheduledForInput.value);
+                const currentDate = new Date();
+
+                if (localDate <= currentDate) {
+                    e.preventDefault();
+                    alert('Please select a future date and time for scheduled post.');
+                    scheduledForInput.focus();
+                    return false;
+                }
+            }
+
+            // Check number of photos
+            const photoInput = document.getElementById('Photos');
+            if (photoInput.files.length > 10) {
+                e.preventDefault();
+                alert('You can add maximum 10 photos.');
+                return false;
+            }
+
+            return true;
+        });
+
+        // Funkcja do parsowania daty z inputa datetime-local
+        function parseLocalDateTime(dateTimeString) {
+            if (!dateTimeString) return new Date();
+
+            const [datePart, timePart] = dateTimeString.split('T');
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hours, minutes] = timePart.split(':').map(Number);
+
+            return new Date(year, month - 1, day, hours, minutes);
+        }
+
+        // Funkcja aktualizująca DateTimeOffset
+        function updateDateTimeOffset(localDate) {
+            const timezoneOffset = localDate.getTimezoneOffset();
+            const offsetHours = Math.abs(Math.floor(timezoneOffset / 60));
+            const offsetMinutes = Math.abs(timezoneOffset % 60);
+            const offsetSign = timezoneOffset <= 0 ? '+' : '-';
+            const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+
+            const year = localDate.getFullYear();
+            const month = String(localDate.getMonth() + 1).padStart(2, '0');
+            const day = String(localDate.getDate()).padStart(2, '0');
+            const hours = String(localDate.getHours()).padStart(2, '0');
+            const minutes = String(localDate.getMinutes()).padStart(2, '0');
+            const seconds = String(localDate.getSeconds()).padStart(2, '0');
+
+            const dateTimeOffsetString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetString}`;
+            scheduledForDateTimeOffsetInput.value = dateTimeOffsetString;
+        }
+
+        // Helper function to format date for datetime-local input
+        function formatDateTimeForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
 
         // Form validation
         document.querySelector('form').addEventListener('submit', function(e) {

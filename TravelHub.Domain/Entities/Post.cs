@@ -8,6 +8,12 @@ public class Post
     public DateTime CreationDate { get; set; }
     public DateTime? EditDate { get; set; } // Nullable, as a post may not be edited
 
+    // Dla zaplanowanych postów
+    public bool IsScheduled { get; set; }
+    public DateTime? ScheduledFor { get; set; }
+    public DateTime? PublishedDate { get; set; }
+    public string? HangfireJobId { get; set; }
+
     // Foreign Key for Author
     public required string AuthorId { get; set; }
     // Navigation Property to the author (Person)

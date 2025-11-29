@@ -97,6 +97,9 @@ public class BlogController : Controller
                 BlogId = p.BlogId,
                 DayId = p.DayId,
                 DayName = p.Day?.Name,
+                IsScheduled = p.IsScheduled,
+                ScheduledFor = p.ScheduledFor,
+                PublishedDate = p.PublishedDate,
                 Comments = p.Comments.OrderBy(c => c.CreationDate).Select(c => new CommentViewModel
                 {
                     Id = c.Id,
@@ -306,6 +309,9 @@ public class BlogController : Controller
             BlogId = post.BlogId,
             DayId = post.DayId,
             DayName = post.Day?.Name,
+            IsScheduled = post.IsScheduled,
+            ScheduledFor = post.ScheduledFor,
+            PublishedDate = post.PublishedDate,
             Photos = post.Photos.Select(ph => new PhotoViewModel
             {
                 Id = ph.Id,
@@ -313,7 +319,7 @@ public class BlogController : Controller
                 Alt = ph.Alt,
                 FilePath = ph.FilePath
             }).ToList(),
-            Comments = post.Comments.OrderBy(c => c.CreationDate).Select(c => new CommentViewModel
+            Comments = post.Comments.Where(c => !post.IsScheduled).OrderBy(c => c.CreationDate).Select(c => new CommentViewModel
             {
                 Id = c.Id,
                 Content = c.Content,
@@ -332,6 +338,8 @@ public class BlogController : Controller
         };
 
         ViewBag.TripId = post.Blog?.TripId;
+        ViewBag.CanComment = !post.IsScheduled;
+        ViewBag.IsScheduledPost = post.IsScheduled;
         return View(viewModel);
     }
 
@@ -381,6 +389,19 @@ public class BlogController : Controller
     {
         if (!ModelState.IsValid)
         {
+            // Ponownie załaduj dni jeśli ModelState jest nieprawidłowe
+            var blog = await _blogService.GetByIdAsync(model.BlogId);
+            if (blog != null)
+            {
+                var days = await _dayService.GetDaysByTripIdAsync(blog.TripId);
+                model.Days = days.Select(d => new DaySelectItem
+                {
+                    Id = d.Id,
+                    Number = d.Number,
+                    Name = d.Name ?? string.Empty,
+                    TripId = d.TripId
+                }).ToList();
+            }
             return View(model);
         }
 
@@ -400,21 +421,36 @@ public class BlogController : Controller
             CreationDate = DateTime.UtcNow
         };
 
-        var createdPost = await _postService.AddAsync(post);
+        Post createdPost;
 
-        if (model.Photos != null && model.Photos.Count > 0)
+        if (model.IsScheduled && model.ScheduledForDateTimeOffset.HasValue)
         {
-            await _photoService.AddMultipleBlogPhotosAsync(
+            createdPost = await _postService.CreatePostAsync(
+                post,
                 model.Photos,
                 _webHostEnvironment.WebRootPath,
-                "posts",
-                postId: createdPost.Id
+                true,
+                model.ScheduledForDateTimeOffset.Value
             );
+            TempData["Success"] = $"Post scheduled for {model.ScheduledForDateTimeOffset.Value:g}";
+        }
+        else
+        {
+            // Natychmiastowa publikacja
+            createdPost = await _postService.CreatePostAsync(
+                post,
+                model.Photos,
+                _webHostEnvironment.WebRootPath,
+                false,
+                null
+            );
+            TempData["Success"] = "Post published successfully!";
         }
 
         return RedirectToAction("Post", new { id = createdPost.Id });
     }
 
+    // POST: Blog/CreateComment
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateComment(CreateCommentViewModel model)
@@ -426,6 +462,15 @@ public class BlogController : Controller
         }
 
         var currentUserId = _userManager.GetUserId(User);
+
+        // Sprawdź czy post istnieje i nie jest zaplanowany
+        var post = await _postService.GetByIdAsync(model.PostId);
+        if (post == null || post.IsScheduled)
+        {
+            TempData["Error"] = "Cannot comment on scheduled posts";
+            return RedirectToAction("Post", new { id = model.PostId });
+        }
+
         if (!await _commentService.CanUserCreateCommentAsync(model.PostId, currentUserId!))
         {
             return Forbid();
@@ -476,7 +521,9 @@ public class BlogController : Controller
             Content = post.Content,
             BlogId = post.BlogId,
             DayId = post.DayId,
-            Days = daySelectItems
+            Days = daySelectItems,
+            IsCurrentlyScheduled = post.IsScheduled,
+            CurrentScheduledFor = post.ScheduledFor
         };
 
         ViewBag.PostId = id;
@@ -492,26 +539,65 @@ public class BlogController : Controller
     }
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditPost(int id, CreatePostViewModel model)
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> EditPost(int id, CreatePostViewModel model)
+{
+    var post = await _postService.GetWithDetailsAsync(id);
+
+    if (post == null)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
+        return NotFound();
+    }
 
-        var post = await _postService.GetByIdAsync(id);
-        if (post == null)
+    if (!ModelState.IsValid)
+    {
+        // Ponownie załaduj dane jeśli ModelState jest nieprawidłowe
+        if (post != null)
         {
-            return NotFound();
+            var days = await _dayService.GetDaysByTripIdAsync(post.Blog!.TripId);
+            model.Days = days.Select(d => new DaySelectItem
+            {
+                Id = d.Id,
+                Number = d.Number,
+                Name = d.Name ?? string.Empty,
+                TripId = d.TripId
+            }).ToList();
         }
+        return View(model);
+    }
 
-        var currentUserId = _userManager.GetUserId(User);
-        if (post.AuthorId != currentUserId)
+    var currentUserId = _userManager.GetUserId(User);
+    if (post.AuthorId != currentUserId)
+    {
+        return Forbid();
+    }
+
+    // Aktualizacja zaplanowanego postu
+    if (post.IsScheduled && model.IsScheduled && model.ScheduledForDateTimeOffset.HasValue)
+    {
+        // Użyj DTO zamiast tworzyć nową encję Post
+        var updateDto = new UpdateScheduledPostDto
         {
-            return Forbid();
-        }
+            Title = model.Title,
+            Content = model.Content,
+            DayId = model.DayId,
+            ScheduledFor = model.ScheduledForDateTimeOffset.Value.UtcDateTime
+        };
 
+        var success = await _postService.UpdateScheduledPostAsync(id, updateDto, model.Photos, _webHostEnvironment.WebRootPath);
+
+        if (success)
+        {
+            TempData["Success"] = $"Post rescheduled for {model.ScheduledForDateTimeOffset.Value:g}";
+        }
+        else
+        {
+            TempData["Error"] = "Error rescheduling post";
+        }
+    }
+    else
+    {
+        // Standardowa aktualizacja postu
         post.Title = model.Title;
         post.Content = model.Content;
         post.DayId = model.DayId;
@@ -530,7 +616,34 @@ public class BlogController : Controller
         }
 
         TempData["Success"] = "Post updated successfully!";
-        return RedirectToAction("Post", new { id = id });
+    }
+
+    return RedirectToAction("Post", new { id = id });
+}
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> PublishNow(int postId)
+    {
+        var post = await _postService.GetByIdAsync(postId);
+        if (post == null)
+        {
+            return NotFound();
+        }
+
+        var currentUserId = _userManager.GetUserId(User);
+        if (post.AuthorId != currentUserId)
+        {
+            return Forbid();
+        }
+
+        if (post.IsScheduled)
+        {
+            await _postService.PublishScheduledPostAsync(postId);
+            TempData["Success"] = "Post published successfully!";
+        }
+
+        return RedirectToAction("Post", new { id = postId });
     }
 
     [HttpPost]
@@ -550,9 +663,20 @@ public class BlogController : Controller
         }
 
         var tripId = post.Blog?.TripId;
-        await _postService.DeleteAsync(id);
 
-        TempData["Success"] = "Post deleted successfully!";
+        if (post.IsScheduled)
+        {
+            // Anuluj zaplanowany post
+            await _postService.CancelScheduledPostAsync(id);
+            TempData["Success"] = "Scheduled post cancelled successfully!";
+        }
+        else
+        {
+            // Usuń opublikowany post
+            await _postService.DeleteAsync(id);
+            TempData["Success"] = "Post deleted successfully!";
+        }
+
         return RedirectToAction("Index", new { tripId = tripId });
     }
 
@@ -817,7 +941,7 @@ public class BlogController : Controller
             TripName = blog.Trip?.Name ?? string.Empty,
             TripId = blog.TripId,
             Visibility = blog.Visibility,
-            Posts = blog.Posts.Select(p => new PublicPostViewModel
+            Posts = blog.Posts.Where(p => !p.IsScheduled).Select(p => new PublicPostViewModel
             {
                 Id = p.Id,
                 Title = p.Title,
@@ -874,7 +998,7 @@ public class BlogController : Controller
             ? await _blogService.CanUserAccessBlogAsync(post.BlogId, currentUserId)
             : post.Blog?.Visibility == BlogVisibility.Public;
 
-        if (!canAccessBlog)
+        if (!canAccessBlog || post.IsScheduled)
         {
             return Forbid();
         }
@@ -895,6 +1019,9 @@ public class BlogController : Controller
             BlogId = post.BlogId,
             DayId = post.DayId,
             DayName = post.Day?.Name,
+            IsScheduled = post.IsScheduled,
+            ScheduledFor = post.ScheduledFor,
+            PublishedDate = post.PublishedDate,
             Photos = post.Photos.Select(ph => new PhotoViewModel
             {
                 Id = ph.Id,
@@ -903,21 +1030,21 @@ public class BlogController : Controller
                 FilePath = ph.FilePath
             }).ToList(),
             Comments = post.Comments.Select(c => new PublicCommentViewModel
-            {
-                Id = c.Id,
-                Content = c.Content,
-                CreationDate = c.CreationDate,
-                EditDate = c.EditDate,
-                AuthorName = $"{c.Author?.FirstName} {c.Author?.LastName}",
-                AuthorId = c.AuthorId,
-                Photos = c.Photos.Select(ph => new PhotoViewModel
                 {
-                    Id = ph.Id,
-                    Name = ph.Name,
-                    Alt = ph.Alt,
-                    FilePath = ph.FilePath
+                    Id = c.Id,
+                    Content = c.Content,
+                    CreationDate = c.CreationDate,
+                    EditDate = c.EditDate,
+                    AuthorName = $"{c.Author?.FirstName} {c.Author?.LastName}",
+                    AuthorId = c.AuthorId,
+                    Photos = c.Photos.Select(ph => new PhotoViewModel
+                    {
+                        Id = ph.Id,
+                        Name = ph.Name,
+                        Alt = ph.Alt,
+                        FilePath = ph.FilePath
+                    }).ToList()
                 }).ToList()
-            }).ToList()
         };
 
         ViewBag.TripId = post.Blog?.TripId;
@@ -927,6 +1054,7 @@ public class BlogController : Controller
         ViewBag.CanComment = canComment;
         ViewBag.IsAuthenticated = User.Identity.IsAuthenticated;
         ViewBag.BlogVisibility = post.Blog?.Visibility;
+        ViewBag.IsScheduledPost = post.IsScheduled;
 
         return View(viewModel);
     }

@@ -11,4 +11,6 @@ public interface IPostRepository : IGenericRepository<Post>
     Task<IReadOnlyList<Post>> GetByDayIdAsync(int dayId);
     Task<int?> GetTripIdByPostIdAsync(int postId);
     Task<int?> GetBlogIdByPostIdAsync(int postId);
+    Task<IReadOnlyList<Post>> GetScheduledPostsByBlogIdAsync(int blogId);
+    Task<IReadOnlyList<Post>> GetPublishedPostsByBlogIdAsync(int blogId);
 }

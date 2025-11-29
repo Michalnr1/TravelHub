@@ -73,6 +73,29 @@ public class PostViewModel
     public List<CommentViewModel> Comments { get; set; } = new();
     public List<PhotoViewModel> Photos { get; set; } = new();
     public IFormFileCollection? NewPhotos { get; set; }
+
+    // Właściwości dla zaplanowanych postów
+    public bool IsScheduled { get; set; }
+    public DateTime? ScheduledFor { get; set; }
+    public DateTime? PublishedDate { get; set; }
+
+    // Obliczana właściwość dla statusu
+    public string Status
+    {
+        get
+        {
+            return IsScheduled ? "Scheduled" : "Published";
+        }
+    }
+
+    // Obliczana właściwość - czy post jest opublikowany
+    public bool IsPublished
+    {
+        get
+        {
+            return !IsScheduled || PublishedDate.HasValue;
+        }
+    }
 }
 
 public class CreatePostViewModel
@@ -89,6 +112,16 @@ public class CreatePostViewModel
     public int? DayId { get; set; }
 
     public IFormFileCollection? Photos { get; set; }
+
+    // Właściwości dla planowania
+    public bool IsScheduled { get; set; }
+    public DateTime? ScheduledFor { get; set; }
+    public DateTimeOffset? ScheduledForDateTimeOffset { get; set; }
+
+    // Status postu (tylko do odczytu w widoku edycji)
+    public bool IsCurrentlyScheduled { get; set; }
+    public DateTime? CurrentScheduledFor { get; set; }
+    public DateTime? PublishedDate { get; set; }
 
     // Lista dni
     public List<DaySelectItem> Days { get; set; } = new();

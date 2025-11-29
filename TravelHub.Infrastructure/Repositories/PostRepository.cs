@@ -78,4 +78,26 @@ public class PostRepository : GenericRepository<Post>, IPostRepository
             .Select(p => (int?)p.BlogId)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<IReadOnlyList<Post>> GetScheduledPostsByBlogIdAsync(int blogId)
+    {
+        return await _context.Posts
+            .Where(p => p.BlogId == blogId && p.IsScheduled && p.ScheduledFor.HasValue)
+            .Include(p => p.Day)
+            .Include(p => p.Author)
+            .Include(p => p.Photos)
+            .OrderBy(p => p.ScheduledFor) // Sortuj od najbliższych w czasie
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Post>> GetPublishedPostsByBlogIdAsync(int blogId)
+    {
+        return await _context.Posts
+            .Where(p => p.BlogId == blogId && !p.IsScheduled)
+            .Include(p => p.Day)
+            .Include(p => p.Author)
+            .Include(p => p.Photos)
+            .OrderByDescending(p => p.PublishedDate ?? p.CreationDate) // Użyj PublishedDate lub CreationDate jako fallback
+            .ToListAsync();
+    }
 }

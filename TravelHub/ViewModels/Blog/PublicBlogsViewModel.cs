@@ -70,6 +70,11 @@ public class PublicPostViewModel
     public string? DayName { get; set; }
     public List<PhotoViewModel> Photos { get; set; } = new();
     public List<PublicCommentViewModel> Comments { get; set; } = new();
+
+    // Właściwości dla zaplanowanych postów
+    public bool IsScheduled { get; set; }
+    public DateTime? ScheduledFor { get; set; }
+    public DateTime? PublishedDate { get; set; }
 }
 
 public class PublicCommentViewModel
