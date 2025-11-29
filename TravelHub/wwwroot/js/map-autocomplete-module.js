@@ -144,7 +144,7 @@ function checkDistance() {
                 const div = document.createElement("div");
                 div.classList.add("distance-warning");
 
-                div.innerHTML = `This Spot is <strong> ${data} km </strong> away from the nearest one in this trip. Are you sure?<br>`;
+                div.innerHTML = `This Spot is <strong> ${Math.round(data)} km </strong> away from the nearest one in this trip. Are you sure?<br>`;
 
                 // Add to the warning box
                 warningBox.appendChild(div);
