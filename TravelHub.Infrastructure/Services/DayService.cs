@@ -8,13 +8,15 @@ namespace TravelHub.Infrastructure.Services;
 public class DayService : GenericService<Day>, IDayService
 {
     private readonly IDayRepository _dayRepository;
+    private readonly IActivityService _activityService;
     private readonly ITripService _tripService;
 
-    public DayService(IDayRepository dayRepository, ITripService tripService)
+    public DayService(IDayRepository dayRepository, ITripService tripService, IActivityService activityService)
         : base(dayRepository)
     {
         _dayRepository = dayRepository;
         _tripService = tripService;
+        _activityService = activityService;
     }
 
     public async Task<Day?> GetDayWithDetailsAsync(int id)
@@ -106,5 +108,74 @@ public class DayService : GenericService<Day>, IDayService
         double median = orderedNumbers.ElementAt(count / 2) + orderedNumbers.ElementAt((count - 1) / 2);
         median /= 2;
         return median;
+    }
+
+    public async Task<Activity?> CheckNewForCollisions(int id, string startTimeString, string? durationString)
+    {
+        var activities = await _activityService.GetOrderedDailyActivitiesAsync(id);
+        decimal startTime = ConvertTimeStringToDecimal(startTimeString);
+        decimal endTime = startTime + ConvertTimeStringToDecimal(durationString);
+        foreach (var activity in activities)
+        {
+            if (activity.StartTime != null)
+            {
+                decimal otherStartTime = activity.StartTime.Value;
+                decimal otherEndTime = otherStartTime + activity.Duration;
+
+                if (startTime <= otherEndTime && endTime >= otherStartTime)
+                {
+                    return activity;
+                }
+            }
+        }
+        return null;
+    }
+
+    private decimal ConvertTimeStringToDecimal(string? timeString)
+    {
+        if (string.IsNullOrEmpty(timeString))
+            return 0;
+
+        var parts = timeString.Split(':');
+        if (parts.Length != 2)
+            return 0;
+
+        if (int.TryParse(parts[0], out int hours) && int.TryParse(parts[1], out int minutes))
+        {
+            return hours + (minutes / 60.0m);
+        }
+
+        return 0;
+    }
+
+    public async Task<(Activity, Activity)?> CheckAllForCollisions(int id)
+    {
+        var activities = await _activityService.GetOrderedDailyActivitiesAsync(id);
+
+        var ordered = activities
+            .Where(a => a.StartTime != null)
+            .OrderBy(a => a.StartTime)
+            .ToList();
+
+        for (int i = 0; i < ordered.Count; i++)
+        {
+            var a = ordered[i];
+            decimal startA = a.StartTime!.Value;
+            decimal endA = startA + a.Duration;
+
+            for (int j = i + 1; j < ordered.Count; j++)
+            {
+                var b = ordered[j];
+                decimal startB = b.StartTime!.Value;
+                decimal endB = startB + b.Duration;
+
+                if (startA <= endB && endA >= startB)
+                {
+                    return (a, b);
+                }
+            }
+        }
+
+        return null;
     }
 }

@@ -58,4 +58,23 @@ public class TransportRepository : GenericRepository<Transport>, ITransportRepos
             .Where(t => t.ToSpotId == spotId)
             .ToListAsync();
     }
+
+    public async Task DeleteAsync(int id)
+    {
+        var transport = await _context.Transports
+        .Include(t => t.Expense)
+        .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (transport != null)
+        {
+            // Najpierw usuń powiązany expense
+            if (transport.Expense != null)
+            {
+                _context.Expenses.Remove(transport.Expense);
+            }
+
+            _context.Transports.Remove(transport);
+            await _context.SaveChangesAsync();
+        }
+    }
 }

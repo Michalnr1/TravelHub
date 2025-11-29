@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelHub.Infrastructure;
 
@@ -11,9 +12,11 @@ using TravelHub.Infrastructure;
 namespace TravelHub.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251129134857_ChangedOnDeleteBehaviors")]
+    partial class ChangedOnDeleteBehaviors
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -208,7 +211,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("TripId");
 
-                    b.ToTable("Activities", (string)null);
+                    b.ToTable("Activities");
 
                     b.HasDiscriminator().HasValue("Activity");
 
@@ -253,7 +256,7 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasIndex("TripId")
                         .IsUnique();
 
-                    b.ToTable("Blogs", (string)null);
+                    b.ToTable("Blogs");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Category", b =>
@@ -282,7 +285,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.ChatMessage", b =>
@@ -311,7 +314,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("TripId");
 
-                    b.ToTable("ChatMessages", (string)null);
+                    b.ToTable("ChatMessages");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Comment", b =>
@@ -346,7 +349,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("Comments", (string)null);
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Country", b =>
@@ -361,7 +364,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasKey("Code", "Name");
 
-                    b.ToTable("Countries", (string)null);
+                    b.ToTable("Countries");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Day", b =>
@@ -396,7 +399,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("TripId");
 
-                    b.ToTable("Days", (string)null);
+                    b.ToTable("Days");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.ExchangeRate", b =>
@@ -424,7 +427,7 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasIndex("TripId", "CurrencyCodeKey", "ExchangeRateValue")
                         .IsUnique();
 
-                    b.ToTable("ExchangeRates", (string)null);
+                    b.ToTable("ExchangeRates");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Expense", b =>
@@ -510,7 +513,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("TripId");
 
-                    b.ToTable("Expenses", (string)null);
+                    b.ToTable("Expenses");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.ExpenseParticipant", b =>
@@ -567,7 +570,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("SpotId");
 
-                    b.ToTable("File", (string)null);
+                    b.ToTable("File");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.FriendRequest", b =>
@@ -611,7 +614,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("RequesterId", "Status");
 
-                    b.ToTable("FriendRequests", (string)null);
+                    b.ToTable("FriendRequests");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Notification", b =>
@@ -658,7 +661,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Person", b =>
@@ -766,7 +769,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("FriendId");
 
-                    b.ToTable("PersonFriends", (string)null);
+                    b.ToTable("PersonFriends");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Photo", b =>
@@ -808,7 +811,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("SpotId");
 
-                    b.ToTable("Photos", (string)null);
+                    b.ToTable("Photos");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Post", b =>
@@ -854,7 +857,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("DayId");
 
-                    b.ToTable("Posts", (string)null);
+                    b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Transport", b =>
@@ -894,7 +897,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("TripId");
 
-                    b.ToTable("Transports", (string)null);
+                    b.ToTable("Transports");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Trip", b =>
@@ -956,7 +959,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Trips", (string)null);
+                    b.ToTable("Trips");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.TripParticipant", b =>
@@ -994,7 +997,7 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasIndex("TripId", "PersonId")
                         .IsUnique();
 
-                    b.ToTable("TripParticipants", (string)null);
+                    b.ToTable("TripParticipants");
                 });
 
             modelBuilder.Entity("TravelHub.Domain.Entities.Spot", b =>
@@ -1235,7 +1238,7 @@ namespace TravelHub.Infrastructure.Migrations
                     b.HasOne("TravelHub.Domain.Entities.Spot", "Spot")
                         .WithOne("Expense")
                         .HasForeignKey("TravelHub.Domain.Entities.Expense", "SpotId")
-                        .OnDelete(DeleteBehavior.ClientCascade);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("TravelHub.Domain.Entities.Person", "TransferredTo")
                         .WithMany("RecivedTransfers")
@@ -1244,8 +1247,7 @@ namespace TravelHub.Infrastructure.Migrations
 
                     b.HasOne("TravelHub.Domain.Entities.Transport", "Transport")
                         .WithOne("Expense")
-                        .HasForeignKey("TravelHub.Domain.Entities.Expense", "TransportId")
-                        .OnDelete(DeleteBehavior.ClientCascade);
+                        .HasForeignKey("TravelHub.Domain.Entities.Expense", "TransportId");
 
                     b.HasOne("TravelHub.Domain.Entities.Trip", "Trip")
                         .WithMany("Expenses")

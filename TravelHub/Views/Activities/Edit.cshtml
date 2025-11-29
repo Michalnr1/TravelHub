@@ -14,6 +14,8 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
 
+            <div id="warning-box" class="alert alert-warning d-none"></div>
+
             <div class="form-group">
                 <label asp-for="Name" class="control-label"></label>
                 <input asp-for="Name" class="form-control" />
@@ -28,13 +30,13 @@
 
             <div class="form-group">
                 <label asp-for="StartTimeString" class="control-label"></label>
-                <input asp-for="StartTimeString" class="form-control" type="time" step="300" /> <!-- step="300" = 5 minut -->
+                <input asp-for="StartTimeString" class="form-control" type="time" /> <!-- step="300" = 5 minut -->
                 <span asp-validation-for="StartTimeString" class="text-danger"></span>
             </div>
 
             <div class="form-group">
                 <label asp-for="DurationString" class="control-label"></label>
-                <input asp-for="DurationString" class="form-control" type="time" step="300" /> <!-- step="300" = 5 minut -->
+                <input asp-for="DurationString" class="form-control" type="time" /> <!-- step="300" = 5 minut -->
                 <span asp-validation-for="DurationString" class="text-danger"></span>
             </div>
 
@@ -86,7 +88,13 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script src="~/js/new-collision-check.js"></script>
+
     <script>
+        const dayId = @Model.DayId;
+        const collisionCheckUrl = "@Html.Raw(Url.Action("CheckNewForCollisions", "Days"))"
+
         $(document).ready(function() {
             // Filter days based on selected trip
             function filterDays() {

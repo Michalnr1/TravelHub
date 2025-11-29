@@ -55,13 +55,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // ZMIANA: Konfiguracja relacji M:N przez encję PersonFriends
             entity.HasMany(p => p.Friends)
                   .WithOne(pf => pf.User)
-                  .HasForeignKey(pf => pf.UserId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .HasForeignKey(pf => pf.UserId);
+                  //.OnDelete(DeleteBehavior.ClientCascade);
 
             entity.HasMany(p => p.FriendOf)
                   .WithOne(pf => pf.Friend)
-                  .HasForeignKey(pf => pf.FriendId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .HasForeignKey(pf => pf.FriendId);
+                  //.OnDelete(DeleteBehavior.ClientCascade);
         });
 
         // --- PersonFriends Configuration ---
@@ -76,13 +76,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(pf => pf.User)
                   .WithMany(p => p.Friends)
                   .HasForeignKey(pf => pf.UserId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // Relacja do Friend
             entity.HasOne(pf => pf.Friend)
                   .WithMany(p => p.FriendOf)
                   .HasForeignKey(pf => pf.FriendId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.ClientCascade);
         });
 
         // --- FriendRequest Configuration ---
@@ -120,13 +120,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(fr => fr.Requester)
                 .WithMany()
                 .HasForeignKey(fr => fr.RequesterId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // Relacja do Addressee (Person)
             entity.HasOne(fr => fr.Addressee)
                 .WithMany()
                 .HasForeignKey(fr => fr.AddresseeId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // Index dla lepszej wydajności zapytań
             entity.HasIndex(fr => new { fr.AddresseeId, fr.Status });
@@ -188,50 +188,50 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // 1:1 relationship with Blog
             entity.HasOne(t => t.Blog)
                 .WithOne(b => b.Trip)
-                .HasForeignKey<Blog>(b => b.TripId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey<Blog>(b => b.TripId);
+                //.OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Person (Trip organizer)
             entity.HasOne(t => t.Person)
                 .WithMany(p => p.Trips)
                 .HasForeignKey(t => t.PersonId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Days
             entity.HasMany(t => t.Days)
                 .WithOne(d => d.Trip)
-                .HasForeignKey(d => d.TripId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(d => d.TripId);
+            //.OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Activities
             entity.HasMany(t => t.Activities)
                 .WithOne(a => a.Trip)
-                .HasForeignKey(a => a.TripId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(a => a.TripId);
+            //.OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Transports
             entity.HasMany(t => t.Transports)
                 .WithOne(tr => tr.Trip)
-                .HasForeignKey(tr => tr.TripId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(tr => tr.TripId);
+            //.OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Expenses
             entity.HasMany(t => t.Expenses)
                 .WithOne(e => e.Trip)
-                .HasForeignKey(e => e.TripId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(e => e.TripId);
+            //.OnDelete(DeleteBehavior.ClientNoAction);
 
             // 1:N relationship with ExchangeRates
             entity.HasMany(t => t.ExchangeRates)
                 .WithOne(er => er.Trip)
-                .HasForeignKey(er => er.TripId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(er => er.TripId);
+            //.OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with TripParticipants
             entity.HasMany(t => t.Participants)
                 .WithOne(tp => tp.Trip)
-                .HasForeignKey(tp => tp.TripId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasForeignKey(tp => tp.TripId);
+                //.OnDelete(DeleteBehavior.ClientCascade);
 
             // Indexy dla lepszej wydajności
             entity.HasIndex(t => t.PersonId);
@@ -298,7 +298,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(d => d.Trip)
                   .WithMany(t => t.Days)
                   .HasForeignKey(d => d.TripId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Accommodation
             entity.HasOne(d => d.Accommodation)
@@ -309,15 +309,15 @@ public class ApplicationDbContext : IdentityDbContext<Person>
 
             // 1:N relationship with Activities
             entity.HasMany(d => d.Activities)
-                .WithOne(a => a.Day)
-                .HasForeignKey(a => a.DayId)
-                .OnDelete(DeleteBehavior.Restrict);
+                  .WithOne(a => a.Day)
+                  .HasForeignKey(a => a.DayId);
+            //.OnDelete(DeleteBehavior.ClientSetNull);
 
             // 1:N relationship with Posts
             entity.HasMany(d => d.Posts)
-                .WithOne(p => p.Day)
-                .HasForeignKey(p => p.DayId)
-                .OnDelete(DeleteBehavior.SetNull);
+                  .WithOne(p => p.Day)
+                  .HasForeignKey(p => p.DayId);
+                  //.OnDelete(DeleteBehavior.ClientSetNull);
 
             // Indexes for better performance
             entity.HasIndex(d => d.TripId);
@@ -348,9 +348,9 @@ public class ApplicationDbContext : IdentityDbContext<Person>
 
             // 1:N relationship with Trip
             entity.HasOne(a => a.Trip)
-                    .WithMany(t => t.Activities)
-                    .HasForeignKey(a => a.TripId)
-                    .OnDelete(DeleteBehavior.Cascade); // If a trip is deleted, its activities are deleted.
+                  .WithMany(t => t.Activities)
+                  .HasForeignKey(a => a.TripId)
+                  .OnDelete(DeleteBehavior.Cascade); // If a trip is deleted, its activities are deleted.
 
             // 1:N relationship with Day
             entity.HasOne(a => a.Day)
@@ -361,9 +361,9 @@ public class ApplicationDbContext : IdentityDbContext<Person>
 
             // 1:N relationship with Category
             entity.HasOne(a => a.Category)
-                    .WithMany(c => c.Activities)
-                    .HasForeignKey(a => a.CategoryId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                  .WithMany(c => c.Activities)
+                  .HasForeignKey(a => a.CategoryId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         // --- Spot Configuration ---
@@ -377,7 +377,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(s => s.Country)
                 .WithMany(c => c.Spots)
                 .HasForeignKey(s => new { s.CountryCode, s.CountryName })
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // --- Accommodation Configuration ---
@@ -399,12 +399,18 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(t => t.FromSpot)
                   .WithMany(s => s.TransportsFrom)
                   .HasForeignKey(t => t.FromSpotId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             entity.HasOne(t => t.ToSpot)
                   .WithMany(s => s.TransportsTo)
                   .HasForeignKey(t => t.ToSpotId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.ClientCascade);
+
+            // 1:N relationship with Transports
+            entity.HasOne(tr => tr.Trip)
+                  .WithMany(t => t.Transports)
+                  .HasForeignKey(tr => tr.TripId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // --- Photo Configuration ---
@@ -423,17 +429,17 @@ public class ApplicationDbContext : IdentityDbContext<Person>
 
             // 1:N relationship with Post
             entity.HasOne(p => p.Post)
-                    .WithMany(post => post.Photos)
-                    .HasForeignKey(p => p.PostId)
-                    .IsRequired(false)
-                    .OnDelete(DeleteBehavior.SetNull); // If a Post is deleted, set PostId to NULL.
+                  .WithMany(post => post.Photos)
+                  .HasForeignKey(p => p.PostId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Comment
             entity.HasOne(p => p.Comment)
-                    .WithMany(c => c.Photos)
-                    .HasForeignKey(p => p.CommentId)
-                    .IsRequired(false)
-                    .OnDelete(DeleteBehavior.SetNull); // If a Comment is deleted, set CommentId to NULL.
+                  .WithMany(c => c.Photos)
+                  .HasForeignKey(p => p.CommentId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // --- Expense Configuration ---
@@ -452,37 +458,37 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(e => e.PaidBy)
                   .WithMany(p => p.PaidExpenses)
                   .HasForeignKey(e => e.PaidById)
-                  .OnDelete(DeleteBehavior.Restrict); // Don't delete a person if they paid for an expense
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship for the person who recived a transfer
             entity.HasOne(e => e.TransferredTo)
                   .WithMany(p => p.RecivedTransfers)
                   .HasForeignKey(e => e.TransferredToId)
                   .IsRequired(false)
-                  .OnDelete(DeleteBehavior.Restrict); // Don't delete a person if they recived a transfer
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Trip
             entity.HasOne(e => e.Trip)
                   .WithMany(t => t.Expenses)
                   .HasForeignKey(e => e.TripId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.NoAction);
 
             // 1:N relationship with ExchangeRate
             entity.HasOne(e => e.ExchangeRate)
                   .WithMany(c => c.Expenses)
                   .HasForeignKey(e => e.ExchangeRateId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:1 relationship with Spot
             entity.HasOne(e => e.Spot)
-                  .WithOne(s => s.Expense!)
+                  .WithOne(s => s.Expense)
                   .HasForeignKey<Expense>(e => e.SpotId)
                   .IsRequired(false)
                   .OnDelete(DeleteBehavior.NoAction);
 
             // 1:1 relationship with Transport
             entity.HasOne(e => e.Transport)
-                  .WithOne(t => t.Expense!)
+                  .WithOne(t => t.Expense)
                   .HasForeignKey<Expense>(e => e.TransportId)
                   .IsRequired(false)
                   .OnDelete(DeleteBehavior.NoAction);
@@ -512,13 +518,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasMany(c => c.Activities)
                   .WithOne(a => a.Category)
                   .HasForeignKey(a => a.CategoryId)
-                  .OnDelete(DeleteBehavior.SetNull);
+                  .OnDelete(DeleteBehavior.ClientSetNull);
 
             // 1:N relationship with Expense
             entity.HasMany(c => c.Expenses)
                   .WithOne(e => e.Category)
                   .HasForeignKey(e => e.CategoryId)
-                  .OnDelete(DeleteBehavior.SetNull);
+                  .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasIndex(c => c.PersonId);
         });
@@ -556,26 +562,26 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(p => p.Author)
                   .WithMany(person => person.Posts)
                   .HasForeignKey(p => p.AuthorId)
-                  .OnDelete(DeleteBehavior.ClientNoAction); // Don't delete an author if they have posts
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Blog
             entity.HasOne(p => p.Blog)
-                .WithMany(b => b.Posts)
-                .HasForeignKey(p => p.BlogId)
-                .OnDelete(DeleteBehavior.Cascade);
+                  .WithMany(b => b.Posts)
+                  .HasForeignKey(p => p.BlogId)
+                  .OnDelete(DeleteBehavior.Cascade);
 
             // 1:N relationship with Day
             entity.HasOne(p => p.Day)
-                .WithMany(d => d.Posts)
-                .HasForeignKey(p => p.DayId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.SetNull);
+                  .WithMany(d => d.Posts)
+                  .HasForeignKey(p => p.DayId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
 
             // 1:N relationship with Comments
             entity.HasMany(p => p.Comments)
-                .WithOne(c => c.Post)
-                .HasForeignKey(c => c.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+                  .WithOne(c => c.Post)
+                  .HasForeignKey(c => c.PostId);
+                  //.OnDelete(DeleteBehavior.ClientCascade);
 
             // Indexes for better performance
             entity.HasIndex(p => p.AuthorId);
@@ -594,13 +600,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(c => c.Author)
                   .WithMany(person => person.Comments)
                   .HasForeignKey(c => c.AuthorId)
-                  .OnDelete(DeleteBehavior.Restrict); // Don't delete an author if they have comments
+                  .OnDelete(DeleteBehavior.Cascade);
 
             // 1:N relationship with Post
             entity.HasOne(c => c.Post)
                   .WithMany(p => p.Comments)
                   .HasForeignKey(c => c.PostId)
-                  .OnDelete(DeleteBehavior.Restrict); // Don't delete a post if it has comments.
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // --- Notification configuration ---
@@ -669,7 +675,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasOne(ep => ep.Person)
                   .WithMany(p => p.ExpensesToCover)
                   .HasForeignKey(ep => ep.PersonId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                  .OnDelete(DeleteBehavior.Cascade);
 
             entity.ToTable("ExpenseParticipants");
         });
@@ -700,11 +706,11 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasKey(f => f.Id);
             entity.Property(f => f.Name).IsRequired(false).HasMaxLength(200);
 
-            // 1:N relationship with Trip
+            // 1:N relationship with Spot
             entity.HasOne(f => f.Spot)
-                .WithMany(t => t.Files)
+                .WithMany(s => s.Files)
                 .HasForeignKey(f => f.SpotId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // --- Blog Configuration ---
@@ -717,21 +723,21 @@ public class ApplicationDbContext : IdentityDbContext<Person>
 
             // 1:N relationship with Person (Owner)
             entity.HasOne(b => b.Owner)
-                .WithMany(p => p.Blogs)
-                .HasForeignKey(b => b.OwnerId)
-                .OnDelete(DeleteBehavior.Restrict);
+                  .WithMany(p => p.Blogs)
+                  .HasForeignKey(b => b.OwnerId)
+                  .OnDelete(DeleteBehavior.Cascade);
 
             // 1:1 relationship with Trip
             entity.HasOne(b => b.Trip)
-                .WithOne(t => t.Blog)
-                .HasForeignKey<Blog>(b => b.TripId)
-                .OnDelete(DeleteBehavior.Restrict);
+                  .WithOne(t => t.Blog)
+                  .HasForeignKey<Blog>(b => b.TripId)
+                  .OnDelete(DeleteBehavior.Cascade);
 
             // 1:N relationship with Posts
             entity.HasMany(b => b.Posts)
-                .WithOne(p => p.Blog)
-                .HasForeignKey(p => p.BlogId)
-                .OnDelete(DeleteBehavior.Cascade);
+                  .WithOne(p => p.Blog)
+                  .HasForeignKey(p => p.BlogId)
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // Indexes for better performance
             entity.HasIndex(b => b.OwnerId);
