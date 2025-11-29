@@ -12,4 +12,5 @@ public interface IDayService : IGenericService<Day>
     Task AddAccommodationToDay(int dayId, int accommodationId);
     Task<IEnumerable<Day>> GetDaysByTripIdAsync(int tripId);
     Task<(double medianLatitude, double medianLongitude)> GetMedianCoords(int id);
+    Task<Activity?> CheckNewForCollisions(int id, string startTimeString, string? durationStringn);
 }

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
@@ -648,6 +647,24 @@ public class DaysController : Controller
         {
             _logger.LogError(ex, "Error updating activity order for day {DayId}", request?.DayId);
             return Json(new { success = false, message = "Error updating order" });
+        }
+    }
+
+    public async Task<IActionResult> CheckNewForCollisions(int id, string startTimeString, string? durationString)
+    {
+        Activity? collisionWith = await _dayService.CheckNewForCollisions(id, startTimeString, durationString);
+        if (collisionWith == null)
+        {
+            return Ok(new { collision = false });
+        } else
+        {
+            return Ok(new
+            {
+                collision = true,
+                name = collisionWith.Name,
+                startTimeString = ConvertDecimalToTimeString(collisionWith.StartTime!.Value),
+                endTimeString = collisionWith.Duration > 0 ? ConvertDecimalToTimeString(collisionWith.StartTime!.Value + collisionWith.Duration) : null
+            });
         }
     }
 

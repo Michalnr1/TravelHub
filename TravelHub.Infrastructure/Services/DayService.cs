@@ -8,13 +8,15 @@ namespace TravelHub.Infrastructure.Services;
 public class DayService : GenericService<Day>, IDayService
 {
     private readonly IDayRepository _dayRepository;
+    private readonly IActivityService _activityService;
     private readonly ITripService _tripService;
 
-    public DayService(IDayRepository dayRepository, ITripService tripService)
+    public DayService(IDayRepository dayRepository, ITripService tripService, IActivityService activityService)
         : base(dayRepository)
     {
         _dayRepository = dayRepository;
         _tripService = tripService;
+        _activityService = activityService;
     }
 
     public async Task<Day?> GetDayWithDetailsAsync(int id)
@@ -106,5 +108,45 @@ public class DayService : GenericService<Day>, IDayService
         double median = orderedNumbers.ElementAt(count / 2) + orderedNumbers.ElementAt((count - 1) / 2);
         median /= 2;
         return median;
+    }
+
+    public async Task<Activity?> CheckNewForCollisions(int id, string startTimeString, string? durationString)
+    {
+        var activities = await _activityService.GetOrderedDailyActivitiesAsync(id);
+        decimal startTime = ConvertTimeStringToDecimal(startTimeString);
+        decimal endTime = startTime + ConvertTimeStringToDecimal(durationString);
+        foreach (var activity in activities)
+        {
+            if (activity.StartTime != null)
+            {
+                decimal otherStartTime = activity.StartTime.Value;
+                decimal otherEndTime = otherStartTime + activity.Duration;
+
+                if ((otherStartTime < startTime && startTime < otherEndTime)
+                    || (otherStartTime < endTime && endTime < otherEndTime)
+                    || (startTime < otherStartTime && otherStartTime < endTime))
+                {
+                    return activity;
+                }
+            }
+        }
+        return null;
+    }
+
+    private decimal ConvertTimeStringToDecimal(string? timeString)
+    {
+        if (string.IsNullOrEmpty(timeString))
+            return 0;
+
+        var parts = timeString.Split(':');
+        if (parts.Length != 2)
+            return 0;
+
+        if (int.TryParse(parts[0], out int hours) && int.TryParse(parts[1], out int minutes))
+        {
+            return hours + (minutes / 60.0m);
+        }
+
+        return 0;
     }
 }

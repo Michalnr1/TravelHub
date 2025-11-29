@@ -22,6 +22,8 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="TripId" />
 
+            <div id="warning-box" class="alert alert-warning d-none"></div>
+
             <!-- Sekcja podstawowych danych Spot -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -42,13 +44,13 @@
 
                     <div class="form-group">
                         <label asp-for="StartTimeString" class="control-label"></label>
-                        <input asp-for="StartTimeString" class="form-control" type="time" step="300" />
+                        <input asp-for="StartTimeString" class="form-control" type="time"/>
                         <span asp-validation-for="StartTimeString" class="text-danger"></span>
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="DurationString" class="control-label"></label>
-                        <input asp-for="DurationString" class="form-control" type="time" step="300" />
+                        <input asp-for="DurationString" class="form-control" type="time" />
                         <span asp-validation-for="DurationString" class="text-danger"></span>
                     </div>
 
@@ -211,6 +213,8 @@
 
     <script src="~/js/map-autocomplete-module.js"></script>
 
+    <script src="~/js/new-collision-check.js"></script>
+
     <script>
         var tripCurrency = "@Html.Raw(Model.TripCurrency)";
         var $currencySelect = $('#currencySelect');
@@ -221,6 +225,9 @@
         let lng = "@Html.Raw(startLng)";
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let spotName = "@Html.Raw(Model.Name)";
+
+        const dayId = @Model.DayId;
+        const collisionCheckUrl = "@Html.Raw(Url.Action("CheckNewForCollisions", "Days"))"
     </script>
 
 }
