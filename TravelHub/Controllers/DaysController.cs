@@ -118,6 +118,7 @@ public class DaysController : Controller
         if (returnUrl != null)
             returnUrl = source == "public" ? returnUrl + "?source=public" : returnUrl;
         ViewData["ReturnUrl"] = returnUrl ?? (source == "public" ? Url.Action("Details", "TripsSearch", new { id = day.TripId }) : Url.Action("Details", "Trips", new { id = day.TripId }));
+        await SetTimeConflictViewDate(id);
         return View(viewModel);
     }
 
@@ -663,7 +664,7 @@ public class DaysController : Controller
                 collision = true,
                 name = collisionWith.Name,
                 startTimeString = ConvertDecimalToTimeString(collisionWith.StartTime!.Value),
-                endTimeString = collisionWith.Duration > 0 ? ConvertDecimalToTimeString(collisionWith.StartTime!.Value + collisionWith.Duration) : null
+                endTimeString = collisionWith.Duration > 0 ? ConvertDecimalToTimeString((collisionWith.StartTime!.Value + collisionWith.Duration) % 24) : null
             });
         }
     }
@@ -681,5 +682,22 @@ public class DaysController : Controller
         int hours = (int)duration;
         int minutes = (int)((duration - hours) * 60);
         return $"{hours:D2}:{minutes:D2}";
+    }
+
+    private async Task SetTimeConflictViewDate(int id)
+    {
+        (Activity, Activity)? conflict = await _dayService.CheckAllForCollisions(id);
+        if (conflict != null)
+        {
+            (Activity one, Activity other) = conflict.Value;
+            ViewData["Conflict"] = true;
+            ViewData["ConflictAName"] = one.Name;
+            ViewData["ConflictBName"] = other.Name;
+            ViewData["ConflictATimeString"] = $"{ConvertDecimalToTimeString(one.StartTime!.Value)} {(one.Duration > 0 ? "- " + ConvertDecimalToTimeString(one.StartTime!.Value + one.Duration) : "")}";
+            ViewData["ConflictBTimeString"] = $"{ConvertDecimalToTimeString(other.StartTime!.Value)} {(other.Duration > 0 ? "- " + ConvertDecimalToTimeString((other.StartTime!.Value + other.Duration) % 24) : "")}";
+        } else
+        {
+            ViewData["Conflict"] = false;
+        }
     }
 }
