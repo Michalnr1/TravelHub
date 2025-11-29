@@ -47,7 +47,7 @@ public class BlogService : GenericService<Blog>, IBlogService
     public async Task<bool> CanUserAccessBlogAsync(int blogId, string userId)
     {
         var blog = await _blogRepository.GetByIdAsync(blogId);
-        if (blog == null || blog.Visibility == BlogVisibility.Private) return false;
+        if (blog == null) return false;
 
         // Public blogs are accessible to everyone
         if (blog.Visibility == BlogVisibility.Public)
@@ -98,6 +98,11 @@ public class BlogService : GenericService<Blog>, IBlogService
             if (blog.Visibility == BlogVisibility.Public)
             {
                 accessibleBlogs.Add(blog);
+                continue;
+            }
+
+            if (blog.Visibility == BlogVisibility.Private)
+            {
                 continue;
             }
 
