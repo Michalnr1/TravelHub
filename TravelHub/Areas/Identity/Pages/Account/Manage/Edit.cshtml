@@ -41,10 +41,26 @@
                 <span asp-validation-for="Input.Nationality" class="text-danger"></span>
             </div>
 
-            <div class="form-floating mb-3">
+            @* <div class="form-floating mb-3">
                 <input asp-for="Input.DefaultAirportCode" class="form-control" />
                 <label asp-for="Input.DefaultAirportCode" class="form-label"></label>
                 <span asp-validation-for="Input.DefaultAirportCode" class="text-danger"></span>
+                <div id="autocompleteResults" class="autocomplete-results"></div>
+            </div> *@
+
+            <div class="form-group mb-3">
+                <div class="autocomplete-container form-floating">
+                    <input class="form-control"
+                           type="text"
+                           name="Input.DefaultAirportCode"
+                           id="Input_DefaultAirportCode"
+                           placeholder="Enter airport..."
+                           autocomplete="off" 
+                           value="@Model.Input.DefaultAirportCode" />
+                    <label for="Input_DefaultAirportCode">Default Airport Code</label>
+
+                    <div id="autocompleteResults" class="autocomplete-results" hidden></div>
+                </div>
             </div>
 
             <div class="form-floating mb-3">
@@ -81,4 +97,52 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/airport-search-module.js"></script>
+
+    <script>
+        const input = document.getElementById("Input_DefaultAirportCode");
+        const resultsDiv = document.getElementById("autocompleteResults");
+        addAutocompleteFunctionality(input, resultsDiv);
+    </script>
+
+    <style>
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-results {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            border-top: none;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 0 0 6px 6px;
+        }
+
+        .autocomplete-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .autocomplete-item:hover {
+            background: #007bff;
+            color: white;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-container.form-floating > .autocomplete-results {
+            margin-top: 0.25rem;
+        }
+    </style>
 }
