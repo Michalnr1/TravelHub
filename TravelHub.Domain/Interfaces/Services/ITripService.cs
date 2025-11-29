@@ -34,4 +34,5 @@ public interface ITripService : IGenericService<Trip>
     Task MarkAllChecklistItemsAsync(int tripId, bool completed);
     Task<Trip> CloneTripAsync(int sourceTripId, string cloningUserId, CloneTripRequestDto request);
     Task<double> GetDistance(int id, double lat, double lng);
+    Task DeleteAsync(int id);
 }

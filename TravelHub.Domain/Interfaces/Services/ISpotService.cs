@@ -26,4 +26,6 @@ public interface ISpotService : IGenericService<Spot>
 
     Task<bool> UserOwnsSpotAsync(int spotId, string userId);
     Task<Country> AddCountry(int spotId, string name, string code);
+
+    Task DeleteAsync(int id);
 }

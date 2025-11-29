@@ -25,6 +25,7 @@ public class TripService : GenericService<Trip>, ITripService
     private readonly ICategoryRepository _categoryRepository;
     private readonly ICurrencyConversionService _currencyConversionService;
     private readonly ITripParticipantRepository _tripParticipantRepository;
+    private readonly ITripParticipantService _tripParticipantService;
     private readonly IBlogRepository _blogRepository;
     private readonly ILogger<TripService> _logger;
 
@@ -39,6 +40,7 @@ public class TripService : GenericService<Trip>, ITripService
         ICategoryRepository categoryRepository,
         ICurrencyConversionService currencyConversionService,
         ITripParticipantRepository tripParticipantRepository,
+        ITripParticipantService tripParticipantService,
         IBlogRepository blogRepository,
         ILogger<TripService> logger)
         : base(tripRepository)
@@ -54,6 +56,7 @@ public class TripService : GenericService<Trip>, ITripService
         _categoryRepository = categoryRepository;
         _currencyConversionService = currencyConversionService;
         _tripParticipantRepository = tripParticipantRepository;
+        _tripParticipantService = tripParticipantService;
         _blogRepository = blogRepository;
         _logger = logger;
     }
@@ -571,6 +574,11 @@ public class TripService : GenericService<Trip>, ITripService
         await _tripRepository.MarkAllChecklistItemsAsync(tripId, completed);
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        await _tripRepository.DeleteAsync(id);
+    }
+
     public async Task<Trip> CloneTripAsync(int sourceTripId, string cloningUserId, CloneTripRequestDto request)
     {
         // Pobierz oryginalną wycieczkę z wszystkimi danymi
@@ -608,6 +616,7 @@ public class TripService : GenericService<Trip>, ITripService
 
         // Zapisz nową wycieczkę
         var savedTrip = await _tripRepository.AddAsync(newTrip);
+        await _tripParticipantService.AddOwnerAsync(newTrip.Id, cloningUserId);
 
         try
         {

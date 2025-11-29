@@ -6,8 +6,11 @@ namespace TravelHub.Infrastructure.Repositories;
 
 public class SpotRepository : GenericRepository<Spot>, ISpotRepository
 {
-    public SpotRepository(ApplicationDbContext context) : base(context)
+    private readonly ITransportRepository _transportRepository;
+
+    public SpotRepository(ApplicationDbContext context, ITransportRepository transportRepository) : base(context)
     {
+        _transportRepository = transportRepository;
     }
 
     public async Task<Spot?> GetByIdWithDetailsAsync(int id)
@@ -99,5 +102,37 @@ public class SpotRepository : GenericRepository<Spot>, ISpotRepository
             .ToListAsync();
 
         return countries;
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var spot = await _context.Set<Spot>()
+            .Include(s => s.Expense)
+            .Include(s => s.TransportsFrom)
+            .Include(s => s.TransportsTo)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (spot != null)
+        {
+            // Obsłuż powiązane expenses
+            if (spot.Expense != null)
+            {
+                _context.Expenses.Remove(spot.Expense);
+            }
+
+            // Obsłuż powiązane transports
+            foreach (var transport in spot.TransportsFrom.ToList())
+            {
+                await _transportRepository.DeleteAsync(transport.Id);
+            }
+
+            foreach (var transport in spot.TransportsTo.ToList())
+            {
+                await _transportRepository.DeleteAsync(transport.Id);
+            }
+
+            _context.Set<Spot>().Remove(spot);
+            await _context.SaveChangesAsync();
+        }
     }
 }

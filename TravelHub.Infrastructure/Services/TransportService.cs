@@ -51,4 +51,9 @@ public class TransportService : GenericService<Transport>, ITransportService
     {
         return await _transportRepository.GetTransportsToSpotAsync(spotId);
     }
+
+    public async Task DeleteAsync(int id)
+    {
+        await _transportRepository.DeleteAsync(id);
+    }
 }
