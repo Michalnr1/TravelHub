@@ -33,4 +33,5 @@ public interface ITripService : IGenericService<Trip>
     List<string> GetUniqueCountriesFromTrip(Trip trip);
     Task MarkAllChecklistItemsAsync(int tripId, bool completed);
     Task<Trip> CloneTripAsync(int sourceTripId, string cloningUserId, CloneTripRequestDto request);
+    Task DeleteAsync(int id);
 }

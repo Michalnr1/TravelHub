@@ -8,9 +8,9 @@ public interface ITripRepository : IGenericRepository<Trip>
     Task<IEnumerable<Trip>> GetByUserIdAsync(string userId);
     Task<bool> ExistsAsync(int id);
     Task<IReadOnlyList<Trip>> GetAllWithUserAsync();
-    Task AddCountryToTrip(int id, Country country);
     Task<Trip?> GetByIdWithParticipantsAsync(int id);
     Task<IEnumerable<Trip>> GetPublicTripsAsync();
     Task<IEnumerable<Country>> GetCountriesForPublicTripsAsync();
     Task MarkAllChecklistItemsAsync(int tripId, bool completed);
+    Task DeleteAsync(int id);
 }

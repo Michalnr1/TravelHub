@@ -17,4 +17,5 @@ public interface ITransportRepository : IGenericRepository<Transport>
 
     Task<List<Transport>> GetTransportsFromSpotAsync(int spotId);
     Task<List<Transport>> GetTransportsToSpotAsync(int spotId);
+    Task DeleteAsync(int id);
 }

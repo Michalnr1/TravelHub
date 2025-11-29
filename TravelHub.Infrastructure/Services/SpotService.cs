@@ -131,4 +131,9 @@ public class SpotService : GenericService<Spot>, ISpotService
         var spot = await GetByIdAsync(spotId);
         return spot?.Trip?.PersonId == userId;
     }
+
+    public async Task DeleteAsync(int id)
+    {
+        await _spotRepository.DeleteAsync(id);
+    }
 }
