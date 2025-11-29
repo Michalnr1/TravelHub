@@ -97,6 +97,10 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
             [Required]
             [Display(Name = "Is account private?")]
             public bool IsPrivate { get; set; }
+
+            // Ustawienia powiadomień
+            [Display(Name = "Receive email notifications when someone comments on my posts")]
+            public bool ReceiveCommentNotifications { get; set; } = true;
         }
 
         private async Task LoadAsync(Person user)
@@ -117,7 +121,8 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
                 Nationality = user.Nationality,
                 Birthday = user.Birthday,
                 IsPrivate = user.IsPrivate,
-                DefaultAirportCode = user.DefaultAirportCode
+                DefaultAirportCode = user.DefaultAirportCode,
+                ReceiveCommentNotifications = user.ReceiveCommentNotifications
             };
         }
 
@@ -221,6 +226,9 @@ namespace TravelHub.Web.Areas.Identity.Pages.Account.Manage
 
             if (Input.IsPrivate != user.IsPrivate)
                 user.IsPrivate = Input.IsPrivate;
+
+            if (Input.ReceiveCommentNotifications != user.ReceiveCommentNotifications)
+                user.ReceiveCommentNotifications = Input.ReceiveCommentNotifications;
 
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

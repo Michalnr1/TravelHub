@@ -11,6 +11,9 @@ public class Person : IdentityUser
     public required bool IsPrivate { get; set; } = true;
     public string? DefaultAirportCode { get; set; }
 
+    // Ustawienia powiadomień
+    public bool ReceiveCommentNotifications { get; set; } = true;
+
     // Navigation Properties
 
     // A person can have many friends, and be a friend to many others (M:N self-referencing)

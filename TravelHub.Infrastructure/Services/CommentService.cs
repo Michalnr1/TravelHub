@@ -160,6 +160,13 @@ public class CommentService : GenericService<Comment>, ICommentService
             var postAuthor = post.Author;
             if (postAuthor == null || postAuthor.Id == comment.AuthorId) return; // Don't send if comment author is post author
 
+            // Sprawdź czy użytkownik chce otrzymywać powiadomienia
+            if (!postAuthor.ReceiveCommentNotifications)
+            {
+                _logger.LogInformation("User {UserId} has disabled comment notifications", postAuthor.Id);
+                return;
+            }
+
             // Pobierz autora komentarza
             var commentAuthor = await _userManager.FindByIdAsync(comment.AuthorId);
             var commentAuthorName = commentAuthor?.UserName ?? "User";
