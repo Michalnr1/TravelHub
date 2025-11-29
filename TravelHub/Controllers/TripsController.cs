@@ -1243,6 +1243,12 @@ public class TripsController : Controller
         return RedirectToAction("Checklist", new { tripId });
     }
 
+    public async Task<IActionResult> GetDistance(int id, double lat, double lng)
+    {
+        double distance = await _tripService.GetDistance(id, lat, lng);
+        return Ok(distance);
+    }
+
     private string GetCurrentUserId()
     {
         return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");

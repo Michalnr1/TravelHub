@@ -226,8 +226,11 @@
         let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
         let spotName = "@Html.Raw(Model.Name)";
 
-        const dayId = @Model.DayId;
-        const collisionCheckUrl = "@Html.Raw(Url.Action("CheckNewForCollisions", "Days"))"
+        const dayId = "@Model.DayId";
+        const tripId = "@Model.TripId";
+        const collisionCheckUrl = "@Html.Raw(Url.Action("CheckNewForCollisions", "Days"))";
+        const distanceCheckUrl = "@Html.Raw(Url.Action("GetDistance", "Trips"))";
+        const warningBox = document.getElementById("warning-box");
     </script>
 
 }

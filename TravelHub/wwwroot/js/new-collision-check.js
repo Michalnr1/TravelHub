@@ -1,19 +1,13 @@
-﻿// Needs: collisionCheckUrl, dayId
+﻿// Needs: collisionCheckUrl, dayId, warningBox
 
 const startInput = document.getElementById("StartTimeString");
 const durationInput = document.getElementById("DurationString");
-const warningBox = document.getElementById("warning-box");
 
-let debounceTimer = null;
+let collisionDebounceTimer = null;
 
 function checkCollision() {
     const start = startInput.value;
     const duration = durationInput.value;
-
-    if (!start) {
-        warningBox.classList.add("d-none");
-        return;
-    }
 
     $.ajax({
         url: collisionCheckUrl,
@@ -24,22 +18,36 @@ function checkCollision() {
             durationString: duration
         },
         success: data => {
+            warningBox.querySelectorAll(".collision-warning").forEach(el => el.remove());
+
             if (data.collision === true) {
-                warningBox.innerHTML =
-                    `<strong>Time conflict!</strong><br>
-                         Overlaps with: <strong>${data.name}</strong><br>
-                         ${data.startTimeString} – ${data.endTimeString ?? "?"}`;
+
+                // Create a new warning div
+                const div = document.createElement("div");
+                div.classList.add("collision-warning");
+
+                div.innerHTML = `<strong>Time conflict!</strong><br>
+                                Overlaps with: <strong>${data.name}</strong><br>
+                                ${data.startTimeString} – ${data.endTimeString ?? "?"}`;
+
+                // Add to the warning box
+                warningBox.appendChild(div);
+
                 warningBox.classList.remove("d-none");
+
             } else {
-                warningBox.classList.add("d-none");
+                // Hide only if no warnings of any kind remain
+                if (warningBox.children.length === 0) {
+                    warningBox.classList.add("d-none");
+                }
             }
         }
     });
 }
 
 function debounceCollisionCheck() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(checkCollision, 400);
+    clearTimeout(collisionDebounceTimer);
+    collisionDebounceTimer = setTimeout(checkCollision, 400);
 }
 
 

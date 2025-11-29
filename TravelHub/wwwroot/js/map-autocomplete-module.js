@@ -1,5 +1,6 @@
 ﻿//Requires map-functions.js
 //Needs defined lat, lng, center, spotName
+// distanceCheckUrl, tripId, warningBox
 //Needs declared map
 
 async function initMap() {
@@ -68,6 +69,8 @@ async function initMap() {
         document.getElementById("name-input").value = place.displayName;
         document.getElementById("lat-input").value = Math.round(place.location.lat() * 10000) / 10000;
         document.getElementById("lon-input").value = Math.round(place.location.lng() * 10000) / 10000;
+
+        debounceDistanceCheck();
     });
 
     map.addListener("center_changed", async (event) => {
@@ -106,6 +109,68 @@ async function initMap() {
         marker.position = mapsMouseEvent.latLng.toJSON();
         document.getElementById("lat-input").value = Math.round(mapsMouseEvent.latLng.toJSON().lat * 10000) / 10000;
         document.getElementById("lon-input").value = Math.round(mapsMouseEvent.latLng.toJSON().lng * 10000) / 10000;
+        debounceDistanceCheck();
     });
 }
+
+//-------------------------------
+//-------DISTANCE WARNINGS-------
+//-------------------------------
+
+
+const latInput = document.getElementById("lat-input");
+const lngInput = document.getElementById("lon-input");
+
+let distanceDebounceTimer = null;
+
+function checkDistance() {
+    const lat = latInput.value;
+    const lng = lngInput.value;
+
+    $.ajax({
+        url: distanceCheckUrl,
+        type: "get",
+        data: {
+            id: tripId,
+            lat: lat,
+            lng: lng
+        },
+        success: data => {
+            warningBox.querySelectorAll(".distance-warning").forEach(el => el.remove());
+
+            if (data > 500) {
+
+                // Create a new warning div
+                const div = document.createElement("div");
+                div.classList.add("distance-warning");
+
+                div.innerHTML = `This Spot is <strong> ${data} km </strong> away from the nearest one in this trip. Are you sure?<br>`;
+
+                // Add to the warning box
+                warningBox.appendChild(div);
+
+                warningBox.classList.remove("d-none");
+
+            } else {
+                // Hide only if no warnings of any kind remain
+                if (warningBox.children.length === 0) {
+                    warningBox.classList.add("d-none");
+                }
+            }
+        }
+    });
+}
+
+function debounceDistanceCheck() {
+    clearTimeout(distanceDebounceTimer);
+    distanceDebounceTimer = setTimeout(checkDistance, 400);
+}
+
+
+$(() => {
+    if (dayId != null) {
+        latInput.addEventListener("input", debounceDistanceCheck);
+        lngInput.addEventListener("input", debounceDistanceCheck);
+    }
+});
 

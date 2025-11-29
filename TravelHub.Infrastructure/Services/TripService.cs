@@ -8,6 +8,7 @@ using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Repositories;
+using TravelHub.Web.Utils;
 
 namespace TravelHub.Infrastructure.Services;
 
@@ -658,6 +659,14 @@ public class TripService : GenericService<Trip>, ITripService
             await _tripRepository.DeleteAsync(savedTrip);
             throw;
         }
+    }
+
+    public async Task<double> GetDistance(int id, double lat, double lng)
+    { 
+        var spots = await _spotRepository.GetTripSpotsWithDetailsAsync(id);
+        List<(double, double)> coords = spots.Select(s => (s.Latitude, s.Longitude)).ToList();
+        double distance = GeoUtils.GetSmallestDistance(coords, (lat, lng));
+        return distance;
     }
 
     private Checklist? CleanChecklist(Checklist? sourceChecklist)
