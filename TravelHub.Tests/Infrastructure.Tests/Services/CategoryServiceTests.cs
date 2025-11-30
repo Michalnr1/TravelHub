@@ -87,7 +87,7 @@ public class CategoryServiceTests
     public async Task GetByIdAsync_ReturnsCategory_WhenFound()
     {
         // ARRANGE
-        var category = new Category { Id = 10, Name = "Found", Color = "#fff" };
+        var category = new Category { Id = 10, Name = "Found", Color = "#fff", PersonId = "test" };
         _mockCategoryRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<object>()))
             .ReturnsAsync(category);

@@ -25,7 +25,9 @@ namespace TravelHub.Tests.Infrastructure.Tests.Repositories
             var dbName = Guid.NewGuid().ToString();
             await using var context = CreateContext(dbName);
 
-            var category = new Category { Name = "Outdoor", Color = "#00FF00" };
+            var tripParticipantRepo = new TripParticipantRepository(context);
+
+            var category = new Category { Name = "Outdoor", Color = "#00FF00", PersonId = "test" };
             context.Categories.Add(category);
             await context.SaveChangesAsync();
 
@@ -36,7 +38,7 @@ namespace TravelHub.Tests.Infrastructure.Tests.Repositories
             context.Expenses.Add(expense);
             await context.SaveChangesAsync();
 
-            var repo = new CategoryRepository(context);
+            var repo = new CategoryRepository(context, tripParticipantRepo);
             var result = await repo.GetByIdWithRelatedDataAsync(category.Id);
 
             Assert.NotNull(result);
@@ -50,11 +52,12 @@ namespace TravelHub.Tests.Infrastructure.Tests.Repositories
         {
             var dbName = Guid.NewGuid().ToString();
             await using var context = CreateContext(dbName);
+            var tripParticipantRepo = new TripParticipantRepository(context);
 
-            context.Categories.Add(new Category { Name = "Hiking", Color = "#111111" });
+            context.Categories.Add(new Category { Name = "Hiking", Color = "#111111", PersonId = "test" });
             await context.SaveChangesAsync();
 
-            var repo = new CategoryRepository(context);
+            var repo = new CategoryRepository(context, tripParticipantRepo);
 
             Assert.True(await repo.ExistsByNameAsync("hIkInG"));
             Assert.True(await repo.ExistsByNameAsync("HIKING"));
@@ -66,15 +69,16 @@ namespace TravelHub.Tests.Infrastructure.Tests.Repositories
         {
             var dbName = Guid.NewGuid().ToString();
             await using var context = CreateContext(dbName);
+            var tripParticipantRepo = new TripParticipantRepository(context);
 
-            var category = new Category { Name = "Sport", Color = "#222222" };
+            var category = new Category { Name = "Sport", Color = "#222222", PersonId = "test" };
             context.Categories.Add(category);
             await context.SaveChangesAsync();
 
             context.Activities.Add(new Activity { Name = "Football", CategoryId = category.Id });
             await context.SaveChangesAsync();
 
-            var repo = new CategoryRepository(context);
+            var repo = new CategoryRepository(context, tripParticipantRepo);
 
             Assert.True(await repo.IsInUseAsync(category.Id));
         }
@@ -84,15 +88,16 @@ namespace TravelHub.Tests.Infrastructure.Tests.Repositories
         {
             var dbName = Guid.NewGuid().ToString();
             await using var context = CreateContext(dbName);
+            var tripParticipantRepo = new TripParticipantRepository(context);
 
-            var category = new Category { Name = "Meals", Color = "#333333" };
+            var category = new Category { Name = "Meals", Color = "#333333", PersonId = "test" };
             context.Categories.Add(category);
             await context.SaveChangesAsync();
 
             context.Expenses.Add(new Expense { Name = "Lunch", Value = 25m, CategoryId = category.Id, PaidById = "test" });
             await context.SaveChangesAsync();
 
-            var repo = new CategoryRepository(context);
+            var repo = new CategoryRepository(context, tripParticipantRepo);
 
             Assert.True(await repo.IsInUseAsync(category.Id));
         }
@@ -102,12 +107,13 @@ namespace TravelHub.Tests.Infrastructure.Tests.Repositories
         {
             var dbName = Guid.NewGuid().ToString();
             await using var context = CreateContext(dbName);
+            var tripParticipantRepo = new TripParticipantRepository(context);
 
-            var category = new Category { Name = "Unused", Color = "#444444" };
+            var category = new Category { Name = "Unused", Color = "#444444", PersonId = "test" };
             context.Categories.Add(category);
             await context.SaveChangesAsync();
 
-            var repo = new CategoryRepository(context);
+            var repo = new CategoryRepository(context, tripParticipantRepo);
 
             Assert.False(await repo.IsInUseAsync(category.Id));
         }

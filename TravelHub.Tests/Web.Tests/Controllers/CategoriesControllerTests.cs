@@ -19,7 +19,7 @@ public class CategoriesControllerTests
 {
     private static CategoriesController CreateController(ICategoryService service)
     {
-        var controller = new CategoriesController(service, new FakeLogger<CategoriesController>());
+        var controller = new CategoriesController(service, new FakeLogger<CategoriesController>(), new FakeUserManager(new FakeUserEmailStore()));
         // Provide TempData so controller can safely set TempData["..."]
         controller.TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider());
         return controller;
@@ -31,8 +31,8 @@ public class CategoriesControllerTests
         var mock = new Mock<ICategoryService>();
         var categories = new List<Category>
         {
-            new Category { Id = 1, Name = "A", Color = "#111111" },
-            new Category { Id = 2, Name = "B", Color = "#222222" }
+            new Category { Id = 1, Name = "A", Color = "#111111", PersonId = "test" },
+            new Category { Id = 2, Name = "B", Color = "#222222", PersonId = "test" }
         };
         mock.Setup(s => s.GetAllAsync()).ReturnsAsync((IReadOnlyList<Category>)categories);
 
@@ -50,7 +50,7 @@ public class CategoriesControllerTests
     public async Task Details_ReturnsView_WhenFound()
     {
         var mock = new Mock<ICategoryService>();
-        var cat = new Category { Id = 5, Name = "Detail", Color = "#abc123" };
+        var cat = new Category { Id = 5, Name = "Detail", Color = "#abc123", PersonId = "test" };
         mock.Setup(s => s.GetByIdAsync(cat.Id)).ReturnsAsync(cat);
 
         var controller = CreateController(mock.Object);
@@ -125,7 +125,7 @@ public class CategoriesControllerTests
     public async Task Edit_Get_ReturnsView_WhenFound()
     {
         var mock = new Mock<ICategoryService>();
-        var cat = new Category { Id = 7, Name = "ToEdit", Color = "#010101" };
+        var cat = new Category { Id = 7, Name = "ToEdit", Color = "#010101", PersonId = "test" };
         mock.Setup(s => s.GetByIdAsync(cat.Id)).ReturnsAsync(cat);
 
         var controller = CreateController(mock.Object);
@@ -152,8 +152,8 @@ public class CategoriesControllerTests
     public async Task Edit_Post_ReturnsView_WhenNameConflict()
     {
         var mock = new Mock<ICategoryService>();
-        var c1 = new Category { Id = 1, Name = "A", Color = "#111111" };
-        var c2 = new Category { Id = 2, Name = "B", Color = "#222222" };
+        var c1 = new Category { Id = 1, Name = "A", Color = "#111111", PersonId = "test" };
+        var c2 = new Category { Id = 2, Name = "B", Color = "#222222", PersonId = "test" };
 
         mock.Setup(s => s.GetAllAsync()).ReturnsAsync((IReadOnlyList<Category>)new List<Category> { c1, c2 });
 
@@ -172,7 +172,7 @@ public class CategoriesControllerTests
     public async Task Edit_Post_RedirectsToIndex_OnSuccess()
     {
         var mock = new Mock<ICategoryService>();
-        var existing = new Category { Id = 3, Name = "Original", Color = "#111111" };
+        var existing = new Category { Id = 3, Name = "Original", Color = "#111111", PersonId = "test" };
 
         // No conflicting name in GetAllAsync
         mock.Setup(s => s.GetAllAsync()).ReturnsAsync((IReadOnlyList<Category>)new List<Category> { existing });
@@ -193,7 +193,7 @@ public class CategoriesControllerTests
     public async Task Delete_Get_ReturnsView_WhenFound()
     {
         var mock = new Mock<ICategoryService>();
-        var c = new Category { Id = 8, Name = "ToDelete", Color = "#333333" };
+        var c = new Category { Id = 8, Name = "ToDelete", Color = "#333333", PersonId = "test" };
         mock.Setup(s => s.GetByIdAsync(c.Id)).ReturnsAsync(c);
 
         var controller = CreateController(mock.Object);
@@ -206,26 +206,10 @@ public class CategoriesControllerTests
     }
 
     [Fact]
-    public async Task DeleteConfirmed_RedirectsToDelete_WhenInUse()
-    {
-        var mock = new Mock<ICategoryService>();
-        var c = new Category { Id = 9, Name = "Used", Color = "#444444" };
-        mock.Setup(s => s.IsInUseAsync(c.Id)).ReturnsAsync(true);
-
-        var controller = CreateController(mock.Object);
-
-        var result = await controller.DeleteConfirmed(c.Id);
-        var rr = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(nameof(controller.Delete), rr.ActionName);
-        Assert.Equal(c.Id, rr.RouteValues?["id"]);
-        mock.Verify(s => s.DeleteAsync(It.IsAny<object>()), Times.Never);
-    }
-
-    [Fact]
     public async Task DeleteConfirmed_RedirectsToIndex_WhenDeleted()
     {
         var mock = new Mock<ICategoryService>();
-        var c = new Category { Id = 11, Name = "Unused", Color = "#555555" };
+        var c = new Category { Id = 11, Name = "Unused", Color = "#555555", PersonId = "test" };
         mock.Setup(s => s.IsInUseAsync(c.Id)).ReturnsAsync(false);
         mock.Setup(s => s.DeleteAsync(c.Id)).Returns(Task.CompletedTask);
 

@@ -29,8 +29,18 @@ public class TripServiceTests
         var participantRepo = new Mock<ITripParticipantRepository>();
         var blogRepo = new Mock<IBlogRepository>();
         var logger = new Mock<ILogger<TripService>>();
+        var expenseRepo = new Mock<IExpenseRepository>();
+        var exchangeRateRepo = new Mock<IExchangeRateRepository>();
+        var currencyConversionService = new Mock<ICurrencyConversionService>();
+        var categoryRepo = new Mock<ICategoryRepository>();
+        var activityRepo = new Mock<IActivityRepository>();
+        var spotRepo = new Mock<ISpotRepository>();
+        var transportRepo = new Mock<ITransportRepository>();
+        var participantService = new Mock<ITripParticipantService>();
 
-        var sut = new TripService(tripRepo.Object, dayRepo.Object, accService.Object, participantRepo.Object, blogRepo.Object, logger.Object);
+        var sut = new TripService(tripRepo.Object, dayRepo.Object, activityRepo.Object, spotRepo.Object, accService.Object, transportRepo.Object, 
+            expenseRepo.Object, exchangeRateRepo.Object, categoryRepo.Object, currencyConversionService.Object, participantRepo.Object, participantService.Object,
+            blogRepo.Object, logger.Object);
         return (sut, tripRepo, dayRepo, accService, participantRepo, blogRepo, logger);
     }
 
@@ -305,8 +315,8 @@ public class TripServiceTests
         var (sut, _, _, _, _, _, _) = CreateSut();
         var trip = new Trip
         {
-            Activities = new List<Activity> { new Spot { CountryName = "Poland", Name = "S1" }, new Spot { CountryName = "USA", Name = "S2" } },
-            Days = new List<Day> { new Day { Activities = new List<Activity> { new Spot { CountryName = "Poland", Name = "S3" } } } }
+            Activities = new List<Activity> { new Spot { CountryName = "Poland", Name = "S1", Id = 1 }, new Spot { CountryName = "USA", Name = "S2", Id = 2 } },
+            Days = new List<Day> { new Day { Activities = new List<Activity> { new Spot { CountryName = "Poland", Name = "S3", Id = 3 } } } }
             ,
             Name = "Trip60",
             PersonId = "owner"

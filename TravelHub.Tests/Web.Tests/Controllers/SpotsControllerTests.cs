@@ -23,7 +23,7 @@ public class SpotsControllerTests
     private static SpotsController CreateController(
     Mock<ISpotService> spotMock,
     Mock<IActivityService> activityMock,
-    Mock<IGenericService<Category>> categoryMock,
+    Mock<ICategoryService> categoryMock,
     Mock<ITripService> tripMock,
     Mock<ITripParticipantService> tripParticipantMock,
     Mock<IGenericService<Day>> dayMock,
@@ -103,7 +103,7 @@ public class SpotsControllerTests
         // Arrange
         var spotMock = new Mock<ISpotService>();
         var activityMock = new Mock<IActivityService>();
-        var categoryMock = new Mock<IGenericService<Category>>();
+        var categoryMock = new Mock<ICategoryService>();
         var tripMock = new Mock<ITripService>();
         var tripParticipantMock = new Mock<ITripParticipantService>();
         var dayMock = new Mock<IGenericService<Day>>();
@@ -118,7 +118,7 @@ public class SpotsControllerTests
             Name = "S1",
             TripId = 1,
             Trip = new Trip { Id = 1, Name = "Trip1", PersonId = "test" },
-            Category = new Category { Id = 1, Name = "Cat", Color = "0000000" },
+            Category = new Category { Id = 1, Name = "Cat", Color = "0000000", PersonId = "test" },
             Day = new Day { Id = 2, Name = "Day1" },
             Photos = new List<Photo> { new Photo { Id = 1, Name = "p1", SpotId = 1, FilePath = "~/images/spots" } }
         };
@@ -144,7 +144,7 @@ public class SpotsControllerTests
         // Arrange
         var spotMock = new Mock<ISpotService>();
         var activityMock = new Mock<IActivityService>();
-        var categoryMock = new Mock<IGenericService<Category>>();
+        var categoryMock = new Mock<ICategoryService>();
         var tripMock = new Mock<ITripService>();
         var tripParticipantMock = new Mock<ITripParticipantService>();
         var dayMock = new Mock<IGenericService<Day>>();
@@ -182,7 +182,7 @@ public class SpotsControllerTests
         // Arrange
         var spotMock = new Mock<ISpotService>();
         var activityMock = new Mock<IActivityService>();
-        var categoryMock = new Mock<IGenericService<Category>>();
+        var categoryMock = new Mock<ICategoryService>();
         var tripMock = new Mock<ITripService>();
         var tripParticipantMock = new Mock<ITripParticipantService>();
         var dayMock = new Mock<IGenericService<Day>>();
@@ -212,7 +212,7 @@ public class SpotsControllerTests
         // Arrange
         var spotMock = new Mock<ISpotService>();
         var activityMock = new Mock<IActivityService>();
-        var categoryMock = new Mock<IGenericService<Category>>();
+        var categoryMock = new Mock<ICategoryService>();
         var tripMock = new Mock<ITripService>();
         var tripParticipantMock = new Mock<ITripParticipantService>();
         var dayMock = new Mock<IGenericService<Day>>();
@@ -236,7 +236,7 @@ public class SpotsControllerTests
         // Arrange
         var spotMock = new Mock<ISpotService>();
         var activityMock = new Mock<IActivityService>();
-        var categoryMock = new Mock<IGenericService<Category>>();
+        var categoryMock = new Mock<ICategoryService>();
         var tripMock = new Mock<ITripService>();
         var tripParticipantMock = new Mock<ITripParticipantService>();
         var dayMock = new Mock<IGenericService<Day>>();
@@ -267,7 +267,7 @@ public class SpotsControllerTests
         // Arrange
         var spotMock = new Mock<ISpotService>();
         var activityMock = new Mock<IActivityService>();
-        var categoryMock = new Mock<IGenericService<Category>>();
+        var categoryMock = new Mock<ICategoryService>();
         var tripMock = new Mock<ITripService>();
         var tripParticipantMock = new Mock<ITripParticipantService>();
         var dayMock = new Mock<IGenericService<Day>>();
@@ -306,7 +306,7 @@ public class SpotsControllerTests
         // Arrange
         var spotMock = new Mock<ISpotService>();
         var activityMock = new Mock<IActivityService>();
-        var categoryMock = new Mock<IGenericService<Category>>();
+        var categoryMock = new Mock<ICategoryService>();
         var tripMock = new Mock<ITripService>();
         var tripParticipantMock = new Mock<ITripParticipantService>();
         var dayMock = new Mock<IGenericService<Day>>();
@@ -336,7 +336,7 @@ public class SpotsControllerTests
         // Arrange
         var spotMock = new Mock<ISpotService>();
         var activityMock = new Mock<IActivityService>();
-        var categoryMock = new Mock<IGenericService<Category>>();
+        var categoryMock = new Mock<ICategoryService>();
         var tripMock = new Mock<ITripService>();
         var tripParticipantMock = new Mock<ITripParticipantService>();
         var dayMock = new Mock<IGenericService<Day>>();
