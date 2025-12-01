@@ -5,6 +5,7 @@ using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Repositories;
 using TravelHub.Domain.Interfaces.Services;
 using TravelHub.Infrastructure.Services;
+using Xunit.Sdk;
 
 namespace TravelHub.Tests.Infrastructure.Tests.Services
 {
@@ -518,16 +519,82 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
         {
             // Arrange
             var userId = "user1";
+
             var blogs = new List<Blog>
-            {
-                new Blog { Id = 1, Visibility = BlogVisibility.Public, TripId = 1, Name = "test", OwnerId = "test" },
-                new Blog { Id = 2, Visibility = BlogVisibility.Private, TripId = 2, Name = "test", OwnerId = "test" },
-                new Blog { Id = 3, Visibility = BlogVisibility.ForMyFriends, TripId = 3, OwnerId = "user2", Name = "test"}
-            };
+                {
+                    new Blog
+                    {
+                        Id = 1,
+                        Visibility = BlogVisibility.Public,
+                        TripId = 1,
+                        Name = "Public Blog",
+                        Description = "Test",
+                        Catalog = "test",
+                        OwnerId = "owner1",
+                        Owner = new Person
+                        {
+                            Id = "owner1",
+                            FirstName = "John",
+                            LastName = "Doe",
+                            IsPrivate = false,
+                            Nationality = "poland"
+                        },
+                        Posts = new List<Post>(),
+                        Trip = new Trip { Id = 1, Name = "Trip 1", PersonId = "test" }
+                    },
+                    new Blog
+                    {
+                        Id = 2,
+                        Visibility = BlogVisibility.Private,
+                        TripId = 2,
+                        Name = "Private Blog",
+                        Description = "Test",
+                        Catalog = "test",
+                        OwnerId = "owner2",
+                        Owner = new Person
+                        {
+                            Id = "owner2",
+                            FirstName = "Jane",
+                            LastName = "Smith",
+                            IsPrivate = false,
+                            Nationality = "poland"
+                        },
+                        Posts = new List<Post>(),
+                        Trip = new Trip { Id = 2, Name = "Trip 2", PersonId = "test" }
+                    },
+                    new Blog
+                    {
+                        Id = 3,
+                        Visibility = BlogVisibility.ForMyFriends,
+                        TripId = 3,
+                        Name = "Friends Blog",
+                        Description = "Test",
+                        Catalog = "test",
+                        OwnerId = "user2",
+                        Owner = new Person
+                        {
+                            Id = "user2",
+                            FirstName = "Friend",
+                            LastName = "Owner",
+                            IsPrivate = false,
+                            Nationality = "poland"
+                        },
+                        Posts = new List<Post>(),
+                        Trip = new Trip { Id = 3, Name = "Trip 3", PersonId = "user2" }
+                    }
+                };
 
             _blogRepositoryMock
                 .Setup(x => x.GetAllAsync())
                 .ReturnsAsync(blogs);
+
+            _blogRepositoryMock
+                .Setup(x => x.GetByIdAsync(It.IsAny<int>()))
+                .ReturnsAsync((int id) => blogs.FirstOrDefault(b => b.Id == id));
+
+            _tripParticipantRepositoryMock
+                .Setup(x => x.ExistsAsync(It.IsAny<int>(), It.IsAny<string>()))
+                .ReturnsAsync(false);
 
             _friendshipServiceMock
                 .Setup(x => x.IsFriendAsync("user2", userId))
@@ -537,9 +604,24 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
                 .Setup(x => x.GetCountriesByTripAsync(It.IsAny<int>()))
                 .ReturnsAsync(new List<Country>());
 
+            _friendshipServiceMock
+                .Setup(x => x.GetFriendsAsync(userId))
+                .ReturnsAsync(new List<Person>());
+
+            _tripParticipantRepositoryMock
+                .Setup(x => x.GetByTripIdAsync(It.IsAny<int>()))
+                .ReturnsAsync(new List<TripParticipant>());
+
             _userManagerMock
                 .Setup(x => x.FindByIdAsync(It.IsAny<string>()))
-                .ReturnsAsync(new Person { FirstName = "Test", LastName = "User", IsPrivate = false, Nationality = "poland" });
+                .ReturnsAsync((string id) => new Person
+                {
+                    Id = id,
+                    FirstName = "Test",
+                    LastName = "User",
+                    IsPrivate = false,
+                    Nationality = "poland"
+                });
 
             // Act
             var result = await _blogService.GetAccessibleBlogsAsync(userId);
@@ -548,6 +630,14 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             Assert.Equal(2, result.Count); // Public and ForMyFriends (user is friend)
             Assert.Contains(result, b => b.Id == 1);
             Assert.Contains(result, b => b.Id == 3);
+
+            var publicBlog = result.First(b => b.Id == 1);
+            Assert.Equal("Public Blog", publicBlog.Name);
+            Assert.Equal("John Doe", publicBlog.OwnerName);
+
+            var friendsBlog = result.First(b => b.Id == 3);
+            Assert.Equal("Friends Blog", friendsBlog.Name);
+            Assert.Equal("Friend Owner", friendsBlog.OwnerName);
         }
 
         [Fact]
@@ -587,7 +677,11 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             // Arrange
             _blogRepositoryMock
                 .Setup(x => x.GetAllAsync())
-                .ReturnsAsync((List<Blog>)null);
+                .ReturnsAsync(new List<Blog>());
+
+            _friendshipServiceMock
+                .Setup(x => x.GetFriendsAsync("user1"))
+                .ReturnsAsync(new List<Person>());
 
             // Act
             var result = await _blogService.GetAccessibleBlogsAsync("user1");
@@ -607,20 +701,61 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             // Arrange
             var userId = "user1";
             var friends = new List<Person>
-            {
-                new Person {Id = "user2", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland"},
-                new Person {Id = "user3", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland"}
-            };
+                {
+                    new Person {Id = "user2", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland"},
+                    new Person {Id = "user3", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland"}
+                };
+
             var blogs = new List<Blog>
-            {
-                new Blog { Id = 1, OwnerId = "user2", Visibility = BlogVisibility.ForMyFriends, TripId = 1, Name = "test" },
-                new Blog { Id = 2, OwnerId = "user4", Visibility = BlogVisibility.ForMyFriends, TripId = 2, Name = "test" },
-                new Blog { Id = 3, OwnerId = "user5", Visibility = BlogVisibility.Public, TripId = 3, Name = "test" }
-            };
+                {
+                    new Blog
+                    {
+                        Id = 1,
+                        OwnerId = "user2",
+                        Owner = new Person {Id = "user2", FirstName = "Owner2", LastName = "Test", IsPrivate = false, Nationality = "test"},
+                        Visibility = BlogVisibility.ForMyFriends,
+                        TripId = 1,
+                        Name = "test",
+                        Description = "Test description",
+                        Catalog = "test",
+                        Trip = new Trip { Id = 1, Name = "Trip1", PersonId = "user2" },
+                        Posts = new List<Post>()
+                    },
+                    new Blog
+                    {
+                        Id = 2,
+                        OwnerId = "user4",
+                        Owner = new Person {Id = "user4", FirstName = "Owner4", LastName = "Test", IsPrivate = false, Nationality = "test"},
+                        Visibility = BlogVisibility.ForMyFriends,
+                        TripId = 2,
+                        Name = "test",
+                        Description = "Test description",
+                        Catalog = "test",
+                        Trip = new Trip { Id = 2, Name = "Trip2", PersonId = "user4" },
+                        Posts = new List<Post>()
+                    },
+                    new Blog
+                    {
+                        Id = 3,
+                        OwnerId = "user5",
+                        Owner = new Person {Id = "user5", FirstName = "Owner5", LastName = "Test", IsPrivate = false, Nationality = "test"},
+                        Visibility = BlogVisibility.Public,
+                        TripId = 3,
+                        Name = "test",
+                        Description = "Test description",
+                        Catalog = "test",
+                        Trip = new Trip { Id = 3, Name = "Trip3", PersonId = "user5" },
+                        Posts = new List<Post>()
+                    }
+                };
 
             _blogRepositoryMock
                 .Setup(x => x.GetAllAsync())
                 .ReturnsAsync(blogs);
+
+            _blogRepositoryMock
+                .Setup(x => x.GetByIdAsync(It.IsAny<int>()))
+                .ReturnsAsync((int id) => blogs.FirstOrDefault(b => b.Id == id));
 
             _friendshipServiceMock
                 .Setup(x => x.GetFriendsAsync(userId))
@@ -629,6 +764,10 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             _friendshipServiceMock
                 .Setup(x => x.IsFriendAsync(It.IsAny<string>(), userId))
                 .ReturnsAsync(true);
+
+            _tripParticipantRepositoryMock
+                .Setup(x => x.ExistsAsync(It.IsAny<int>(), It.IsAny<string>()))
+                .ReturnsAsync(false);
 
             _tripParticipantRepositoryMock
                 .Setup(x => x.GetByTripIdAsync(It.IsAny<int>()))
@@ -640,15 +779,25 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
 
             _userManagerMock
                 .Setup(x => x.FindByIdAsync(It.IsAny<string>()))
-                .ReturnsAsync(new Person { FirstName = "Test", LastName = "User", IsPrivate = false, Nationality = "poland" });
+                .ReturnsAsync((string id) => new Person
+                {
+                    Id = id,
+                    FirstName = "Test",
+                    LastName = "User",
+                    IsPrivate = false,
+                    Nationality = "poland"
+                });
 
             // Act
             var result = await _blogService.GetFriendsBlogsAsync(userId);
 
             // Assert
-            Assert.Equal(2, result.Count); // Blog 1 (owner is friend) and Blog 3 (public)
+            // Oczekuje tylko bloga 1, bo tylko on spełnia warunki:
+            // 1. Blog 1: właściciel (user2) jest na liście znajomych
+            // 2. Blog 2: właściciel (user4) nie jest znajomym, więc nie spełnia warunku (isFriendOwner || isFriendParticipant)
+            // 3. Blog 3: jest publiczny, ale właściciel nie jest znajomym i nie ma znajomych uczestników
+            Assert.Single(result);
             Assert.Contains(result, b => b.Id == 1);
-            Assert.Contains(result, b => b.Id == 3);
         }
 
         [Fact]
@@ -657,33 +806,56 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             // Arrange
             var userId = "user1";
             var friends = new List<Person>
-            {
-                new Person { Id = "user2", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland" }
-            };
+                {
+                    new Person { Id = "user2", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland" }
+                };
+
             var blogs = new List<Blog>
-            {
-                new Blog { Id = 1, OwnerId = "user3", Visibility = BlogVisibility.ForTripParticipantsFriends, TripId = 1, Name = "test" }
-            };
+                {
+                    new Blog
+                    {
+                        Id = 1,
+                        OwnerId = "user3",
+                        Owner = new Person { Id = "user3", FirstName = "Owner", LastName = "Test", IsPrivate = false, Nationality = "test" },
+                        Visibility = BlogVisibility.ForTripParticipantsFriends,
+                        TripId = 1,
+                        Name = "test",
+                        Description = "Test description",
+                        Catalog = "test",
+                        Trip = new Trip { Id = 1, Name = "Trip 1", PersonId = "user3" },
+                        Posts = new List<Post>()
+                    }
+                };
+
             var participants = new List<TripParticipant>
-            {
-                new TripParticipant { PersonId = "user2" }
-            };
+                {
+                    new TripParticipant { PersonId = "user2" }
+                };
 
             _blogRepositoryMock
                 .Setup(x => x.GetAllAsync())
                 .ReturnsAsync(blogs);
 
+            _blogRepositoryMock
+                .Setup(x => x.GetByIdAsync(It.IsAny<int>()))
+                .ReturnsAsync((int id) => blogs.FirstOrDefault(b => b.Id == id));
+
             _friendshipServiceMock
                 .Setup(x => x.GetFriendsAsync(userId))
                 .ReturnsAsync(friends);
 
+            // Użytkownik jest znajomym uczestnika (user2)
             _friendshipServiceMock
-                .Setup(x => x.IsFriendAsync(It.IsAny<string>(), userId))
+                .Setup(x => x.IsFriendAsync("user2", userId))
                 .ReturnsAsync(true);
 
             _tripParticipantRepositoryMock
                 .Setup(x => x.GetByTripIdAsync(1))
                 .ReturnsAsync(participants);
+
+            _tripParticipantRepositoryMock
+                .Setup(x => x.ExistsAsync(1, userId))
+                .ReturnsAsync(false);
 
             _spotServiceMock
                 .Setup(x => x.GetCountriesByTripAsync(It.IsAny<int>()))
@@ -691,7 +863,14 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
 
             _userManagerMock
                 .Setup(x => x.FindByIdAsync(It.IsAny<string>()))
-                .ReturnsAsync(new Person {FirstName = "Test", LastName = "User", IsPrivate = false, Nationality = "poland" });
+                .ReturnsAsync((string id) => new Person
+                {
+                    Id = id,
+                    FirstName = "Test",
+                    LastName = "User",
+                    IsPrivate = false,
+                    Nationality = "poland"
+                });
 
             // Act
             var result = await _blogService.GetFriendsBlogsAsync(userId);
@@ -699,6 +878,10 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             // Assert
             Assert.Single(result);
             Assert.Contains(result, b => b.Id == 1);
+
+            var blogDto = result[0];
+            Assert.Equal(1, blogDto.Id);
+            Assert.Equal(BlogVisibility.ForTripParticipantsFriends, blogDto.Visibility);
         }
 
         #endregion
@@ -744,43 +927,73 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
         {
             // Arrange
             var userId = "user1";
-            var accessibleBlogs = new List<PublicBlogInfoDto>
+
+            var blogs = new List<Blog>
             {
-                new PublicBlogInfoDto
+                new Blog
                 {
-                    Countries = new List<Country>
-                    {
-                        new Country { Code = "US", Name = "USA" },
-                        new Country { Code = "PL", Name = "Poland" }
-                    }
+                    Id = 1,
+                    Name = "Blog 1",
+                    Visibility = BlogVisibility.Public,
+                    TripId = 1,
+                    Trip = new Trip { Id = 1, Name = "Trip 1", PersonId = "test" },
+                    OwnerId = "owner1",
+                    Owner = new Person { Id = "owner1", FirstName = "John", LastName = "Doe", IsPrivate = false, Nationality = "test" },
+                    Posts = new List<Post>()
                 },
-                new PublicBlogInfoDto
+                new Blog
                 {
-                    Countries = new List<Country>
-                    {
-                        new Country { Code = "US", Name = "USA" },
-                        new Country { Code = "DE", Name = "Germany" }
-                    }
+                    Id = 2,
+                    Name = "Blog 2",
+                    Visibility = BlogVisibility.Public,
+                    TripId = 2,
+                    Trip = new Trip { Id = 2, Name = "Trip 2", PersonId = "test" },
+                    OwnerId = "owner2",
+                    Owner = new Person { Id = "owner2", FirstName = "Jane", LastName = "Smith", IsPrivate = false, Nationality = "test" },
+                    Posts = new List<Post>()
                 }
             };
 
-            // Mock the internal call to GetAccessibleBlogsAsync
-            var blogServiceMock = new Mock<BlogService>(
+            _blogRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(blogs);
+
+            var blogService = new BlogService(
                 _blogRepositoryMock.Object,
                 _tripParticipantRepositoryMock.Object,
                 _friendshipServiceMock.Object,
                 _spotServiceMock.Object,
                 _userManagerMock.Object);
 
-            blogServiceMock
-                .Setup(x => x.GetAccessibleBlogsAsync(userId))
-                .ReturnsAsync(accessibleBlogs);
+            _spotServiceMock
+                .Setup(x => x.GetCountriesByTripAsync(1))
+                .ReturnsAsync(new List<Country>
+                {
+                    new Country { Code = "US", Name = "USA" },
+                    new Country { Code = "PL", Name = "Poland" }
+                });
+
+            _spotServiceMock
+                .Setup(x => x.GetCountriesByTripAsync(2))
+                .ReturnsAsync(new List<Country>
+                {
+                    new Country { Code = "US", Name = "USA" },
+                    new Country { Code = "DE", Name = "Germany" }
+                });
+
+            _friendshipServiceMock
+                .Setup(x => x.GetFriendsAsync(userId))
+                .ReturnsAsync(new List<Person>());
+
+            _tripParticipantRepositoryMock
+                .Setup(x => x.GetByTripIdAsync(It.IsAny<int>()))
+                .ReturnsAsync(new List<TripParticipant>());
 
             // Act
-            var result = await blogServiceMock.Object.GetCountriesWithAccessibleBlogsAsync(userId);
+            var result = await blogService.GetCountriesWithAccessibleBlogsAsync(userId);
 
             // Assert
-            Assert.Equal(3, result.Count); // USA, Poland, Germany
+            Assert.Equal(3, result.Count);
             Assert.Contains(result, c => c.Code == "US" && c.BlogCount == 2);
             Assert.Contains(result, c => c.Code == "PL" && c.BlogCount == 1);
             Assert.Contains(result, c => c.Code == "DE" && c.BlogCount == 1);
@@ -790,30 +1003,49 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
         public async Task GetCountriesWithAccessibleBlogsAsync_WithoutUserId_ReturnsPublicBlogsCountries()
         {
             // Arrange
-            var accessibleBlogs = new List<PublicBlogInfoDto>
+            var blogs = new List<Blog>
             {
-                new PublicBlogInfoDto
+                new Blog
                 {
-                    Countries = new List<Country>
-                    {
-                        new Country { Code = "FR", Name = "France" }
-                    }
+                    Id = 1,
+                    Name = "Blog 1",
+                    Visibility = BlogVisibility.Public,
+                    TripId = 1,
+                    Trip = new Trip { Id = 1, Name = "Trip 1", PersonId = "test" },
+                    OwnerId = "owner1",
+                    Owner = new Person { Id = "owner1", FirstName = "John", LastName = "Doe", IsPrivate = false, Nationality = "test" },
+                    Posts = new List<Post>()
                 }
             };
 
-            var blogServiceMock = new Mock<BlogService>(
+            _blogRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(blogs);
+
+            _spotServiceMock
+                .Setup(x => x.GetCountriesByTripAsync(1))
+                .ReturnsAsync(new List<Country>
+                {
+            new Country { Code = "FR", Name = "France" }
+                });
+
+            _friendshipServiceMock
+                .Setup(x => x.GetFriendsAsync(It.IsAny<string>()))
+                .ReturnsAsync(new List<Person>());
+
+            _tripParticipantRepositoryMock
+                .Setup(x => x.GetByTripIdAsync(It.IsAny<int>()))
+                .ReturnsAsync(new List<TripParticipant>());
+
+            var blogService = new BlogService(
                 _blogRepositoryMock.Object,
                 _tripParticipantRepositoryMock.Object,
                 _friendshipServiceMock.Object,
                 _spotServiceMock.Object,
                 _userManagerMock.Object);
 
-            blogServiceMock
-                .Setup(x => x.GetAccessibleBlogsAsync(null))
-                .ReturnsAsync(accessibleBlogs);
-
             // Act
-            var result = await blogServiceMock.Object.GetCountriesWithAccessibleBlogsAsync();
+            var result = await blogService.GetCountriesWithAccessibleBlogsAsync();
 
             // Assert
             Assert.Single(result);
@@ -828,34 +1060,55 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
         public async Task GetCountriesWithPublicBlogsAsync_ReturnsPublicBlogsCountries()
         {
             // Arrange
-            var accessibleBlogs = new List<PublicBlogInfoDto>
+            var blogs = new List<Blog>
             {
-                new PublicBlogInfoDto
+                new Blog
                 {
-                    Countries = new List<Country>
-                    {
-                        new Country { Code = "IT", Name = "Italy" }
-                    }
+                    Id = 1,
+                    Name = "Blog Italy",
+                    Visibility = BlogVisibility.Public,
+                    TripId = 1,
+                    Trip = new Trip { Id = 1, Name = "Italian Trip", PersonId = "test" },
+                    OwnerId = "owner1",
+                    Owner = new Person { Id = "owner1", FirstName = "John", LastName = "Doe", IsPrivate = false, Nationality = "test" },
+                    Posts = new List<Post>()
                 }
             };
 
-            var blogServiceMock = new Mock<BlogService>(
+            _blogRepositoryMock
+                .Setup(x => x.GetAllAsync())
+                .ReturnsAsync(blogs);
+
+            _spotServiceMock
+                .Setup(x => x.GetCountriesByTripAsync(1))
+                .ReturnsAsync(new List<Country>
+                {
+                    new Country { Code = "IT", Name = "Italy" }
+                });
+
+            // Mockowanie GetFriendsAsync - zwraca pustą listę (nie ma zalogowanego użytkownika)
+            _friendshipServiceMock
+                .Setup(x => x.GetFriendsAsync(It.IsAny<string>()))
+                .ReturnsAsync(new List<Person>());
+
+            _tripParticipantRepositoryMock
+                .Setup(x => x.GetByTripIdAsync(It.IsAny<int>()))
+                .ReturnsAsync(new List<TripParticipant>());
+
+            var blogService = new BlogService(
                 _blogRepositoryMock.Object,
                 _tripParticipantRepositoryMock.Object,
                 _friendshipServiceMock.Object,
                 _spotServiceMock.Object,
                 _userManagerMock.Object);
 
-            blogServiceMock
-                .Setup(x => x.GetAccessibleBlogsAsync(null))
-                .ReturnsAsync(accessibleBlogs);
-
             // Act
-            var result = await blogServiceMock.Object.GetCountriesWithPublicBlogsAsync();
+            var result = await blogService.GetCountriesWithPublicBlogsAsync();
 
             // Assert
             Assert.Single(result);
-            Assert.Contains(result, c => c.Code == "IT");
+            Assert.Contains(result, c => c.Code == "IT" && c.Name == "Italy");
+            Assert.Equal(1, result[0].BlogCount);
         }
 
         #endregion

@@ -239,7 +239,7 @@ namespace TravelHub.Tests.Web.Tests.Controllers
             // Arrange
             SetupAuthenticatedUser();
 
-            SetupListsMocks();
+            SetupListsMocks(0);
 
             // Act
             var result = await _controller.Create();

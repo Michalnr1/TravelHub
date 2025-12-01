@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MockQueryable;
+using MockQueryable.Moq;
 using Moq;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
@@ -51,13 +53,9 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             var message = "Hello, let's be friends!";
 
             var addressee = new Person { Id = "user2", Email = "user2@example.com", FirstName = "Jane", LastName = "Smith", IsPrivate = false, Nationality = "test" };
-            var users = new List<Person> { addressee }.AsQueryable();
 
-            var mockSet = new Mock<DbSet<Person>>();
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Provider).Returns(users.Provider);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Expression).Returns(users.Expression);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.ElementType).Returns(users.ElementType);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.GetEnumerator()).Returns(users.GetEnumerator());
+            var users = new List<Person> { addressee };
+            var mockSet = users.BuildMockDbSet();
 
             _userManagerMock.Setup(x => x.Users).Returns(mockSet.Object);
             _personFriendsRepositoryMock
@@ -68,7 +66,20 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
                 .ReturnsAsync(false);
             _friendRequestRepositoryMock
                 .Setup(x => x.AddAsync(It.IsAny<FriendRequest>()))
-                .ReturnsAsync((FriendRequest fr) => fr);
+                .ReturnsAsync((FriendRequest fr) =>
+                {
+                    fr.Requester = new Person
+                    {
+                        Id = requesterId,
+                        FirstName = "John",
+                        LastName = "Doe",
+                        Email = "user1@example.com",
+                        Nationality = "test",
+                        IsPrivate = false
+                    };
+                    fr.Addressee = addressee;
+                    return fr;
+                });
 
             // Act
             var result = await _friendRequestService.SendFriendRequestAsync(requesterId, addresseeIdentifier, message);
@@ -98,13 +109,8 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             // Arrange
             var requesterId = "user1";
             var addresseeIdentifier = "nonexisting@example.com";
-            var users = new List<Person>().AsQueryable();
-
-            var mockSet = new Mock<DbSet<Person>>();
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Provider).Returns(users.Provider);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Expression).Returns(users.Expression);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.ElementType).Returns(users.ElementType);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.GetEnumerator()).Returns(users.GetEnumerator());
+            var users = new List<Person> {};
+            var mockSet = users.BuildMockDbSet();
 
             _userManagerMock.Setup(x => x.Users).Returns(mockSet.Object);
 
@@ -126,13 +132,8 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             var requesterId = "user1";
             var addresseeIdentifier = "user1";
             var user = new Person { Id = "user1", Email = "user1@example.com", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland" };
-            var users = new List<Person> { user }.AsQueryable();
-
-            var mockSet = new Mock<DbSet<Person>>();
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Provider).Returns(users.Provider);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Expression).Returns(users.Expression);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.ElementType).Returns(users.ElementType);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.GetEnumerator()).Returns(users.GetEnumerator());
+            var users = new List<Person> { user };
+            var mockSet = users.BuildMockDbSet();
 
             _userManagerMock.Setup(x => x.Users).Returns(mockSet.Object);
 
@@ -151,13 +152,8 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             var requesterId = "user1";
             var addresseeIdentifier = "user2@example.com";
             var addressee = new Person {Id = "user2", Email = "user2@example.com", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland" };
-            var users = new List<Person> { addressee }.AsQueryable();
-
-            var mockSet = new Mock<DbSet<Person>>();
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Provider).Returns(users.Provider);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Expression).Returns(users.Expression);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.ElementType).Returns(users.ElementType);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.GetEnumerator()).Returns(users.GetEnumerator());
+            var users = new List<Person> { addressee };
+            var mockSet = users.BuildMockDbSet();
 
             _userManagerMock.Setup(x => x.Users).Returns(mockSet.Object);
             _personFriendsRepositoryMock
@@ -179,13 +175,8 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             var requesterId = "user1";
             var addresseeIdentifier = "user2@example.com";
             var addressee = new Person {Id = "user2", Email = "user2@example.com", FirstName = "test", LastName = "test", IsPrivate = false, Nationality = "poland" };
-            var users = new List<Person> { addressee }.AsQueryable();
-
-            var mockSet = new Mock<DbSet<Person>>();
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Provider).Returns(users.Provider);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Expression).Returns(users.Expression);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.ElementType).Returns(users.ElementType);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.GetEnumerator()).Returns(users.GetEnumerator());
+            var users = new List<Person> { addressee };
+            var mockSet = users.BuildMockDbSet();
 
             _userManagerMock.Setup(x => x.Users).Returns(mockSet.Object);
             _personFriendsRepositoryMock
@@ -606,13 +597,8 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             var requesterId = "user1";
             var addresseeIdentifier = "user2@example.com";
             var addressee = new Person { Id = "user2", Email = "user2@example.com", FirstName = "Jane", IsPrivate = false, LastName = "test", Nationality = "test" };
-            var users = new List<Person> { addressee }.AsQueryable();
-
-            var mockSet = new Mock<DbSet<Person>>();
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Provider).Returns(users.Provider);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.Expression).Returns(users.Expression);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.ElementType).Returns(users.ElementType);
-            mockSet.As<IQueryable<Person>>().Setup(m => m.GetEnumerator()).Returns(users.GetEnumerator());
+            var users = new List<Person> { addressee };
+            var mockSet = users.BuildMockDbSet();
 
             _userManagerMock.Setup(x => x.Users).Returns(mockSet.Object);
             _personFriendsRepositoryMock

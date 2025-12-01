@@ -32,15 +32,8 @@ public class PhotoService : GenericService<Photo>, IPhotoService
         if (!AllowedExtensions.Contains(ext))
             throw new ArgumentException("Not allowed file format");
 
-        try
-        {
-            if (fileStream.CanSeek && fileStream.Length > MaxFileBytes)
-                throw new ArgumentException($"File is too big. Maximum {MaxFileBytes / (1024 * 1024)} MB.");
-        }
-        catch
-        {
-            // jeśli nie można odczytać Length, pomijamy sprawdzenie
-        }
+        if (fileStream.CanSeek && fileStream.Length > MaxFileBytes)
+            throw new ArgumentException($"File is too big. Maximum {MaxFileBytes / (1024 * 1024)} MB.");
 
         var uploadsFolder = Path.Combine(webRootPath, "images", "spots");
         Directory.CreateDirectory(uploadsFolder);

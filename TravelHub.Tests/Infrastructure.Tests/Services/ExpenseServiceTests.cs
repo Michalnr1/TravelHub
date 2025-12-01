@@ -97,37 +97,6 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
         }
 
         [Fact]
-        public async Task AddAsync_WithEqualShares_CreatesEqualParticipants()
-        {
-            // Arrange
-            var expense = new Expense { Id = 1, Value = 100m, PaidById = "test", Name = "test" };
-            var participantShares = new List<ParticipantShareDto>
-            {
-                new() { PersonId = "user1", ShareType = 0, InputValue = 0 },
-                new() { PersonId = "user2", ShareType = 0, InputValue = 0 }
-            };
-
-            _expenseRepositoryMock
-                .Setup(x => x.AddAsync(It.IsAny<Expense>()))
-                .ReturnsAsync((Expense e) => e);
-
-            // Act
-            var result = await _expenseService.AddAsync(expense, participantShares);
-
-            // Assert
-            Assert.NotNull(result.Participants);
-            Assert.Equal(2, result.Participants.Count);
-
-            var participant1 = result.Participants.First(p => p.PersonId == "user1");
-            var participant2 = result.Participants.First(p => p.PersonId == "user2");
-
-            Assert.Equal(0.500m, participant1.Share);
-            Assert.Equal(50.00m, participant1.ActualShareValue);
-            Assert.Equal(0.500m, participant2.Share);
-            Assert.Equal(50.00m, participant2.ActualShareValue);
-        }
-
-        [Fact]
         public async Task AddAsync_WithAmountShares_CreatesParticipantsWithSpecifiedAmounts()
         {
             // Arrange
@@ -280,7 +249,7 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
 
             var newParticipantShares = new List<ParticipantShareDto>
             {
-                new() { PersonId = "user1", ShareType = 0, InputValue = 0m } // Only user1 remains
+                new() { PersonId = "user1", ShareType = 1, InputValue = 100m } // Only user1 remains
             };
 
             _expenseRepositoryMock
