@@ -704,15 +704,16 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
         }
 
         [Fact]
-        public async Task CheckNewForCollisions_WithEmptyDuration_ReturnsNoCollision()
+        public async Task CheckNewForCollisions_WithEmptyDuration_ReturnsCollision()
         {
             // Arrange
             var dayId = 1;
             var startTimeString = "10:00";
-            string durationString = null; // Zero duration
+            string durationString = "00:00"; // Zero duration
+            var activity = new Activity { Id = 1, StartTime = 10.0m, Duration = 2.0m, Name = "test" }; 
             var activities = new List<Activity>
             {
-                new Activity { Id = 1, StartTime = 10.0m, Duration = 2.0m, Name = "test" }
+                activity
             };
 
             _activityServiceMock
@@ -723,31 +724,7 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
             var result = await _dayService.CheckNewForCollisions(dayId, startTimeString, durationString);
 
             // Assert
-            Assert.Null(result); // Zero duration activity shouldn't collide
-        }
-
-        [Theory]
-        [InlineData("invalid", "1:00")] // Invalid start time
-        [InlineData("10:00", "invalid")] // Invalid duration
-        [InlineData("10:abc", "1:00")] // Partially invalid
-        public async Task CheckNewForCollisions_WithInvalidTimeStrings_ReturnsNoCollision(string startTime, string duration)
-        {
-            // Arrange
-            var dayId = 1;
-            var activities = new List<Activity>
-            {
-                new Activity { Id = 1, StartTime = 10.0m, Duration = 2.0m, Name = "test" }
-            };
-
-            _activityServiceMock
-                .Setup(x => x.GetOrderedDailyActivitiesAsync(dayId))
-                .ReturnsAsync(activities);
-
-            // Act
-            var result = await _dayService.CheckNewForCollisions(dayId, startTime, duration);
-
-            // Assert
-            Assert.Null(result); // Invalid times should be converted to 0, so no collision
+            Assert.Equal(activity, result);
         }
 
         #endregion

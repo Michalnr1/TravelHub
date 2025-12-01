@@ -280,7 +280,7 @@ namespace TravelHub.Tests.Infrastructure.Tests.Services
 
             var newParticipantShares = new List<ParticipantShareDto>
             {
-                new() { PersonId = "user1", ShareType = 0, InputValue = 0m } // Only user1 remains
+                new() { PersonId = "user1", ShareType = 1, InputValue = 100m } // Only user1 remains
             };
 
             _expenseRepositoryMock

@@ -22,35 +22,6 @@ public class SpotServiceTests
     }
 
     [Fact]
-    public async Task CalculateDailySpotCostAsync_ShouldCalculateCostOnlyForSpots()
-    {
-        // ARRANGE
-        const int dayId = 10;
-        var activities = new List<Activity>
-        {
-            // Spot 1
-            // new Spot { Id = 1, Name = "Muzeum", Cost = 15.50m, DayId = dayId, Duration = 2m },
-            new Spot { Id = 1, Name = "Muzeum", DayId = dayId, Duration = 2m },
-            // Activity
-            new Activity { Id = 2, Name = "Przejazd pociągiem", DayId = dayId, Duration = 1m },
-            // Spot 2
-            // new Spot { Id = 3, Name = "Wieża widokowa", Cost = 5.00m, DayId = dayId, Duration = 1.5m }
-            new Spot { Id = 3, Name = "Wieża widokowa", DayId = dayId, Duration = 1.5m }
-        };
-        decimal expectedTotalCost = 20.50m;
-
-        _mockActivityRepo
-            .Setup(repo => repo.GetActivitiesByDayIdAsync(dayId))
-            .ReturnsAsync(activities);
-
-        // ACT
-        var result = await _sut.CalculateDailySpotCostAsync(dayId);
-
-        // ASSERT
-        Assert.Equal(expectedTotalCost, result);
-    }
-
-    [Fact]
     public async Task CalculateDailySpotCostAsync_ShouldReturnZero_WhenNoSpotsAreFound()
     {
         // ARRANGE

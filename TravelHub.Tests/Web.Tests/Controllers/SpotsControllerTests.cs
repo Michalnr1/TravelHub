@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using TravelHub.Domain.Entities;
@@ -31,25 +32,22 @@ public class SpotsControllerTests
     Mock<IReverseGeocodingService> reverseGeoMock,
     Mock<IExpenseService> expenseMock,
     Mock<IExchangeRateService> exchangeRateMock,
+    Mock<ITransportService> transportMock,
+    Mock<IFileService> fileMock,
     string currentUserId = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("ApiKeys:GoogleApiKey", "test") })
             .Build();
 
-        // user manager (factory from your tests)
         var userManager = TestUserManagerFactory.Create();
 
-        // create missing mocks required by constructor
-        var fileMock = new Mock<IFileService>();
         var pdfMock = new Mock<IPdfService>();
         var viewEngineMock = new Mock<ICompositeViewEngine>();
         var tempDataProviderMock = new Mock<ITempDataProvider>();
         var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
         var webHostEnvironmentMock = new Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
-        var transportMock = new Mock<ITransportService>();
 
-        // create the controller with all required parameters in correct order
         var controller = new SpotsController(
             spotMock.Object,
             activityMock.Object,
@@ -59,21 +57,20 @@ public class SpotsControllerTests
             dayMock.Object,
             photoMock.Object,
             transportMock.Object,
-            fileMock.Object,                // IFileService
+            fileMock.Object,            
             reverseGeoMock.Object,
             expenseMock.Object,
             exchangeRateMock.Object,
             new FakeLogger<SpotsController>(),
             configuration,
-            userManager,                   // UserManager<Person>
-            pdfMock.Object,                // IPdfService
-            webHostEnvironmentMock.Object, // IWebHostEnvironment
-            viewEngineMock.Object,         // ICompositeViewEngine
-            tempDataProviderMock.Object,   // ITempDataProvider
-            httpContextAccessorMock.Object // IHttpContextAccessor
+            userManager,                  
+            pdfMock.Object,              
+            webHostEnvironmentMock.Object,
+            viewEngineMock.Object,        
+            tempDataProviderMock.Object,  
+            httpContextAccessorMock.Object
         );
 
-        // Prepare HttpContext and TempData
         var httpContext = new DefaultHttpContext();
         if (!string.IsNullOrEmpty(currentUserId))
         {
@@ -83,12 +80,9 @@ public class SpotsControllerTests
         // make IHttpContextAccessor return the created context
         httpContextAccessorMock.Setup(a => a.HttpContext).Returns(httpContext);
 
-        // If you want TempData to behave like real one in tests, you can use TestTempDataProvider (or the mock object)
-        // Here we prefer to use a concrete TestTempDataProvider instance for TempDataDictionary
         var concreteTempDataProvider = new TestTempDataProvider();
         controller.TempData = new TempDataDictionary(httpContext, concreteTempDataProvider);
 
-        // set ControllerContext with the httpContext (so ActionContext, Request, etc. are available)
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         controller.Url = new FakeUrlHelper();
@@ -111,6 +105,8 @@ public class SpotsControllerTests
         var reverseGeoMock = new Mock<IReverseGeocodingService>();
         var expenseMock = new Mock<IExpenseService>();
         var exchangeRateMock = new Mock<IExchangeRateService>();
+        var transportMock = new Mock<ITransportService>();
+        var fileMock = new Mock<IFileService>();
 
         var spot = new Spot
         {
@@ -125,7 +121,7 @@ public class SpotsControllerTests
 
         spotMock.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync(new List<Spot> { spot });
 
-        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock);
+        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, transportMock, fileMock);
 
         // Act
         var result = await controller.Index();
@@ -152,17 +148,58 @@ public class SpotsControllerTests
         var reverseGeoMock = new Mock<IReverseGeocodingService>();
         var expenseMock = new Mock<IExpenseService>();
         var exchangeRateMock = new Mock<IExchangeRateService>();
+        var transportMock = new Mock<ITransportService>();
+        var fileMock = new Mock<IFileService>();
 
-        var trip = new Trip { Id = 10, PersonId = "owner", Name = "T" };
-        var spot = new Spot { Id = 5, Name = "DetailSpot", TripId = trip.Id, Trip = trip, Photos = new List<Photo>() };
+        var trip = new Trip
+        {
+            Id = 10,
+            PersonId = "owner",
+            Name = "T",
+            Participants = new List<TripParticipant>()
+        };
+
+        var spot = new Spot
+        {
+            Id = 5,
+            Name = "DetailSpot",
+            TripId = trip.Id,
+            Trip = trip,
+            Photos = new List<Photo>(),
+            Category = new Category { Name = "Test", Color = "", PersonId = "test" }
+        };
 
         spot.Photos.Add(new Photo { Id = 1, Name = "p", SpotId = spot.Id, FilePath = "~/images/spots" });
 
         spotMock.Setup(s => s.GetSpotDetailsAsync(spot.Id)).ReturnsAsync(spot);
         spotMock.Setup(s => s.UserOwnsSpotAsync(spot.Id, It.IsAny<string>())).ReturnsAsync(true);
         photoMock.Setup(p => p.GetBySpotIdAsync(spot.Id)).ReturnsAsync((IReadOnlyList<Photo>)spot.Photos);
+        tripParticipantMock.Setup(tp => tp.UserHasAccessToTripAsync(trip.Id, It.IsAny<string>())).ReturnsAsync(true);
 
-        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, currentUserId: "owner");
+        transportMock.Setup(t => t.GetTransportsFromSpotAsync(spot.Id))
+            .ReturnsAsync(new List<Transport>());
+
+        transportMock.Setup(t => t.GetTransportsToSpotAsync(spot.Id))
+            .ReturnsAsync(new List<Transport>());
+
+        fileMock.Setup(f => f.GetBySpotIdAsync(spot.Id))
+            .ReturnsAsync(new List<TravelHub.Domain.Entities.File>());
+
+        var controller = CreateController(
+            spotMock,
+            activityMock,
+            categoryMock,
+            tripMock,
+            tripParticipantMock,
+            dayMock,
+            photoMock,
+            reverseGeoMock,
+            expenseMock,
+            exchangeRateMock,
+            transportMock, 
+            fileMock, 
+            currentUserId: "owner"
+        );
 
         // Act
         var result = await controller.Details(spot.Id);
@@ -190,6 +227,8 @@ public class SpotsControllerTests
         var reverseGeoMock = new Mock<IReverseGeocodingService>();
         var expenseMock = new Mock<IExpenseService>();
         var exchangeRateMock = new Mock<IExchangeRateService>();
+        var transportMock = new Mock<ITransportService>();
+        var fileMock = new Mock<IFileService>();
 
         var trip = new Trip { Id = 11, PersonId = "ownerX", Name = "T" };
         var spot = new Spot { Id = 6, Name = "DetailSpot2", TripId = trip.Id, Trip = trip };
@@ -197,7 +236,7 @@ public class SpotsControllerTests
         spotMock.Setup(s => s.GetSpotDetailsAsync(spot.Id)).ReturnsAsync(spot);
         spotMock.Setup(s => s.UserOwnsSpotAsync(spot.Id, It.IsAny<string>())).ReturnsAsync(false);
 
-        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, currentUserId: "notOwner");
+        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, transportMock, fileMock, "currentOwner");
 
         // Act
         var result = await controller.Details(spot.Id);
@@ -220,8 +259,10 @@ public class SpotsControllerTests
         var reverseGeoMock = new Mock<IReverseGeocodingService>();
         var expenseMock = new Mock<IExpenseService>();
         var exchangeRateMock = new Mock<IExchangeRateService>();
+        var transportMock = new Mock<ITransportService>();
+        var fileMock = new Mock<IFileService>();
 
-        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock);
+        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, transportMock, fileMock);
 
         // Act
         var result = await controller.Details(null);
@@ -244,12 +285,26 @@ public class SpotsControllerTests
         var reverseGeoMock = new Mock<IReverseGeocodingService>();
         var expenseMock = new Mock<IExpenseService>();
         var exchangeRateMock = new Mock<IExchangeRateService>();
+        var transportMock = new Mock<ITransportService>();
+        var fileMock = new Mock<IFileService>();
 
-        categoryMock.Setup(c => c.GetAllAsync()).ReturnsAsync((IReadOnlyList<Category>)Array.Empty<Category>());
+        // Zamockuj metody używane przez PopulateSelectListsForTrip
+        categoryMock
+            .Setup(c => c.GetAllCategoriesByTripAsync(It.IsAny<int>()))
+            .ReturnsAsync((ICollection<Category>)Array.Empty<Category>());
+
         tripMock.Setup(t => t.GetAllAsync()).ReturnsAsync((IReadOnlyList<Trip>)Array.Empty<Trip>());
         dayMock.Setup(d => d.GetAllAsync()).ReturnsAsync((IReadOnlyList<Day>)Array.Empty<Day>());
 
-        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock);
+        // Zamockuj kursy wymiany (PopulateCurrencySelectList wywołuje GetTripExchangeRatesAsync)
+        exchangeRateMock
+            .Setup(e => e.GetTripExchangeRatesAsync(It.IsAny<int>()))
+            .ReturnsAsync((IReadOnlyList<ExchangeRate>)Array.Empty<ExchangeRate>());
+
+        var controller = CreateController(
+            spotMock, activityMock, categoryMock, tripMock,
+            tripParticipantMock, dayMock, photoMock, reverseGeoMock,
+            expenseMock, exchangeRateMock, transportMock, fileMock);
 
         // Act
         var result = await controller.Create();
@@ -275,10 +330,12 @@ public class SpotsControllerTests
         var reverseGeoMock = new Mock<IReverseGeocodingService>();
         var expenseMock = new Mock<IExpenseService>();
         var exchangeRateMock = new Mock<IExchangeRateService>();
+        var transportMock = new Mock<ITransportService>();
+        var fileMock = new Mock<IFileService>();
 
         spotMock.Setup(s => s.AddAsync(It.IsAny<Spot>())).ReturnsAsync((Spot s) => s);
 
-        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock);
+        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, transportMock, fileMock);
 
         var model = new SpotCreateEditViewModel
         {
@@ -301,7 +358,7 @@ public class SpotsControllerTests
     }
 
     [Fact]
-    public async Task Edit_Get_ReturnsForbid_WhenUserNotOwner()
+    public async Task Edit_Get_ReturnsNotFound_WhenUserNotInTrip()
     {
         // Arrange
         var spotMock = new Mock<ISpotService>();
@@ -314,6 +371,8 @@ public class SpotsControllerTests
         var reverseGeoMock = new Mock<IReverseGeocodingService>();
         var expenseMock = new Mock<IExpenseService>();
         var exchangeRateMock = new Mock<IExchangeRateService>();
+        var transportMock = new Mock<ITransportService>();
+        var fileMock = new Mock<IFileService>();
 
         var trip = new Trip { Id = 20, PersonId = "ownerY", Name = "T" };
         var spot = new Spot { Id = 7, Name = "EditSpot", TripId = trip.Id, Trip = trip };
@@ -321,13 +380,13 @@ public class SpotsControllerTests
         spotMock.Setup(s => s.GetByIdAsync(spot.Id)).ReturnsAsync(spot);
         spotMock.Setup(s => s.UserOwnsSpotAsync(spot.Id, It.IsAny<string>())).ReturnsAsync(false);
 
-        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, currentUserId: "otherUser");
+        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, transportMock, fileMock, "otherUser");
 
         // Act
         var result = await controller.Edit(spot.Id);
 
         // Assert
-        Assert.IsType<ForbidResult>(result);
+        Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
@@ -344,14 +403,17 @@ public class SpotsControllerTests
         var reverseGeoMock = new Mock<IReverseGeocodingService>();
         var expenseMock = new Mock<IExpenseService>();
         var exchangeRateMock = new Mock<IExchangeRateService>();
+        var transportMock = new Mock<ITransportService>();
+        var fileMock = new Mock<IFileService>();
 
         var trip = new Trip { Id = 30, Name = "TDel", PersonId = "u" };
         var spot = new Spot { Id = 8, Name = "ToDelete", TripId = trip.Id, Trip = trip, DayId = null };
 
         spotMock.Setup(s => s.GetByIdAsync(spot.Id)).ReturnsAsync(spot);
         spotMock.Setup(s => s.DeleteAsync(spot.Id)).Returns(Task.CompletedTask);
+        tripParticipantMock.Setup(tp => tp.UserHasAccessToTripAsync(trip.Id, It.IsAny<string>())).ReturnsAsync(true);
 
-        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock);
+        var controller = CreateController(spotMock, activityMock, categoryMock, tripMock, tripParticipantMock, dayMock, photoMock, reverseGeoMock, expenseMock, exchangeRateMock, transportMock, fileMock, "u");
 
         // Act
         var result = await controller.DeleteConfirmed(spot.Id);
