@@ -1,9 +1,10 @@
 ﻿using System.Reflection;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using TravelHub.Infrastructure;
 using Xunit;
 
-namespace TravelHub.Infrastructure.Tests.Migrations;
+namespace TravelHub.Tests.Infrastructure.Tests.Migrations;
 
 public class AddedBlogModuleMigrationTests
 {
