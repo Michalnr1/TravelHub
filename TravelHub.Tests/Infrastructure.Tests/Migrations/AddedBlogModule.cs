@@ -25,7 +25,7 @@ public class AddedBlogModuleMigrationTests
         InvokeUpMethod(migration, migrationBuilder);
 
         // Assert - Verify operation count
-        Assert.Equal(16, migrationBuilder.Operations.Count); // All operations in Up method
+        Assert.Equal(27, migrationBuilder.Operations.Count); // All operations in Up method
 
         // Verify table rename
         var renameTableOperation = migrationBuilder.Operations.OfType<RenameTableOperation>().First();
@@ -73,7 +73,7 @@ public class AddedBlogModuleMigrationTests
         InvokeDownMethod(migration, migrationBuilder);
 
         // Assert - Verify operation count
-        Assert.Equal(16, migrationBuilder.Operations.Count); // All operations in Down method
+        Assert.Equal(25, migrationBuilder.Operations.Count); // All operations in Down method
 
         // Verify table rename back
         var renameTableOperation = migrationBuilder.Operations.OfType<RenameTableOperation>().First();
