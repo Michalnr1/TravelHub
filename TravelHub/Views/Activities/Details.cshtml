@@ -225,18 +225,6 @@
                     <strong>Day:</strong><br>
                     @Html.DisplayFor(model => model.DayName)
                 </div>
-
-                <div class="d-grid gap-2 mt-4">
-                    @if (!isPublicView)
-                    {           
-                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
-                            <i class="fas fa-edit"></i> Edit Activity
-                        </a>
-                    }
-                    <a href="@returnUrl" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Trip
-                    </a>
-                </div>
             </div>
         </div>
 
@@ -262,6 +250,27 @@
                 <div class="d-flex justify-content-between">
                     <strong>Category:</strong>
                     <span>@(Model.CategoryName ?? "No category")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tools text-warning"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2 mt-4">
+                    @if (!isPublicView)
+                    {
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Edit Activity
+                        </a>
+                    }
+                    <a href="@returnUrl" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Trip
+                    </a>
                 </div>
             </div>
         </div>
