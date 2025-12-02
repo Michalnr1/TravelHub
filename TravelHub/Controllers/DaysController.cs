@@ -2,10 +2,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
+using TravelHub.Infrastructure.Services;
 using TravelHub.Web.ViewModels.Accommodations;
 using TravelHub.Web.ViewModels.Activities;
 using TravelHub.Web.ViewModels.Days;
@@ -24,6 +30,11 @@ public class DaysController : Controller
     private readonly UserManager<Person> _userManager;
     private readonly IRouteOptimizationService _routeOptimizationService;
     private readonly IConfiguration _configuration;
+    private readonly IPdfService _pdfService;
+    private readonly IWebHostEnvironment _webHostEnvironment;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ICompositeViewEngine _viewEngine;
+    private readonly ITempDataProvider _tempDataProvider;
     private readonly ILogger<DaysController> _logger;
 
     public DaysController(IDayService dayService,
@@ -34,7 +45,12 @@ public class DaysController : Controller
         UserManager<Person> userManager,
         IRouteOptimizationService routeOptimizationService,
         IConfiguration configuration,
-        IActivityService activityService)
+        IActivityService activityService,
+        IPdfService pdfService,
+        IWebHostEnvironment webHostEnvironment,
+        IHttpContextAccessor httpContextAccessor,
+        ICompositeViewEngine viewEngine,
+        ITempDataProvider tempDataProvider)
     {
         _dayService = dayService;
         _tripService = tripService;
@@ -45,6 +61,11 @@ public class DaysController : Controller
         _routeOptimizationService = routeOptimizationService;
         _configuration = configuration;
         _activityService = activityService;
+        _pdfService = pdfService;
+        _webHostEnvironment = webHostEnvironment;
+        _httpContextAccessor = httpContextAccessor;
+        _viewEngine = viewEngine;
+        _tempDataProvider = tempDataProvider;
     }
 
     // GET: Days/Details/5
@@ -667,6 +688,349 @@ public class DaysController : Controller
                 endTimeString = collisionWith.Duration > 0 ? ConvertDecimalToTimeString((collisionWith.StartTime!.Value + collisionWith.Duration) % 24) : null
             });
         }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportDayPdf(int id, string? routeData = null)
+    {
+        var day = await _dayService.GetDayWithDetailsAsync(id);
+        if (day == null)
+            return NotFound();
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(day.TripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        // Pobierz szczegóły dnia z widoku mapy
+        var trip = await _tripService.GetTripWithDetailsAsync(day.TripId);
+
+        var viewModel = new DayExportPdfViewModel
+        {
+            Id = day.Id,
+            Number = day.Number,
+            Name = day.Name ?? string.Empty,
+            Date = day.Date,
+            TripName = trip?.Name ?? string.Empty,
+            TripStartDate = trip?.StartDate,
+            TripEndDate = trip?.EndDate,
+
+            Activities = day.Activities
+                .Where(a => !(a is Spot))
+                .OrderBy(a => a.Order)
+                .Select(a => new ActivityExportViewModel
+                {
+                    Id = a.Id,
+                    Name = a.Name,
+                    Description = a.Description,
+                    Duration = a.Duration,
+                    DurationString = ConvertDecimalToTimeString(a.Duration),
+                    Order = a.Order,
+                    StartTime = a.StartTime,
+                    StartTimeString = a.StartTime.HasValue ? ConvertDecimalToTimeString(a.StartTime.Value) : null,
+                    CategoryName = a.Category?.Name,
+                    Type = "Activity",
+                    Checklist = a.Checklist
+                }).ToList(),
+
+            Spots = day.Activities
+                .Where(a => a is Spot && !(a is Accommodation))
+                .OrderBy(a => a.Order)
+                .Cast<Spot>()
+                .Select(s => new SpotExportViewModel
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Description = s.Description,
+                    Duration = s.Duration,
+                    DurationString = ConvertDecimalToTimeString(s.Duration),
+                    Order = s.Order,
+                    StartTime = s.StartTime,
+                    StartTimeString = s.StartTime.HasValue ? ConvertDecimalToTimeString(s.StartTime.Value) : null,
+                    CategoryName = s.Category?.Name,
+                    Latitude = s.Latitude, // double z encji
+                    Longitude = s.Longitude, // double z encji
+                    PhotoCount = s.Photos?.Count ?? 0,
+                    Checklist = s.Checklist
+                }).ToList(),
+
+            Accommodation = day.Accommodation != null ? new AccommodationExportViewModel
+            {
+                Id = day.Accommodation.Id,
+                Name = day.Accommodation.Name,
+                Description = day.Accommodation.Description,
+                CheckIn = day.Accommodation.CheckIn,
+                CheckOut = day.Accommodation.CheckOut,
+                CheckInTime = day.Accommodation.CheckInTime,
+                CheckOutTime = day.Accommodation.CheckOutTime,
+                Latitude = day.Accommodation.Latitude, // double z encji
+                Longitude = day.Accommodation.Longitude, // double z encji
+                Checklist = day.Accommodation.Checklist
+            } : null
+        };
+
+        // Dodaj poprzednie zakwaterowanie jeśli istnieje
+        if (trip?.Days != null && day.Number.HasValue && day.Number > 1)
+        {
+            var previousDay = trip.Days.FirstOrDefault(d => d.Number == day.Number - 1);
+            if (previousDay?.Accommodation != null)
+            {
+                viewModel.PreviousAccommodation = new AccommodationExportViewModel
+                {
+                    Id = previousDay.Accommodation.Id,
+                    Name = previousDay.Accommodation.Name,
+                    Latitude = previousDay.Accommodation.Latitude,
+                    Longitude = previousDay.Accommodation.Longitude
+                };
+            }
+        }
+
+        // Przetwarzanie danych trasy z widoku mapy
+        if (!string.IsNullOrEmpty(routeData))
+        {
+            try
+            {
+                viewModel.RouteData = JsonConvert.DeserializeObject<RouteDataViewModel>(routeData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not parse route data for day {DayId}", id);
+            }
+        }
+
+        // Oblicz środek mapy dla wszystkich punktów (użyj double zamiast decimal)
+        var allPoints = new List<(double Latitude, double Longitude)>();
+
+        if (viewModel.PreviousAccommodation != null)
+        {
+            allPoints.Add((viewModel.PreviousAccommodation.Latitude, viewModel.PreviousAccommodation.Longitude));
+        }
+
+        allPoints.AddRange(viewModel.Spots.Select(s => (s.Latitude, s.Longitude)));
+
+        if (viewModel.Accommodation != null)
+        {
+            allPoints.Add((viewModel.Accommodation.Latitude, viewModel.Accommodation.Longitude));
+        }
+
+        if (allPoints.Any())
+        {
+            viewModel.MapCenterLat = allPoints.Average(p => p.Latitude);
+            viewModel.MapCenterLng = allPoints.Average(p => p.Longitude);
+
+            // Oblicz zoom na podstawie zakresu współrzędnych
+            if (allPoints.Count > 1)
+            {
+                var minLat = allPoints.Min(p => p.Latitude);
+                var maxLat = allPoints.Max(p => p.Latitude);
+                var minLng = allPoints.Min(p => p.Longitude);
+                var maxLng = allPoints.Max(p => p.Longitude);
+
+                var latRange = maxLat - minLat;
+                var lngRange = maxLng - minLng;
+                var maxRange = Math.Max(latRange, lngRange);
+
+                // Oblicz przybliżony zoom (logarytmicznie odwrotnie proporcjonalny do zakresu)
+                viewModel.MapZoom = Math.Max(10, Math.Min(15, 15 - Math.Log10(maxRange * 100)));
+            }
+        }
+
+        // Generuj URL mapy statycznej
+        var staticMapUrl = await GenerateStaticMapUrl(viewModel);
+        viewModel.StaticMapUrl = staticMapUrl;
+
+        // Renderuj widok PDF
+        var htmlString = await RenderViewToStringAsync("DayPdf", viewModel);
+        var fileName = day.Number.HasValue
+            ? $"Day_{day.Number}_{day.Date:yyyy-MM-dd}.pdf"
+            : $"Group_{day.Name}_{day.Date:yyyy-MM-dd}.pdf";
+
+        var bytes = await _pdfService.GeneratePdfFromHtmlAsync(htmlString, fileName);
+
+        return File(bytes, "application/pdf", fileName);
+    }
+
+    private async Task<string> RenderViewToStringAsync(string viewName, object model)
+    {
+        var actionContext = new ActionContext(_httpContextAccessor.HttpContext!, this.RouteData, this.ControllerContext.ActionDescriptor);
+
+        using var sw = new StringWriter();
+
+        var viewResult = _viewEngine.FindView(actionContext, viewName, false);
+        if (!viewResult.Success)
+            throw new InvalidOperationException($"Could not find view {viewName}");
+
+        var viewDictionary = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary())
+        {
+            Model = model
+        };
+
+        var viewContext = new ViewContext(
+            actionContext,
+            viewResult.View,
+            viewDictionary,
+            new TempDataDictionary(actionContext.HttpContext, _tempDataProvider),
+            sw,
+            new HtmlHelperOptions()
+        );
+
+        await viewResult.View.RenderAsync(viewContext);
+
+        return sw.ToString();
+    }
+
+    private async Task<string> GenerateStaticMapUrl(DayExportPdfViewModel model)
+    {
+        var apiKey = _configuration["ApiKeys:GoogleApiKey"];
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            _logger.LogWarning("Google Maps API key is not configured");
+            return string.Empty;
+        }
+
+        var parameters = new List<string>
+    {
+        $"size=800x500",
+        $"scale=2", // Większa rozdzielczość dla PDF
+        $"maptype=roadmap",
+        $"key={apiKey}"
+    };
+
+        // Środek mapy
+        parameters.Add($"center={model.MapCenterLat:F6},{model.MapCenterLng:F6}");
+
+        // Zoom - jeśli mamy trasę, ustawiamy odpowiedni zoom
+        if (model.HasRoute && model.RouteData != null)
+        {
+            // Oblicz zoom na podstawie bounding box
+            var allPoints = GetAllPoints(model);
+            if (allPoints.Any())
+            {
+                var zoom = CalculateOptimalZoom(allPoints);
+                parameters.Add($"zoom={zoom}");
+            }
+            else
+            {
+                parameters.Add($"zoom={model.MapZoom}");
+            }
+        }
+        else
+        {
+            parameters.Add($"zoom={model.MapZoom}");
+        }
+
+        // Dodaj markery
+        var markers = GenerateMarkers(model);
+        if (!string.IsNullOrEmpty(markers))
+        {
+            parameters.Add(markers);
+        }
+
+        // Dodaj ścieżkę trasy jeśli istnieje
+        if (model.HasRoute && model.RouteData != null)
+        {
+            var path = GenerateRoutePath(model.RouteData);
+            if (!string.IsNullOrEmpty(path))
+            {
+                parameters.Add(path);
+            }
+        }
+
+        return $"https://maps.googleapis.com/maps/api/staticmap?{string.Join("&", parameters)}";
+    }
+
+    private List<(double Lat, double Lng)> GetAllPoints(DayExportPdfViewModel model)
+    {
+        var points = new List<(double Lat, double Lng)>();
+
+        if (model.PreviousAccommodation != null)
+        {
+            points.Add((model.PreviousAccommodation.Latitude, model.PreviousAccommodation.Longitude));
+        }
+
+        points.AddRange(model.Spots.Select(s => (s.Latitude, s.Longitude)));
+
+        if (model.Accommodation != null)
+        {
+            points.Add((model.Accommodation.Latitude, model.Accommodation.Longitude));
+        }
+
+        return points;
+    }
+
+    private int CalculateOptimalZoom(List<(double Lat, double Lng)> points)
+    {
+        if (points.Count < 2) return 13;
+
+        var minLat = points.Min(p => p.Lat);
+        var maxLat = points.Max(p => p.Lat);
+        var minLng = points.Min(p => p.Lng);
+        var maxLng = points.Max(p => p.Lng);
+
+        var latDiff = maxLat - minLat;
+        var lngDiff = maxLng - minLng;
+        var maxDiff = Math.Max(latDiff, lngDiff);
+
+        // Algorytm do obliczania zoom na podstawie zakresu współrzędnych
+        if (maxDiff < 0.01) return 15;
+        if (maxDiff < 0.02) return 14;
+        if (maxDiff < 0.04) return 13;
+        if (maxDiff < 0.08) return 12;
+        if (maxDiff < 0.16) return 11;
+        if (maxDiff < 0.32) return 10;
+        if (maxDiff < 0.64) return 9;
+        return 8;
+    }
+
+    private string GenerateMarkers(DayExportPdfViewModel model)
+    {
+        var markers = new List<string>();
+
+        // Marker dla poprzedniego zakwaterowania (żółty)
+        if (model.PreviousAccommodation != null)
+        {
+            markers.Add($"color:0xFFC107|label:P|{model.PreviousAccommodation.Latitude:F6},{model.PreviousAccommodation.Longitude:F6}");
+        }
+
+        // Markery dla spotów (zielone z numerami)
+        int spotNumber = 1;
+        foreach (var spot in model.Spots.OrderBy(s => s.Order))
+        {
+            markers.Add($"color:0x28a745|label:{spotNumber}|{spot.Latitude:F6},{spot.Longitude:F6}");
+            spotNumber++;
+        }
+
+        // Marker dla aktualnego zakwaterowania (pomarańczowy)
+        if (model.Accommodation != null)
+        {
+            markers.Add($"color:0xFD7E14|label:A|{model.Accommodation.Latitude:F6},{model.Accommodation.Longitude:F6}");
+        }
+
+        if (!markers.Any()) return string.Empty;
+
+        return $"markers={string.Join("&markers=", markers)}";
+    }
+
+    private string GenerateRoutePath(RouteDataViewModel routeData)
+    {
+        if (routeData?.Waypoints == null || routeData.Waypoints.Count < 2)
+            return string.Empty;
+
+        // Sortuj waypoints po kolejności
+        var sortedWaypoints = routeData.Waypoints
+            .OrderBy(w => w.Order)
+            .ToList();
+
+        // Tworzymy ścieżkę z punktów trasy
+        var pathPoints = new List<string>();
+        foreach (var point in sortedWaypoints)
+        {
+            pathPoints.Add($"{point.Latitude:F6},{point.Longitude:F6}");
+        }
+
+        if (pathPoints.Count < 2) return string.Empty;
+
+        return $"path=color:0x667eea|weight:4|fillcolor:0x667eea20|{string.Join("|", pathPoints)}";
     }
 
     private string GetCurrentUserId()

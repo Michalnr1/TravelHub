@@ -1,0 +1,784 @@
+﻿@using TravelHub.Web.ViewModels.Days
+@model DayExportPdfViewModel
+@{
+    bool isGroup = Model.Number == null;
+    string title = Model.GetDayTitle();
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>@title - @Model.TripName</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Basic styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+            .header h1 {
+                margin: 0;
+                font-size: 22px;
+                font-weight: 300;
+            }
+
+            .header .subtitle {
+                margin-top: 8px;
+                opacity: 0.9;
+                font-size: 14px;
+            }
+
+        .container {
+            padding: 0 20px 20px 20px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+            .section-title i {
+                margin-right: 8px;
+                width: 16px;
+                text-align: center;
+            }
+
+        /* Map container */
+        .map-container {
+            width: 100%;
+            height: 400px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+            .map-container img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+            .map-placeholder i {
+                font-size: 48px;
+                margin-bottom: 15px;
+                color: #6c757d;
+            }
+
+        .map-route-info {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 11px;
+            max-width: 250px;
+            backdrop-filter: blur(5px);
+        }
+
+        .route-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .route-stat {
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 14px;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* Schedule table */
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 11px;
+        }
+
+            .schedule-table th {
+                background: #667eea;
+                color: white;
+                padding: 8px;
+                text-align: left;
+                font-weight: 600;
+            }
+
+            .schedule-table td {
+                padding: 8px;
+                border-bottom: 1px solid #dee2e6;
+                vertical-align: top;
+            }
+
+            .schedule-table tr:nth-child(even) {
+                background: #f8f9fa;
+            }
+
+        .time-cell {
+            width: 80px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .order-cell {
+            width: 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .badge-spot {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-activity {
+            background: #007bff;
+            color: white;
+        }
+
+        .badge-accommodation {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        /* Points list */
+        .points-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .point-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .point-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .point-content {
+            flex-grow: 1;
+        }
+
+        .point-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .point-details {
+            font-size: 11px;
+            color: #666;
+        }
+
+            .point-details span {
+                margin-right: 8px;
+            }
+
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        /* Accommodation info */
+        .accommodation-card {
+            background: linear-gradient(to right, #fff8e1, #ffecb3);
+            border: 1px solid #ffd54f;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .accommodation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .accommodation-title {
+            font-weight: bold;
+            color: #ff8f00;
+            font-size: 14px;
+        }
+
+        .accommodation-dates {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .date-box {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ffd54f;
+        }
+
+        .date-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .date-value {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* For printing */
+        @@media print {
+            .header {
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .map-container {
+                page-break-inside: avoid;
+            }
+
+            .schedule-table {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .color-spot {
+            background: #28a745;
+        }
+
+        .color-activity {
+            background: #007bff;
+        }
+
+        .color-accommodation {
+            background: #ffc107;
+        }
+
+        .color-route {
+            background: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>@title</h1>
+        <div class="subtitle">
+            @Model.TripName • @Model.Date.ToString("dddd, dd MMMM yyyy")
+            @if (!isGroup)
+            {
+                <br />
+                <small>Day @Model.Number of the trip</small>
+            }
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color color-spot"></div>
+                <span>Spot</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color color-activity"></div>
+                <span>Activity</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color color-accommodation"></div>
+                <span>Accommodation</span>
+            </div>
+            @if (Model.HasRoute)
+            {
+                <div class="legend-item">
+                    <div class="legend-color color-route"></div>
+                    <span>Optimal Route</span>
+                </div>
+            }
+        </div>
+
+        <!-- Map -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-map-marked-alt"></i>Day Map
+            </div>
+            <div class="map-container">
+                @if (!string.IsNullOrEmpty(Model.StaticMapUrl))
+                {
+                    <!-- Real map image -->
+                    <img src="@Model.StaticMapUrl"
+                         alt="Day map with route"
+                         style="width: 100%; height: 100%; object-fit: cover;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+
+                    <!-- Fallback if image fails to load -->
+                    <div class="map-placeholder" style="display: none;">
+                        <i class="fas fa-map"></i>
+                        <h4>Map with Route</h4>
+                        <p>Map view with marked points and optimal route</p>
+                        <div class="route-summary">
+                            @if (Model.HasRoute && Model.RouteData != null)
+                            {
+                                <div class="route-stat">
+                                    <div class="stat-value">@Model.RouteData.Waypoints.Count</div>
+                                    <div class="stat-label">POINTS</div>
+                                </div>
+                                <div class="route-stat">
+                                    <div class="stat-value">@(Math.Round(Model.RouteData.TotalDistance / 1000, 1)) km</div>
+                                    <div class="stat-label">DISTANCE</div>
+                                </div>
+                                <div class="route-stat">
+                                    <div class="stat-value">@(Math.Round(Model.RouteData.TotalDuration / 60, 0)) min</div>
+                                    <div class="stat-label">TIME</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="map-placeholder">
+                        <i class="fas fa-map"></i>
+                        <h4>No Map Available</h4>
+                        <p>Failed to generate map</p>
+                    </div>
+                }
+
+                <!-- Route statistics (displayed on map) -->
+                @if (Model.HasRoute && Model.RouteData != null)
+                {
+                    <div class="map-route-info">
+                        <strong>Route Summary:</strong>
+                        <div class="route-summary">
+                            <div class="route-stat">
+                                <div class="stat-value">@Model.RouteData.Waypoints.Count</div>
+                                <div class="stat-label">POINTS</div>
+                            </div>
+                            <div class="route-stat">
+                                <div class="stat-value">@(Math.Round(Model.RouteData.TotalDistance / 1000, 1)) km</div>
+                                <div class="stat-label">DISTANCE</div>
+                            </div>
+                            <div class="route-stat">
+                                <div class="stat-value">@(Math.Round(Model.RouteData.TotalDuration / 60, 0)) min</div>
+                                <div class="stat-label">TIME</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Day Schedule -->
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-calendar-alt"></i>Day Schedule
+            </div>
+
+            @{
+                var allItems = new List<ScheduleItemViewModel>();
+
+                // Add previous accommodation as first point
+                if (Model.PreviousAccommodation != null)
+                {
+                    allItems.Add(new ScheduleItemViewModel
+                    {
+                        Order = 0,
+                        Time = "07:00",
+                        Name = $"Arrival: {Model.PreviousAccommodation.Name}",
+                        Type = "accommodation",
+                        Description = "Accommodation from previous day"
+                    });
+                }
+
+                // Add spots
+                foreach (var spot in Model.Spots)
+                {
+                    allItems.Add(new ScheduleItemViewModel
+                    {
+                        Order = spot.Order,
+                        Time = spot.StartTimeString ?? "-",
+                        Name = spot.Name,
+                        Type = "spot",
+                        Duration = spot.DurationString,
+                        Description = spot.Description
+                    });
+                }
+
+                // Add activities
+                foreach (var activity in Model.Activities)
+                {
+                    allItems.Add(new ScheduleItemViewModel
+                    {
+                        Order = activity.Order,
+                        Time = activity.StartTimeString ?? "-",
+                        Name = activity.Name,
+                        Type = "activity",
+                        Duration = activity.DurationString,
+                        Description = activity.Description
+                    });
+                }
+
+                // Add accommodation at the end of the day
+                if (Model.Accommodation != null)
+                {
+                    allItems.Add(new ScheduleItemViewModel
+                    {
+                        Order = Model.Spots.Count + 1,
+                        Time = Model.Accommodation.GetCheckInTimeString(),
+                        Name = $"Accommodation: {Model.Accommodation.Name}",
+                        Type = "accommodation",
+                        Description = Model.Accommodation.Description
+                    });
+                }
+
+                // Sort by order
+                allItems = allItems.OrderBy(i => i.Order).ToList();
+            }
+
+            @if (allItems.Any())
+            {
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="width: 80px;">Time</th>
+                            <th>Name</th>
+                            <th style="width: 100px;">Type</th>
+                            <th style="width: 80px;">Duration</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in allItems)
+                        {
+                            <tr>
+                                <td class="order-cell">@item.Order</td>
+                                <td class="time-cell">@item.Time</td>
+                                <td>
+                                    <span class="type-badge @($"badge-{item.Type}")">
+                                        @item.Type.ToUpper()
+                                    </span>
+                                    @item.Name
+                                </td>
+                                <td>
+                                    @if (item.Type == "spot")
+                                    {
+                                        <span class="badge badge-spot">Spot</span>
+                                    }
+                                    else if (item.Type == "activity")
+                                    {
+                                        <span class="badge badge-activity">Activity</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-accommodation">Accommodation</span>
+                                    }
+                                </td>
+                                <td>@item.Duration</td>
+                                <td>@item.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="no-data">
+                    <i class="fas fa-calendar fa-2x" style="margin-bottom: 10px;"></i><br>
+                    No activities planned for this day
+                </div>
+            }
+        </div>
+
+        <!-- Spot Details -->
+        @if (Model.Spots.Any())
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-map-marker-alt"></i>Spots (@Model.Spots.Count)
+                </div>
+                <div class="points-list">
+                    @foreach (var spot in Model.Spots.OrderBy(s => s.Order))
+                    {
+                        <div class="point-card">
+                            <div class="point-marker">@spot.Order</div>
+                            <div class="point-content">
+                                <div class="point-name">@spot.Name</div>
+                                <div class="point-details">
+                                    @if (!string.IsNullOrEmpty(spot.CategoryName))
+                                    {
+                                        <span><i class="fas fa-tag"></i> @spot.CategoryName</span>
+                                    }
+                                    <span><i class="far fa-clock"></i> @spot.DurationString</span>
+                                    @if (spot.StartTime.HasValue)
+                                    {
+                                        <span><i class="fas fa-play-circle"></i> @spot.StartTimeString</span>
+                                    }
+                                    <span><i class="fas fa-camera"></i> @spot.PhotoCount photos</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(spot.Description))
+                                {
+                                    <div style="margin-top: 8px; font-size: 11px; color: #555;">
+                                        @spot.Description
+                                    </div>
+                                }
+                                <div style="margin-top: 4px; font-size: 10px; color: #888;">
+                                    <i class="fas fa-globe"></i> @spot.Latitude.ToString("F6"), @spot.Longitude.ToString("F6")
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Activity Details -->
+        @if (Model.Activities.Any())
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-running"></i>Activities (@Model.Activities.Count)
+                </div>
+                <div class="points-list">
+                    @foreach (var activity in Model.Activities.OrderBy(a => a.Order))
+                    {
+                        <div class="point-card">
+                            <div class="point-marker">@activity.Order</div>
+                            <div class="point-content">
+                                <div class="point-name">@activity.Name</div>
+                                <div class="point-details">
+                                    @if (!string.IsNullOrEmpty(activity.CategoryName))
+                                    {
+                                        <span><i class="fas fa-tag"></i> @activity.CategoryName</span>
+                                    }
+                                    <span><i class="far fa-clock"></i> @activity.DurationString</span>
+                                    @if (activity.StartTime.HasValue)
+                                    {
+                                        <span><i class="fas fa-play-circle"></i> @activity.StartTimeString</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(activity.Description))
+                                {
+                                    <div style="margin-top: 8px; font-size: 11px; color: #555;">
+                                        @activity.Description
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Accommodation -->
+        @if (Model.Accommodation != null)
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-hotel"></i>Accommodation
+                </div>
+                <div class="accommodation-card">
+                    <div class="accommodation-header">
+                        <div class="accommodation-title">
+                            <i class="fas fa-hotel"></i> @Model.Accommodation.Name
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Accommodation.Description))
+                    {
+                        <div style="margin-bottom: 12px; font-size: 12px;">
+                            @Model.Accommodation.Description
+                        </div>
+                    }
+
+                    <div class="accommodation-dates">
+                        <div class="date-box">
+                            <div class="date-label">Check-in</div>
+                            <div class="date-value">
+                                @Model.Accommodation.CheckIn.ToString("dd.MM.yyyy")<br />
+                                @Model.Accommodation.GetCheckInTimeString()
+                            </div>
+                        </div>
+                        <div class="date-box">
+                            <div class="date-label">Check-out</div>
+                            <div class="date-value">
+                                @Model.Accommodation.CheckOut.ToString("dd.MM.yyyy")<br />
+                                @Model.Accommodation.GetCheckOutTimeString()
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 12px; font-size: 11px; color: #666;">
+                        <i class="fas fa-globe"></i> Location: @Model.Accommodation.Latitude.ToString("F6"), @Model.Accommodation.Longitude.ToString("F6")
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Route Information -->
+        @if (Model.HasRoute && Model.RouteData != null)
+        {
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-route"></i>Optimal Route
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
+                            <div style="font-weight: bold; font-size: 18px; color: #667eea;">@Model.RouteData.Waypoints.Count</div>
+                            <div style="font-size: 11px; color: #666;">Stops</div>
+                        </div>
+                        <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
+                            <div style="font-weight: bold; font-size: 18px; color: #667eea;">@(Math.Round(Model.RouteData.TotalDistance / 1000, 1)) km</div>
+                            <div style="font-size: 11px; color: #666;">Total Distance</div>
+                        </div>
+                        <div style="text-align: center; padding: 10px; background: white; border-radius: 6px;">
+                            <div style="font-weight: bold; font-size: 18px; color: #667eea;">@(Math.Round(Model.RouteData.TotalDuration / 60, 0)) min</div>
+                            <div style="font-size: 11px; color: #666;">Total Time</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <h4 style="margin-bottom: 10px; font-size: 14px;">Stop Order:</h4>
+                        <ol style="padding-left: 20px; font-size: 12px;">
+                            @foreach (var point in Model.RouteData.Waypoints.OrderBy(p => p.Order))
+                            {
+                                <li style="margin-bottom: 5px;">
+                                    <strong>@point.Name</strong>
+                                    <span style="color: #666; font-size: 11px;">
+                                        (@point.Latitude.ToString("F4"), @point.Longitude.ToString("F4"))
+                                    </span>
+                                </li>
+                            }
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</body>
+</html>
+
+@functions {
+    public class ScheduleItemViewModel
+    {
+        public int Order { get; set; }
+        public string Time { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Duration { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+}

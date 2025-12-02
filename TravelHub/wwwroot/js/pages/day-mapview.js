@@ -11,59 +11,245 @@ let routeInfoWindow;
 let draggedItem = null;
 let isUpdating = false;
 
+// Variables for PDF export
+let directionsService;
+let directionsRenderer;
+let markers = [];
+let routePath = null;
+//let directionsResult = null;
+//let totalRouteDistance = 0;
+//let totalRouteDuration = 0;
+
 async function initMap() {
-    // Request needed libraries.
-    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+    console.log('initMap() called');
 
-    // Initialize the map.
-    map = new google.maps.Map(document.getElementById("map"), {
-        center: center,
-        mapId: 'DEMO_MAP_ID'
-    });
-    marker = new AdvancedMarkerElement({
-        map,
-    });
-    infoWindow = new google.maps.InfoWindow({});
-    routeInfoWindow = new google.maps.InfoWindow({});
-
-    calibrateMap(map, points, center);
-
-    points.forEach((point, i) => {
-        let coords = { lat: parseFloat(point.latitude), lng: parseFloat(point.longitude) }
-
-        if (isGroup) {
-            var iconImage = new google.maps.marker.PinElement({});
-        } else {
-            point.glyphLabel = document.createElement("div");
-            point.glyphLabel.style = 'color: white; font-size: 17px;';
-            point.glyphLabel.innerText = i + 1;
-            var iconImage = new google.maps.marker.PinElement({
-                glyph: point.glyphLabel,
-            });
+    try {
+        // Sprawdź czy Google Maps API jest załadowane
+        if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+            console.error('Google Maps API not loaded');
+            throw new Error('Google Maps API not loaded');
         }
-        const marker = new AdvancedMarkerElement({
-            position: coords,
-            map: map,
-            title: point.name,
-            content: iconImage.element,
+
+        console.log('Google Maps API version:', google.maps.version);
+
+        // Request needed libraries.
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+        console.log('AdvancedMarkerElement loaded');
+
+        // Sprawdź czy kontener mapy istnieje
+        const mapElement = document.getElementById("map");
+        if (!mapElement) {
+            console.error('Map element not found');
+            throw new Error('Map element not found');
+        }
+
+        // Initialize the map.
+        map = new google.maps.Map(mapElement, {
+            center: center,
+            zoom: 12,
+            mapTypeControl: true,
+            streetViewControl: false,
+            fullscreenControl: true,
+            mapId: 'DEMO_MAP_ID'
         });
+        console.log('Map initialized');
 
-        let cardId = `spot-${point.id}`;
+        // Oznacz mapę jako załadowaną
+        mapElement.classList.add('loaded');
 
-        if (i == 0 && previousAccommodation?.id == point.id) {
-            cardId = cardId + "-prev";
-        } else if (i == points.length - 1 && nextAccommodation?.id == point.id) {
-            cardId = cardId + "-next";
+        // Initialize directions service and renderer
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true,
+            preserveViewport: false,
+            polylineOptions: {
+                strokeColor: "#667eea",
+                strokeOpacity: 0.8,
+                strokeWeight: 5
+            }
+        });
+        console.log('Directions service initialized');
+
+        marker = new AdvancedMarkerElement({
+            map,
+        });
+        infoWindow = new google.maps.InfoWindow({});
+        routeInfoWindow = new google.maps.InfoWindow({});
+
+        calibrateMap(map, points, center);
+        console.log('Map calibrated');
+
+        // Initialize markers
+        markers = []; // Reset markers array
+        points.forEach((point, i) => {
+            let coords = { lat: parseFloat(point.latitude), lng: parseFloat(point.longitude) }
+
+            let iconImage;
+            if (isGroup) {
+                iconImage = new google.maps.marker.PinElement({
+                    background: '#dc3545',
+                    borderColor: '#b02a37',
+                    glyphColor: 'white'
+                });
+            } else {
+                iconImage = new google.maps.marker.PinElement({
+                    glyphText: (i + 1).toString(),
+                    glyphColor: 'white',
+                    background: '#dc3545',
+                    borderColor: '#b02a37',
+                });
+            }
+
+            const marker = new AdvancedMarkerElement({
+                position: coords,
+                map: map,
+                title: point.name,
+                content: iconImage.element,
+            });
+
+            let cardId = `spot-${point.id}`;
+
+            if (i == 0 && previousAccommodation?.id == point.id) {
+                cardId = cardId + "-prev";
+                // Dla poprzedniego zakwaterowania użyj żółtego koloru
+                const accommodationIcon = new google.maps.marker.PinElement({
+                    background: '#ffc107', // Żółty
+                    borderColor: '#d39e00',
+                    glyphColor: '#212529'
+                });
+                marker.content = accommodationIcon.element;
+            } else if (i == points.length - 1 && nextAccommodation?.id == point.id) {
+                cardId = cardId + "-next";
+                // Dla następnego zakwaterowania użyj pomarańczowego koloru
+                const accommodationIcon = new google.maps.marker.PinElement({
+                    background: '#fd7e14', // Pomarańczowy
+                    borderColor: '#d56712',
+                    glyphColor: 'white'
+                });
+                marker.content = accommodationIcon.element;
+            }
+
+            bindActivityListElems(map, cardId, marker, infoWindow);
+
+            // Store marker for PDF export
+            markers.push(marker);
+
+            updateRouteInfoForPdf(getCurrentTravelMode(), false);
+        });
+        console.log('Markers initialized:', markers.length);
+
+        // W initMap() - zmień obsługę przycisku:
+        let routeButton = document.getElementById("route-walk-btn");
+        if (routeButton) {
+            routeButton.addEventListener('click', async (event) => {
+                console.log('=== Find Route button clicked ===');
+
+                // Pobierz aktualny tryb podróży z globalnych ustawień
+                const travelMode = getCurrentTravelMode();
+                console.log('Using travel mode:', travelMode);
+
+                // Zmień tekst przycisku podczas ładowania
+                const originalText = routeButton.innerHTML;
+                routeButton.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>Calculating ${getTravelModeText(travelMode)} Route...`;
+                routeButton.disabled = true;
+
+                try {
+                    // 1. Wyczyść poprzednie trasy
+                    clearPolylines();
+                    clearTravelCards();
+                    clearWarnings();
+
+                    // 2. Wyznacz trasę dla widoku szczegółowego (stara logika)
+                    let startTime = getStartDatetime();
+                    let travelModes = getTravelModes();
+                    let segments = getModalSegments(points, travelModes);
+                    let legs = [];
+
+                    for await (const s of segments) {
+                        let route = await fetchBaseRoute(s);
+                        if (!route || route.routes.length === 0) {
+                            throw new Error('Unable to compute route for segment');
+                        }
+                        let segmentLegs = route.routes[0].legs;
+                        segmentLegs.forEach((l, i) => {
+                            l.desiredTravelMode = s.travelModes[i];
+                        });
+                        legs.push(...segmentLegs);
+                    }
+
+                    legs = await processLegs(legs, startTime);
+                    await renderRoute(legs);
+
+                    let endTime = activities[activities.length - 1].endTime;
+                    showRouteSummary(startTime, endTime);
+                    validatePlan(activities, startTime, endTime);
+
+                    // 3. Wyznacz trasę dla PDF z aktualnym trybem
+                    console.log('Calculating PDF route with mode:', travelMode);
+                    await calculateRouteForPdf(travelMode);
+
+                    console.log('Route calculation completed successfully');
+
+                } catch (error) {
+                    console.error('Error calculating route:', error);
+
+                    // Pokaż szczegółowy błąd
+                    let errorMessage = 'Error calculating route';
+                    if (error.message.includes('ZERO_RESULTS')) {
+                        errorMessage = 'No route found between these points. Try different travel mode.';
+                    } else if (error.message.includes('OVER_QUERY_LIMIT')) {
+                        errorMessage = 'API limit exceeded. Please try again later.';
+                    } else {
+                        errorMessage = error.message;
+                    }
+
+                    alert(errorMessage);
+
+                } finally {
+                    // Przywróć przycisk
+                    routeButton.innerHTML = originalText;
+                    routeButton.disabled = false;
+                }
+            });
+        } else {
+            console.warn('Route button not found');
         }
 
-        bindActivityListElems(map, cardId, marker, infoWindow);
-    });
+        bindGlobalTravelModeSelector();
+        hideLastTravelCard();
 
-    let walkRouteBtn = document.getElementById("route-walk-btn");
-    walkRouteBtn.addEventListener('click', (event) => { showRoute() });
+        // Initialize buttons for PDF export
+        setupPdfExportButton();
 
-    bindGlobalTravelModeSelector();
-    hideLastTravelCard();
+        console.log('initMap() completed successfully');
+
+    } catch (error) {
+        console.error('Error in initMap():', error);
+        // Pokaż błąd użytkownikowi
+        const mapElement = document.getElementById("map");
+        if (mapElement) {
+            mapElement.innerHTML = `
+                <div class="alert alert-danger" style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                    <div>
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <h4>Error loading map</h4>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary mt-2" onclick="window.location.reload()">Reload Page</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+// Funkcja pomocnicza do tekstu trybu
+function getTravelModeText(mode) {
+    switch (mode.toUpperCase()) {
+        case 'DRIVING': return 'Driving';
+        case 'TRANSIT': return 'Transit';
+        default: return 'Walking';
+    }
 }
 
 function bindGlobalTravelModeSelector() {
@@ -81,12 +267,41 @@ function bindGlobalTravelModeSelector() {
     });
 }
 
-function setAllTravelModes(mode) {
-    document
-        .querySelectorAll('.travel-mode-radio-button[value="' + mode + '"]')
-        .forEach(radio => {
-            radio.checked = true;
-        });
+function setupPdfExportButton() {
+    const exportBtn = document.getElementById('exportPdfBtn');
+    if (!exportBtn) {
+        console.warn('Export PDF button not found');
+        return;
+    }
+
+    // Usuń istniejące event listenery
+    const newExportBtn = exportBtn.cloneNode(true);
+    exportBtn.parentNode.replaceChild(newExportBtn, exportBtn);
+
+    // Dodaj nowy event listener
+    newExportBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+
+        const routeData = window.collectRouteDataForExport();
+        console.log('Export clicked, route data:', routeData);
+
+        // Użyj bezpośredniego URL zamiast @Url.Action
+        let url = `/Days/ExportDayPdf/${dayId}`;
+
+        if (routeData) {
+            url += `?routeData=${encodeURIComponent(routeData)}`;
+            console.log('Opening URL:', url);
+            window.open(url, '_blank');
+        } else {
+            // Jeśli nie ma danych trasy, eksportuj tylko mapę z punktami
+            if (confirm('No route calculated. Export map with points only?')) {
+                console.log('Opening URL (no route):', url);
+                window.open(url, '_blank');
+            }
+        }
+    });
+
+    console.log('PDF export button setup complete');
 }
 
 //-------------------------------
@@ -94,7 +309,12 @@ function setAllTravelModes(mode) {
 //-------------------------------
 
 async function showRoute() {
-    if (points.length < 2) return;
+    console.log('=== showRoute() called ===');
+
+    if (points.length < 2) {
+        alert('Need at least 2 points to calculate a route');
+        return;
+    }
 
     let startTime = getStartDatetime();
     let travelModes = getTravelModes();
@@ -102,6 +322,7 @@ async function showRoute() {
     let segments = getModalSegments(points, travelModes);
     let legs = [];
 
+    // 1. Wyznacz trasę dla szczegółowego widoku (stara logika)
     for await (const s of segments) {
         let route = await fetchBaseRoute(s);
         if (!route || route.routes.length === 0) {
@@ -126,6 +347,394 @@ async function showRoute() {
     let endTime = activities[activities.length - 1].endTime;
     showRouteSummary(startTime, endTime);
     validatePlan(activities, startTime, endTime);
+
+    // 2. Teraz wyznacz trasę dla PDF z aktualnym trybem podróży
+    await calculateRouteForPdf(travelModes[0] || 'WALKING'); // Użyj pierwszego trybu lub WALKING
+}
+
+// Nowa funkcja do wyznaczania trasy dla PDF
+async function calculateRouteForPdf(travelMode = null) {
+    // Jeśli nie podano trybu, użyj aktualnego
+    if (!travelMode) {
+        travelMode = getCurrentTravelMode();
+    }
+
+    console.log('=== calculateRouteForPdf called with mode:', travelMode, '===');
+
+    if (markers.length < 2) {
+        console.log('Not enough markers for route calculation');
+        updateRouteInfoForPdf(travelMode, false);
+        return null;
+    }
+
+    try {
+        // Konwertuj na Google TravelMode
+        const googleTravelMode = convertToGoogleTravelMode(travelMode);
+        console.log('Converted travel mode:', googleTravelMode);
+
+        const request = {
+            origin: markers[0].position,
+            destination: markers[markers.length - 1].position,
+            waypoints: markers.length > 2 ? markers.slice(1, -1).map(marker => ({
+                location: marker.position,
+                stopover: true
+            })) : [],
+            travelMode: googleTravelMode,
+            optimizeWaypoints: true,
+            provideRouteAlternatives: false
+        };
+
+        // Dla transportu publicznego dodaj czas
+        if (googleTravelMode === google.maps.TravelMode.TRANSIT) {
+            const startTime = getStartDatetime();
+            request.transitOptions = {
+                departureTime: startTime.toJSDate()
+            };
+            console.log('Added transit departure time');
+        }
+
+        console.log('Route request:', request);
+
+        // Wyznacz trasę
+        const result = await new Promise((resolve, reject) => {
+            directionsService.route(request, (result, status) => {
+                console.log('Directions service response:', status);
+                if (status === 'OK') {
+                    resolve(result);
+                } else {
+                    reject(new Error(`Directions service failed: ${status}`));
+                }
+            });
+        });
+
+        // Zapisz wynik
+        directionsResult = result;
+
+        // Oblicz sumy
+        if (result.routes && result.routes[0] && result.routes[0].legs) {
+            totalRouteDistance = result.routes[0].legs.reduce((sum, leg) => sum + (leg.distance?.value || 0), 0);
+            totalRouteDuration = result.routes[0].legs.reduce((sum, leg) => sum + (leg.duration?.value || 0), 0);
+
+            console.log('Route calculated:', {
+                distance: totalRouteDistance,
+                duration: totalRouteDuration,
+                legs: result.routes[0].legs.length
+            });
+
+            // Wyświetl trasę na mapie (niebieska linia)
+            directionsRenderer.setDirections(result);
+
+            // Dopasuj mapę do całej trasy
+            fitMapToRoute(result.routes[0]);
+
+            // Zaktualizuj informacje dla PDF
+            updateRouteInfoForPdf(travelMode, true);
+
+            return result;
+        } else {
+            throw new Error('Invalid route result structure');
+        }
+
+    } catch (error) {
+        console.error('Error calculating PDF route:', error);
+
+        // Fallback: spróbuj z WALKING jeśli obecny tryb nie działa
+        if (travelMode !== 'WALKING') {
+            console.log('Trying fallback with WALKING mode');
+
+            // Pokaż warning
+            displayWarning(`Could not calculate ${travelMode} route. Using walking as fallback.`);
+
+            // Spróbuj z WALKING
+            try {
+                return await calculateRouteForPdf('WALKING');
+            } catch (fallbackError) {
+                console.error('Fallback also failed:', fallbackError);
+            }
+        }
+
+        // Jeśli wszystko zawiedzie, zaktualizuj info bez trasy
+        updateRouteInfoForPdf(travelMode, false);
+        return null;
+    }
+}
+
+// Funkcja konwersji trybu podróży
+function convertToGoogleTravelMode(mode) {
+    switch (mode.toUpperCase()) {
+        case 'DRIVING':
+            return google.maps.TravelMode.DRIVING;
+        case 'TRANSIT':
+            return google.maps.TravelMode.TRANSIT;
+        default:
+            return google.maps.TravelMode.WALKING;
+    }
+}
+
+function calculateAndDisplayFullRoute() {
+    if (points.length < 2) return;
+
+    const travelModes = getTravelModes();
+
+    // Użyj position z AdvancedMarkerElement
+    const request = {
+        origin: markers[0].position, // Zmienione z getPosition() na position
+        destination: markers[markers.length - 1].position, // Zmienione z getPosition() na position
+        waypoints: markers.slice(1, -1).map(marker => ({
+            location: marker.position, // Zmienione z getPosition() na position
+            stopover: true
+        })),
+        travelMode: google.maps.TravelMode.WALKING, // Default mode for full route
+        optimizeWaypoints: false,
+        provideRouteAlternatives: false
+    };
+
+    console.log('Calculating full route with request:', request);
+
+    directionsService.route(request, (result, status) => {
+        if (status === 'OK') {
+            directionsResult = result;
+
+            // Calculate totals
+            totalRouteDistance = 0;
+            totalRouteDuration = 0;
+
+            result.routes[0].legs.forEach(leg => {
+                totalRouteDistance += leg.distance.value;
+                totalRouteDuration += leg.duration.value;
+            });
+
+            console.log('Route calculated:', {
+                distance: totalRouteDistance,
+                duration: totalRouteDuration,
+                legs: result.routes[0].legs.length
+            });
+
+            // Display route with a different style
+            directionsRenderer.setDirections(result);
+            routePath = directionsRenderer.getDirections();
+
+            // Fit map to show entire route
+            fitMapToRoute(result.routes[0]);
+
+            // Update route info for PDF
+            updateRouteInfoForPdf();
+        } else {
+            console.error('Directions request failed:', status);
+        }
+    });
+}
+
+function fitMapToRoute(route) {
+    const bounds = new google.maps.LatLngBounds();
+
+    // Extend bounds to include all route points
+    route.legs.forEach(leg => {
+        leg.steps.forEach(step => {
+            bounds.extend(step.start_location);
+            bounds.extend(step.end_location);
+        });
+    });
+
+    // Also include all markers (użyj position zamiast getPosition())
+    markers.forEach(marker => {
+        bounds.extend(marker.position); // Zmienione z getPosition() na position
+    });
+
+    map.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 15
+    });
+}
+
+function updateRouteInfoForPdf(travelMode = null, hasRoute = false) {
+    // Jeśli nie podano trybu, pobierz aktualny
+    if (!travelMode) {
+        travelMode = getCurrentTravelMode();
+    }
+
+    console.log('updateRouteInfoForPdf:', { mode: travelMode, hasRoute: hasRoute });
+
+    // Store route data for PDF export
+    window.routeDataForExport = window.collectRouteDataForExport();
+
+    console.log('Route data for export available:', !!window.routeDataForExport);
+
+    // Pobierz lub utwórz kontener informacji
+    let routeInfo = document.getElementById('route-info');
+    if (!routeInfo) {
+        routeInfo = document.createElement('div');
+        routeInfo.id = 'route-info';
+        routeInfo.className = 'alert alert-info mt-3';
+        document.querySelector('.card-body').appendChild(routeInfo);
+    }
+
+    const modeInfo = getTravelModeInfo(travelMode);
+
+    let html = `<strong><i class="fas fa-route me-2"></i>`;
+
+    if (hasRoute) {
+        // Formatuj dystans i czas
+        const distanceKm = totalRouteDistance ? (totalRouteDistance / 1000).toFixed(1) : '0';
+        const durationMin = totalRouteDuration ? Math.round(totalRouteDuration / 60) : 0;
+
+        // Format czasu
+        const hours = Math.floor(durationMin / 60);
+        const minutes = durationMin % 60;
+        let durationFormatted = '';
+
+        if (hours > 0) {
+            durationFormatted = `${hours}h ${minutes}m`;
+        } else {
+            durationFormatted = `${minutes}m`;
+        }
+
+        html += `Route Calculated for PDF</strong>
+                <div class="mt-2">
+                    <div><i class="fas fa-${modeInfo.icon} me-2"></i>Travel Mode: ${modeInfo.text}</div>
+                    <div><i class="fas fa-road me-2"></i>Total Distance: ${distanceKm} km</div>
+                    <div><i class="fas fa-clock me-2"></i>Total Time: ${durationFormatted} (${durationMin} minutes)</div>
+                    <div><i class="fas fa-map-marker-alt me-2"></i>Stops: ${markers.length}</div>
+                </div>`;
+
+        // Dodaj ostrzeżenie jeśli dystans jest nierealny dla trybu
+        if (parseFloat(distanceKm) > 100 && travelMode === 'WALKING') {
+            html += `<div class="alert alert-warning mt-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Very long distance for walking. Consider changing to driving mode.
+                     </div>`;
+        }
+
+        if (window.routeDataForExport) {
+            html += `<div class="alert alert-success mt-2">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Route data is ready for PDF export. Click the "Export to PDF" button.
+                     </div>`;
+        }
+
+    } else {
+        html += `No Route Calculated</strong>
+                <div class="mt-2">
+                    <div><i class="fas fa-${modeInfo.icon} me-2"></i>Selected Mode: ${modeInfo.text}</div>
+                    <div><i class="fas fa-map-marker-alt me-2"></i>Stops: ${markers.length}</div>
+                    <div class="alert alert-warning mt-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No route calculated. Click "Find Route" to calculate a route for PDF export.
+                    </div>
+                </div>`;
+    }
+
+    routeInfo.innerHTML = html;
+}
+
+// Funkcja pomocnicza dla informacji o trybie
+function getTravelModeInfo(mode) {
+    switch (mode.toUpperCase()) {
+        case 'DRIVING':
+            return { icon: 'car', text: 'Driving' };
+        case 'TRANSIT':
+            return { icon: 'bus', text: 'Public Transit' };
+        default:
+            return { icon: 'walking', text: 'Walking' };
+    }
+}
+
+// Dodaj funkcję pomocniczą do pobrania aktualnego trybu
+function getCurrentTravelMode() {
+    const checkedRadio = document.querySelector('input[name="global-travel-mode"]:checked');
+    return checkedRadio ? checkedRadio.value : 'WALKING';
+}
+
+// Function to collect route data for PDF export
+window.collectRouteDataForExport = function () {
+    console.log('=== collectRouteDataForExport called ===');
+
+    try {
+        // Sprawdź czy mamy directionsResult
+        if (!directionsResult || !directionsResult.routes || directionsResult.routes.length === 0) {
+            console.log('No directions result available');
+
+            // Spróbuj stworzyć podstawowe dane z markerów
+            if (markers && markers.length > 0) {
+                const basicData = {
+                    Waypoints: markers.map((marker, index) => ({
+                        Latitude: marker.position.lat,
+                        Longitude: marker.position.lng,
+                        Name: marker.title || `Point ${index + 1}`,
+                        Order: index + 1
+                    })),
+                    Segments: [],
+                    TotalDistance: totalRouteDistance || 0,
+                    TotalDuration: totalRouteDuration || 0,
+                    HasRoute: false
+                };
+                console.log('Returning basic data with', basicData.Waypoints.length, 'waypoints');
+                return JSON.stringify(basicData);
+            }
+
+            return null;
+        }
+
+        const route = directionsResult.routes[0];
+
+        // Sprawdź czy trasa ma legs
+        if (!route.legs || route.legs.length === 0) {
+            console.log('Route has no legs');
+            return null;
+        }
+
+        const routeData = {
+            Waypoints: markers.map((marker, index) => ({
+                Latitude: marker.position.lat,
+                Longitude: marker.position.lng,
+                Name: marker.title || `Point ${index + 1}`,
+                Order: index + 1
+            })),
+            Segments: route.legs.map((leg, index) => ({
+                From: index,
+                To: index + 1,
+                Distance: leg.distance?.value || 0,
+                Duration: leg.duration?.value || 0,
+                Polyline: leg.steps ? encodePolyline(leg.steps) : ''
+            })),
+            TotalDistance: totalRouteDistance || 0,
+            TotalDuration: totalRouteDuration || 0,
+            HasRoute: true,
+            TravelMode: getCurrentTravelMode()
+        };
+
+        console.log('Successfully collected route data:', {
+            waypoints: routeData.Waypoints.length,
+            segments: routeData.Segments.length,
+            distance: routeData.TotalDistance,
+            duration: routeData.TotalDuration,
+            mode: routeData.TravelMode
+        });
+
+        return JSON.stringify(routeData);
+
+    } catch (error) {
+        console.error('Error in collectRouteDataForExport:', error);
+        return null;
+    }
+};
+
+function encodePolyline(steps) {
+    // Simplified polyline encoding
+    const points = [];
+    steps.forEach(step => {
+        points.push({
+            lat: step.start_location.lat(),
+            lng: step.start_location.lng()
+        });
+        points.push({
+            lat: step.end_location.lat(),
+            lng: step.end_location.lng()
+        });
+    });
+
+    // Return a simple string representation
+    return points.map(p => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`).join('|');
 }
 
 function getStartDatetime() {
@@ -143,6 +752,7 @@ function getTravelModes() {
             return checked ? checked.value : "WALKING";
         });
 }
+
 function getModalSegments(points, travelModes) {
     segments = []
     let segment = { points: [points[0]], travelModes: [] };
@@ -288,14 +898,16 @@ function validatePlan(activities, startTime, endTime) {
 function showRouteSummary(startTime, endTime) {
     routeInfoWindow.close();
 
-    const midPolyline = polylines[Math.round((polylines.length - 1) / 2)];
-    const path = midPolyline.getPath().getArray();
-    const pos = path[Math.round((path.length - 1) / 2)];
+    if (polylines.length > 0) {
+        const midPolyline = polylines[Math.round((polylines.length - 1) / 2)];
+        const path = midPolyline.getPath().getArray();
+        const pos = path[Math.round((path.length - 1) / 2)];
 
-    const duration = endTime.diff(startTime, ["hours", "minutes"]);
-    routeInfoWindow.setContent(durationString(duration));
-    routeInfoWindow.setPosition(pos);
-    routeInfoWindow.open(map);
+        const duration = endTime.diff(startTime, ["hours", "minutes"]);
+        routeInfoWindow.setContent(`Total travel time: ${durationString(duration)}`);
+        routeInfoWindow.setPosition(pos);
+        routeInfoWindow.open(map);
+    }
 }
 
 //----------------------------
@@ -308,9 +920,11 @@ function getTransportDuration(point, leg) {
     }
     return leg.durationMillis;
 }
+
 function hasFixedDuration(point) {
     return Object.hasOwn(point, 'fixedDurationFrom') && point.fixedDurationFrom != null;
 }
+
 function addActivityDuration(time, activity) {
     if (activity.startTime > 0) {
         //Not sure about this
@@ -412,6 +1026,9 @@ function displayWarning(message) {
 function clearPolylines() {
     polylines.forEach((polyline) => { polyline.setMap(null) });
     polylines = [];
+
+    // Also clear directions renderer
+    directionsRenderer.setDirections({ routes: [] });
 }
 
 function clearTravelCards() {
@@ -836,3 +1453,6 @@ function hideLastTravelCard() {
     if (!finalTravelDiv) return;
     finalTravelDiv.hidden = true;
 }
+
+// Initialize when Google Maps API is loaded
+//window.initMap = initMap;

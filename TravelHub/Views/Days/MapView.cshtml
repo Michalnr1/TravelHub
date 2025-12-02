@@ -281,6 +281,9 @@
         </div>
     </div>
     <div class="mt-4 d-flex flex-wrap gap-2">
+        <button id="exportPdfBtn" class="btn btn-primary">
+            <i class="fas fa-file-pdf"></i> Eksportuj do PDF
+        </button>
         <a asp-controller="Days" asp-action="Details" asp-route-id="@Model.Id" asp-route-source="@(isPublicView ? "public" : "")" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Back to Day 
         </a>
@@ -295,34 +298,172 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
-    <script async
-            src="https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places&callback=initMap">
-    </script>
-
+    <!-- Najpierw załaduj luxon.js i inne biblioteki -->
     <script src="~/lib/luxon/luxon.js"></script>
-
     <script src="~/js/map-functions.js"></script>
-
     <script src="~/js/route-functions.js"></script>
 
-    <!--Get needed variables from server -->
-    <script>     
-        let points = JSON.parse('@Json.Serialize(Model.Spots)');
-        //Get user defined route durations
-        fillFixedDurations(points);
-        let otherActivities = JSON.parse('@Json.Serialize(Model.Activities)')
-        let activities = JSON.parse('@Json.Serialize(allActivities)');
-        let previousAccommodation = JSON.parse('@Json.Serialize(Model.PreviousAccommodation)');
-        let nextAccommodation = JSON.parse('@Json.Serialize(Model.NextAccommodation)');
-        let center = { lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) };
-        let dayDate = luxon.DateTime.fromISO(@Json.Serialize(Model.Date));
-        let dayId = '@Html.Raw(Model.Id)';
-        let isGroup = '@Html.Raw(Model.IsGroup)' == 'True';
-        let routeOptimizationUrl = '@Url.Action("RouteOptimization", "Days")';
-        let updateActivityOrderUrl = '@Url.Action("UpdateActivityOrder", "Days")';
+    <!-- Ustaw zmienne przed załadowaniem day-mapview.js -->
+    <script>
+        // Deklaruj zmienne jako globalne
+        window.points = JSON.parse('@Html.Raw(Json.Serialize(Model.Spots))');
+        window.otherActivities = JSON.parse('@Html.Raw(Json.Serialize(Model.Activities))');
+        window.activities = JSON.parse('@Html.Raw(Json.Serialize(allActivities))');
+        window.previousAccommodation = JSON.parse('@Html.Raw(Json.Serialize(Model.PreviousAccommodation))');
+        window.nextAccommodation = JSON.parse('@Html.Raw(Json.Serialize(Model.NextAccommodation))');
+        window.center = { 
+            lat: parseFloat("@Html.Raw(startLat)".replace(',', '.')), 
+            lng: parseFloat("@Html.Raw(startLng)".replace(',', '.')) 
+        };
+        window.dayDate = luxon.DateTime.fromISO('@Html.Raw(Model.Date.ToString("yyyy-MM-dd"))');
+        window.dayId = @Model.Id;
+        window.isGroup = @Json.Serialize(isGroup);
+        window.routeOptimizationUrl = '@Url.Action("RouteOptimization", "Days")';
+        window.updateActivityOrderUrl = '@Url.Action("UpdateActivityOrder", "Days")';
+        
+        // Global variables for map functions
+        window.totalRouteDistance = 0;
+        window.totalRouteDuration = 0;
+        window.directionsResult = null;
+        
+        // Get user defined route durations
+        if (window.fillFixedDurations && window.points) {
+            window.fillFixedDurations(window.points);
+        }
     </script>
 
+    <!-- Teraz załaduj day-mapview.js -->
     <script src="~/js/pages/day-mapview.js"></script>
+
+    <!-- Na końcu załaduj Google Maps API -->
+    <script>
+        function loadGoogleMapsAPI() {
+            return new Promise((resolve, reject) => {
+                // Sprawdź czy API jest już załadowane
+                if (window.google && window.google.maps) {
+                    console.log('Google Maps API already loaded');
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=@apiKey&libraries=places,geometry,marker,routes&callback=initGoogleMaps`;
+                script.async = true;
+                script.defer = true;
+                
+                script.onload = function() {
+                    console.log('Google Maps API loaded successfully');
+                    resolve();
+                };
+                
+                script.onerror = function(error) {
+                    console.error('Failed to load Google Maps API:', error);
+                    reject(error);
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        // Funkcja callback dla Google Maps
+        window.initGoogleMaps = function() {
+            console.log('Google Maps API callback called');
+            
+            // Poczekaj chwilę na pełne załadowanie
+            setTimeout(function() {
+                if (typeof initMap === 'function') {
+                    console.log('Calling initMap()');
+                    initMap();
+                } else {
+                    console.error('initMap function not found');
+                    // Spróbuj ponownie za 500ms
+                    setTimeout(function() {
+                        if (typeof initMap === 'function') {
+                            initMap();
+                        } else {
+                            console.error('initMap still not found after retry');
+                        }
+                    }, 500);
+                }
+            }, 100);
+        };
+
+        function showMapError() {
+            const mapContainer = document.getElementById('map');
+            if (mapContainer) {
+                mapContainer.innerHTML = `
+                    <div class="alert alert-danger" style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                        <div>
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                            <h4>Failed to load map</h4>
+                            <p>Please check your internet connection and try again.</p>
+                            <button class="btn btn-primary mt-2" onclick="window.location.reload()">Reload Page</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Główna funkcja inicjalizacji
+        async function initializePage() {
+            try {
+                console.log('Starting page initialization...');
+                
+                // Poczekaj na załadowanie DOM
+                if (document.readyState === 'loading') {
+                    await new Promise(resolve => {
+                        document.addEventListener('DOMContentLoaded', resolve);
+                    });
+                }
+                
+                console.log('DOM loaded, loading Google Maps API...');
+                await loadGoogleMapsAPI();
+                
+            } catch (error) {
+                console.error('Error during page initialization:', error);
+                showMapError();
+            }
+        }
+
+        // Rozpocznij inicjalizację
+        initializePage();
+
+        // Function to collect route data for PDF export
+        window.collectRouteDataForExport = function() {
+            // This function will be overwritten by day-mapview.js
+            console.log('Default collectRouteDataForExport called');
+            return null;
+        };
+
+        // Przycisk eksportu PDF
+        document.addEventListener('DOMContentLoaded', function() {
+            const exportBtn = document.getElementById('exportPdfBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    const routeData = window.collectRouteDataForExport();
+                    let url = '@Url.Action("ExportDayPdf", "Days", new { id = Model.Id })';
+                    
+                    console.log('Export PDF clicked, route data:', routeData);
+                    
+                    if (routeData) {
+                        url += `?routeData=${encodeURIComponent(routeData)}`;
+                        window.open(url, '_blank');
+                    } else {
+                        alert('Please calculate a route first using the "Find Route" button before exporting to PDF.');
+                    }
+                });
+            }
+            
+            // Testowa funkcja do debugowania
+            window.testMap = function() {
+                console.log('Testing map...');
+                console.log('Google defined:', typeof google !== 'undefined');
+                console.log('Google.maps defined:', typeof google !== 'undefined' && typeof google.maps !== 'undefined');
+                console.log('initMap defined:', typeof initMap === 'function');
+                console.log('Map container:', document.getElementById('map'));
+            };
+        });
+    </script>
 
     <style>
         .list-group-item {
@@ -399,5 +540,30 @@
             color: #842029;
         }
 
+        #map {
+            min-height: 400px;
+            background: linear-gradient(45deg, #f8f9fa 25%, #e9ecef 25%, #e9ecef 50%, #f8f9fa 50%, #f8f9fa 75%, #e9ecef 75%);
+            background-size: 40px 40px;
+            animation: loadingAnimation 1s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+        }
+        
+        #map::before {
+            content: "Loading map...";
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        #map.loaded::before {
+            content: "";
+        }
+        
+        #map.loaded {
+            background: none;
+            animation: none;
+        }
     </style>
 }
