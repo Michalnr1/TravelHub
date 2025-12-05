@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using TravelHub.Domain.Entities;
 
 // Ensure you have a 'using' statement for the namespace where your entities are located.
@@ -32,6 +33,7 @@ public class ApplicationDbContext : IdentityDbContext<Person>
     public DbSet<TripParticipant> TripParticipants { get; set; } 
     public DbSet<Blog> Blogs { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
+    public DbSet<FlightInfo> FlightInfos { get; set; }
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -742,6 +744,120 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // Indexes for better performance
             entity.HasIndex(b => b.OwnerId);
             entity.HasIndex(b => b.TripId).IsUnique();
+        });
+
+        // --- FlightInfo Configuration ---
+        builder.Entity<FlightInfo>(entity =>
+        {
+            entity.HasKey(f => f.Id);
+
+            entity.Property(f => f.Id)
+                .ValueGeneratedOnAdd();
+
+            // Podstawowe właściwości
+            entity.Property(f => f.OriginAirportCode)
+                .HasMaxLength(10);
+
+            entity.Property(f => f.DestinationAirportCode)
+                .HasMaxLength(10);
+
+            entity.Property(f => f.DepartureTime)
+                .HasColumnType("datetime2");
+
+            entity.Property(f => f.ArrivalTime)
+                .HasColumnType("datetime2");
+
+            entity.Property(f => f.Duration)
+                .HasConversion(
+                    v => v.Ticks,
+                    v => TimeSpan.FromTicks(v));
+
+            entity.Property(f => f.Price)
+                .HasPrecision(18, 2);
+
+            entity.Property(f => f.Currency)
+                .HasMaxLength(3);
+
+            // Opcjonalne szczegóły
+            entity.Property(f => f.Airline)
+                .HasMaxLength(100);
+
+            entity.Property(f => f.BookingReference)
+                .HasMaxLength(50);
+
+            entity.Property(f => f.Notes)
+                .HasMaxLength(2000);
+
+            // Konwersja JSON dla FlightNumbers (List<string>)
+            entity.Property(f => f.FlightNumbers)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                    }),
+                    v => JsonSerializer.Deserialize<List<string>>(v, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    }) ?? new List<string>())
+                .HasColumnType("nvarchar(max)");
+
+            // Status
+            entity.Property(f => f.IsConfirmed)
+                .IsRequired();
+
+            entity.Property(f => f.AddedAt)
+                .HasColumnType("datetime2")
+                .IsRequired();
+
+            entity.Property(f => f.ConfirmedAt)
+                .HasColumnType("datetime2");
+
+            // Relacja do użytkownika
+            entity.Property(f => f.PersonId)
+                .IsRequired()
+                .HasMaxLength(450);
+
+            // Konwersja JSON dla segmentów
+            entity.Property(f => f.Segments)
+                .HasColumnName("SegmentsJson")
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                    }),
+                    v => JsonSerializer.Deserialize<List<FlightSegment>>(v, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    }) ?? new List<FlightSegment>())
+                .HasColumnType("nvarchar(max)");
+
+            // Relacje
+            // 1:N relationship with Trip (FlightInfo belongs to one Trip)
+            entity.HasOne(f => f.Trip)
+                .WithMany(t => t.FlightInfos) // Zakładając, że Trip ma kolekcję FlightInfos
+                .HasForeignKey(f => f.TripId)
+                .OnDelete(DeleteBehavior.ClientCascade);
+
+            // 1:1 relationship with Person (AddedBy)
+            entity.HasOne(f => f.AddedBy)
+                .WithMany(p => p.FlightInfos) // Zakładając, że Person ma kolekcję FlightInfos
+                .HasForeignKey(f => f.PersonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indeksy dla lepszej wydajności
+            entity.HasIndex(f => f.TripId);
+            entity.HasIndex(f => f.PersonId);
+            entity.HasIndex(f => f.DepartureTime);
+            entity.HasIndex(f => f.ArrivalTime);
+            entity.HasIndex(f => f.OriginAirportCode);
+            entity.HasIndex(f => f.DestinationAirportCode);
+            entity.HasIndex(f => f.IsConfirmed);
+            entity.HasIndex(f => f.BookingReference);
+
+            // Indeks złożony dla często używanych zapytań
+            entity.HasIndex(f => new { f.TripId, f.DepartureTime });
         });
     }
 }

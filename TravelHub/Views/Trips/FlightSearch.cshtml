@@ -378,9 +378,14 @@
                 </div>
 
                 <div class="flight-card-actions">
-                    <button class="select-btn" onclick="selectFlight(${index})">Select Flight</button>
+                    <button class="select-btn">Select Flight</button>
                 </div>
             `;
+
+            // Zaktualizuj przycisk select
+            card.querySelector('.select-btn').addEventListener('click', () => {
+                selectFlight(flight);
+            });
 
             return card;
         }
@@ -442,9 +447,58 @@
             return duration.replace('PT', '').toLowerCase();
         }
 
-        function selectFlight(index) {
-            alert(`Flight ${index + 1} selected!`);
-            // Here you would typically handle flight selection
+                function selectFlight(flight) {
+            if (confirm(`Add flight ${flight.originAirportCode} → ${flight.destinationAirportCode} to your trip?`)) {
+                showLoading(true);
+
+                // Przygotuj dane segmentów z pełnymi numerami lotów
+                const segments = flight.segments?.map(segment => ({
+                    originAirportCode: segment.originAirportCode,
+                    destinationAirportCode: segment.destinationAirportCode,
+                    departureTime: segment.departureTime,
+                    arrivalTime: segment.arrivalTime,
+                    duration: segment.duration,
+                    carrierCode: segment.carrierCode,
+                    flightNumber: segment.flightNumber
+                })) || [];
+
+                const flightData = {
+                    originAirportCode: flight.originAirportCode,
+                    destinationAirportCode: flight.destinationAirportCode,
+                    departureTime: flight.departureTime,
+                    arrivalTime: flight.arrivalTime,
+                    duration: flight.duration,
+                    totalPrice: flight.totalPrice,
+                    currency: flight.currency,
+                    carrierCode: flight.segments?.[0]?.carrierCode,
+                    segments: segments
+                };
+
+                fetch(`/Trips/SaveFlightFromSearch?tripId=${@Model.TripId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(flightData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    showLoading(false);
+                    if (data.success) {
+                        if (confirm(data.message + ' View saved flights?')) {
+                            window.location.href = data.redirectUrl;
+                        }
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    showLoading(false);
+                    console.error('Error:', error);
+                    alert('An error occurred while saving the flight.');
+                });
+            }
         }
 
         const inputFrom = document.getElementById("from");

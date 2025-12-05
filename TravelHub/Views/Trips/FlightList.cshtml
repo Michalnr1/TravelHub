@@ -1,0 +1,402 @@
+﻿@model TravelHub.Web.ViewModels.Trips.FlightListViewModel
+
+@{
+    ViewData["Title"] = "Saved Flights";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/flights.css" asp-append-version="true" />
+}
+
+<div class="flights-container">
+    <div class="flights-header">
+        <div class="header-actions">
+            <a href="@Url.Action("Details", "Trips", new { id = Model.TripId })" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Trip
+            </a>
+            <a href="@Url.Action("FlightSearch", "Trips", new { id = Model.TripId })" class="btn btn-primary">
+                <i class="fas fa-search"></i> Search More Flights
+            </a>
+            <a href="@Url.Action("AddFlight", "Trips", new { id = Model.TripId })" class="btn btn-success">
+                <i class="fas fa-plus"></i> Add Flight Manually
+            </a>
+        </div>
+
+        <h1>Saved Flights</h1>
+        <p class="trip-info">For trip: <strong>@Model.TripName</strong></p>
+    </div>
+
+    @if (!Model.Flights.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-plane"></i>
+            </div>
+            <h3>No flights saved yet</h3>
+            <p>Search for flights or add them manually to keep track of your travel plans.</p>
+            <div class="empty-actions">
+                <a href="@Url.Action("FlightSearch", "Trips", new { id = Model.TripId })" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Search Flights
+                </a>
+                <a href="@Url.Action("AddFlight", "Trips", new { id = Model.TripId })" class="btn btn-outline-secondary">
+                    <i class="fas fa-plus"></i> Add Manually
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="flights-stats">
+            <div class="stat-card">
+                <div class="stat-value">@Model.Flights.Count</div>
+                <div class="stat-label">Total Flights</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">@Model.Flights.Count(f => f.IsConfirmed)</div>
+                <div class="stat-label">Confirmed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">@Model.Flights.Sum(f => f.Price ?? 0).ToString("F2")</div>
+                <div class="stat-label">Total Cost</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">@Model.Flights.Sum(f => f.Segments.Count)</div>
+                <div class="stat-label">Total Segments</div>
+            </div>
+            @* <div class="stat-card">
+                <div class="stat-value">@Model.Flights.Sum(f => f.Connections.Count)</div>
+                <div class="stat-label">Total Connections</div>
+            </div> *@
+        </div>
+
+        <div class="flights-list">
+            @foreach (var flight in Model.Flights.OrderBy(f => f.DepartureTime))
+            {
+                <div class="flight-card @(flight.IsConfirmed ? "flight-confirmed" : "")">
+                    <div class="flight-card-header">
+                        <div class="flight-title">
+                            <h4>@flight.OriginAirportCode → @flight.DestinationAirportCode</h4>
+                            <span class="badge @(flight.IsConfirmed ? "badge-success" : "badge-warning")">
+                                @if (flight.IsConfirmed)
+                                {
+                                    <i class="fas fa-check-circle"></i> @:Confirmed
+                                }
+                                else
+                                {
+                                    <i class="fas fa-clock"></i> @:Not Confirmed
+                                }
+                            </span>
+                            @if (flight.HasMultipleSegments)
+                            {
+                                <span class="badge badge-info">
+                                    <i class="fas fa-exchange-alt"></i> @flight.StopsInfo
+                                    @if (flight.TotalConnectionTime.TotalHours > 0)
+                                    {
+                                        <span class="connection-time">
+                                            (+@flight.ConnectionDuration)
+                                        </span>
+                                    }
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-secondary">
+                                    <i class="fas fa-plane"></i> Direct
+                                </span>
+                            }
+                        </div>
+                        <div class="flight-actions">
+                            <button class="btn btn-sm btn-outline-secondary toggle-confirmation"
+                                    data-flight-id="@flight.Id"
+                                    data-is-confirmed="@flight.IsConfirmed.ToString().ToLower()">
+                                @if (flight.IsConfirmed)
+                                {
+                                    <i class="fas fa-times"></i>
+                                    @:Unconfirm
+                                }
+                                else
+                                {
+                                    <i class="fas fa-check"></i>
+                                    @:Confirm
+                                }
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger delete-flight"
+                                    data-flight-id="@flight.Id">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flight-card-body">
+                        <div class="route-section">
+                            <div class="airport-info">
+                                <div class="airport-code">@flight.OriginAirportCode</div>
+                                <div class="time">@flight.DepartureTimeShort</div>
+                                <div class="date">@flight.DepartureDate</div>
+                            </div>
+
+                            <div class="flight-details">
+                                <div class="duration">
+                                    <i class="fas fa-clock"></i>
+                                    <span>@flight.PureFlightDuration</span>
+                                    <small class="text-muted">flight time</small>
+                                </div>
+                                
+                                @if (flight.TotalConnectionTime.TotalHours > 0)
+                                {
+                                    <div class="connection-time-info">
+                                        <i class="fas fa-hourglass-half"></i>
+                                        <span>+@flight.ConnectionDuration in connections</span>
+                                    </div>
+                                }
+                                
+                                <div class="connection-line">
+                                    <div class="line"></div>
+                                    <div class="plane">✈️</div>
+                                </div>
+                                
+                                @if (!string.IsNullOrEmpty(flight.AllFlightNumbers))
+                                {
+                                    <div class="airline">
+                                        <i class="fas fa-plane"></i>
+                                        <span>@flight.AllFlightNumbers</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="airport-info">
+                                <div class="airport-code">@flight.DestinationAirportCode</div>
+                                <div class="time">@flight.ArrivalTimeShort</div>
+                                <div class="date">@flight.ArrivalDate</div>
+                            </div>
+                        </div>
+
+                        <!-- Segmenty lotu (jeśli są) -->
+                        @if (flight.HasMultipleSegments)
+                        {
+                            <div class="segments-section">
+                                <div class="segments-header">
+                                    <h5><i class="fas fa-route"></i> Flight Itinerary</h5>
+                                    <div class="segments-summary">
+                                        <span class="badge badge-light">
+                                            <i class="fas fa-plane"></i> @flight.Segments.Count segments
+                                        </span>
+                                        <span class="badge badge-light">
+                                            <i class="fas fa-clock"></i> @flight.PureFlightDuration flight time
+                                        </span>
+                                        @if (flight.TotalConnectionTime.TotalHours > 0)
+                                        {
+                                            <span class="badge badge-light">
+                                                <i class="fas fa-hourglass-half"></i> @flight.ConnectionDuration connections
+                                            </span>
+                                        }
+                                        <span class="badge badge-light">
+                                            <i class="fas fa-clock"></i> @flight.FormattedDuration total
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="segments-timeline">
+                                    @for (int i = 0; i < flight.Segments.Count; i++)
+                                    {
+                                        var segment = flight.Segments[i];
+                                        
+                                        <div class="segment-item @(i == 0 ? "first-segment" : "") @(i == flight.Segments.Count - 1 ? "last-segment" : "")">
+                                            <div class="segment-number">@(i + 1)</div>
+                                            <div class="segment-info">
+                                                <div class="segment-route">
+                                                    <span class="segment-airport">@segment.OriginAirportCode</span>
+                                                    <span class="segment-arrow">→</span>
+                                                    <span class="segment-airport">@segment.DestinationAirportCode</span>
+                                                </div>
+                                                <div class="segment-details">
+                                                    <span class="segment-time">
+                                                        @segment.DepartureTime?.ToString("HH:mm") - @segment.ArrivalTime?.ToString("HH:mm")
+                                                    </span>
+                                                    @if (!string.IsNullOrEmpty(segment.FullFlightNumber))
+                                                    {
+                                                        <span class="segment-flight">
+                                                            @segment.FullFlightNumber
+                                                        </span>
+                                                    }
+                                                    @if (segment.Duration.HasValue)
+                                                    {
+                                                        <span class="segment-duration">
+                                                            @segment.Duration.Value.ToString(@"hh\hmm\m")
+                                                        </span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Przesiadka -->
+                                        @if (i < flight.Segments.Count - 1 && flight.Connections.Count > i)
+                                        {
+                                            var connection = flight.Connections[i];
+                                            <div class="stopover">
+                                                <div class="stopover-icon">
+                                                    <i class="fas fa-exchange-alt"></i>
+                                                </div>
+                                                <div class="stopover-info">
+                                                    <div class="stopover-header">
+                                                        <span class="stopover-label">
+                                                            Connection in @connection.AirportCode
+                                                        </span>
+                                                        <span class="stopover-duration">
+                                                            @connection.FormattedDuration
+                                                        </span>
+                                                    </div>
+                                                    <div class="stopover-times">
+                                                        <span>Arrive: @connection.ArrivalTime.ToString("HH:mm")</span>
+                                                        <span>Depart: @connection.DepartureTime.ToString("HH:mm")</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="flight-info">
+                            <div class="info-item">
+                                <span class="info-label">Price:</span>
+                                <span class="info-value">@flight.DisplayPrice</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(flight.Airline))
+                            {
+                                <div class="info-item">
+                                    <span class="info-label">Airline:</span>
+                                    <span class="info-value">@flight.Airline</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(flight.BookingReference))
+                            {
+                                <div class="info-item">
+                                    <span class="info-label">Booking Ref:</span>
+                                    <span class="info-value">@flight.BookingReference</span>
+                                </div>
+                            }
+                            <div class="info-item">
+                                <span class="info-label">Added by:</span>
+                                <span class="info-value">@flight.AddedByName</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Added on:</span>
+                                <span class="info-value">@flight.AddedAt.ToString("MMM dd, yyyy")</span>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(flight.Notes))
+                        {
+                            <div class="flight-notes">
+                                <strong>Notes:</strong>
+                                <p>@flight.Notes</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Flight</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this flight? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let flightToDelete = null;
+
+        // Toggle confirmation
+        document.querySelectorAll('.toggle-confirmation').forEach(button => {
+            button.addEventListener('click', function() {
+                const flightId = this.dataset.flightId;
+                const isConfirmed = this.dataset.isConfirmed === 'true';
+
+                fetch(`@Url.Action("ToggleFlightConfirmation", "Trips")?id=@Model.TripId&flightId=${flightId}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload the page to show updated status
+                        location.reload();
+                    } else {
+                        alert('Error updating flight status');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error updating flight status');
+                });
+            });
+        });
+
+        // Delete flight
+        document.querySelectorAll('.delete-flight').forEach(button => {
+            button.addEventListener('click', function() {
+                flightToDelete = this.dataset.flightId;
+                $('#confirmDeleteModal').modal('show');
+            });
+        });
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+            if (flightToDelete) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `@Url.Action("DeleteFlight", "Trips")?id=@Model.TripId&flightId=${flightToDelete}`;
+
+                const token = document.createElement('input');
+                token.type = 'hidden';
+                token.name = '__RequestVerificationToken';
+                token.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                form.appendChild(token);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+
+        // Dodaj indexy dla animacji
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dodaj indexy dla kart lotów
+            const flightCards = document.querySelectorAll('.flight-card');
+            flightCards.forEach((card, index) => {
+                card.style.setProperty('--card-index', index);
+            });
+            
+            // Dodaj indexy dla segmentów
+            const segmentItems = document.querySelectorAll('.segment-item');
+            segmentItems.forEach((item, index) => {
+                item.style.setProperty('--segment-index', index);
+            });
+            
+            // Dodaj indexy dla przesiadek
+            const stopovers = document.querySelectorAll('.stopover');
+            stopovers.forEach((stopover, index) => {
+                stopover.style.setProperty('--stopover-index', index);
+            });
+        });
+    </script>
+}

@@ -44,4 +44,7 @@ public class Trip
 
     // A trip can have many chat messages (1:N)
     public ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
+
+    // A trip can have many flight infos (1:N)
+    public ICollection<FlightInfo> FlightInfos { get; set; } = new List<FlightInfo>();
 }

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TravelHub.Domain.Entities;
+﻿using TravelHub.Domain.Entities;
 
 namespace TravelHub.Domain.DTOs;
 
@@ -52,4 +47,18 @@ public record TravellerDto
     public required int Id { get; set; }
     public required string Type { get; set; }
     public int? AssociatedAdultId { get; set; }
+}
+
+public class SaveFlightRequestDto
+{
+    public string OriginAirportCode { get; set; } = null!;
+    public string DestinationAirportCode { get; set; } = null!;
+    public DateTime DepartureTime { get; set; }
+    public DateTime ArrivalTime { get; set; }
+    public TimeSpan Duration { get; set; }
+    public decimal? TotalPrice { get; set; }
+    public string? Currency { get; set; }
+    public string? CarrierCode { get; set; }
+    public string? FlightNumber { get; set; }
+    public List<FlightSegment>? Segments { get; set; }
 }

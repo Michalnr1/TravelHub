@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces.Services;
@@ -26,6 +27,7 @@ public class TripsController : Controller
     private readonly IAccommodationService _accommodationService;
     private readonly IExpenseService _expenseService;
     private readonly IFlightService _flightService;
+    private readonly IFlightInfoService _flightInfoService;
     private readonly IRecommendationService _recommendationService;
     private readonly ILogger<TripsController> _logger;
     private readonly UserManager<Person> _userManager;
@@ -40,6 +42,7 @@ public class TripsController : Controller
         IAccommodationService accommodationService,
         IExpenseService expenseService,
         IFlightService flightService,
+        IFlightInfoService flightInfoService,
         IRecommendationService recommendationService,
         ILogger<TripsController> logger,
         UserManager<Person> userManager,
@@ -54,6 +57,7 @@ public class TripsController : Controller
         _accommodationService = accommodationService;
         _expenseService = expenseService;
         _flightService = flightService;
+        _flightInfoService = flightInfoService;
         _recommendationService = recommendationService;
         _configuration = configuration;
         _logger = logger;
@@ -1241,6 +1245,349 @@ public class TripsController : Controller
         }
 
         return RedirectToAction("Checklist", new { tripId });
+    }
+
+    // GET: Trips/FlightList/5
+    [HttpGet]
+    public async Task<IActionResult> FlightList(int id)
+    {
+        var trip = await _tripService.GetByIdAsync(id);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        // Pobierz loty z bazy danych
+        var flightsForTrip = await _flightInfoService.GetByTripIdAsync(id);
+
+        var viewModel = new FlightListViewModel
+        {
+            TripId = id,
+            TripName = trip.Name,
+            Flights = flightsForTrip.Select(f =>
+            {
+                var flightViewModel = new FlightInfoViewModel
+                {
+                    Id = f.Id,
+                    TripId = f.TripId,
+                    OriginAirportCode = f.OriginAirportCode ?? "N/A",
+                    DestinationAirportCode = f.DestinationAirportCode ?? "N/A",
+                    DepartureTime = f.DepartureTime,
+                    ArrivalTime = f.ArrivalTime,
+                    Duration = f.Duration,
+                    Price = f.Price,
+                    Currency = f.Currency,
+                    Airline = f.Airline,
+                    FlightNumbers = f.Segments
+                        .Where(s => !string.IsNullOrEmpty(s.FullFlightNumber))
+                        .Select(s => s.FullFlightNumber!)
+                        .ToList(),
+                    BookingReference = f.BookingReference,
+                    Notes = f.Notes,
+                    IsConfirmed = f.IsConfirmed,
+                    AddedAt = f.AddedAt,
+                    AddedByName = $"{f.AddedBy.FirstName} {f.AddedBy.LastName}",
+                    Segments = f.Segments,
+                    TotalConnectionTime = f.TotalConnectionTime,
+                    PureFlightTime = f.PureFlightTime
+                };
+
+                // Oblicz informacje o przesiadkach
+                flightViewModel.CalculateConnectionInfo();
+
+                return flightViewModel;
+            }).ToList()
+        };
+
+        return View(viewModel);
+    }
+
+    // POST: Save flight from search
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveFlightFromSearch(int tripId, [FromBody] SaveFlightRequestDto request)
+    {
+        try
+        {
+            var trip = await _tripService.GetByIdAsync(tripId);
+            if (trip == null)
+            {
+                return Json(new { success = false, message = "Trip not found" });
+            }
+
+            if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+            {
+                return Json(new { success = false, message = "Access denied" });
+            }
+
+            // Pobierz użytkownika
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "User not found" });
+            }
+
+            // Przekonwertuj DTO na encję FlightSegment
+            var segments = request.Segments?.Select(s => new FlightSegment
+            {
+                OriginAirportCode = s.OriginAirportCode,
+                DestinationAirportCode = s.DestinationAirportCode,
+                DepartureTime = s.DepartureTime ?? DateTime.MinValue,
+                ArrivalTime = s.ArrivalTime ?? DateTime.MinValue,
+                Duration = s.Duration ?? TimeSpan.Zero,
+                CarrierCode = s.CarrierCode,
+                FlightNumber = s.FlightNumber
+            }).ToList() ?? new List<FlightSegment>();
+
+            // Oblicz całkowity czas lotu z przesiadkami
+            TimeSpan totalDuration = request.Duration;
+            if (segments.Count > 1)
+            {
+                var firstSegment = segments.First();
+                var lastSegment = segments.Last();
+
+                if (firstSegment.DepartureTime.HasValue && lastSegment.ArrivalTime.HasValue)
+                {
+                    totalDuration = lastSegment.ArrivalTime.Value - firstSegment.DepartureTime.Value;
+                }
+            }
+
+            // Zapisz lot do bazy
+            var flightInfo = new FlightInfo
+            {
+                TripId = tripId,
+                OriginAirportCode = request.OriginAirportCode,
+                DestinationAirportCode = request.DestinationAirportCode,
+                DepartureTime = request.DepartureTime,
+                ArrivalTime = request.ArrivalTime,
+                Duration = totalDuration, // Używamy obliczonego czasu
+                Price = request.TotalPrice,
+                Currency = request.Currency,
+                Airline = request.CarrierCode,
+                FlightNumbers = segments
+                    .Where(s => !string.IsNullOrEmpty(s.FullFlightNumber))
+                    .Select(s => s.FullFlightNumber!)
+                    .ToList(),
+                PersonId = GetCurrentUserId(),
+                AddedBy = user,
+                Segments = segments,
+                Trip = trip
+            };
+
+            await _flightInfoService.AddAsync(flightInfo);
+
+            return Json(new
+            {
+                success = true,
+                message = "Flight saved to your trip!",
+                redirectUrl = Url.Action("FlightList", new { id = tripId })
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving flight from search");
+            return Json(new { success = false, message = "Error saving flight" });
+        }
+    }
+
+    // GET: Trips/AddFlight/5
+    [HttpGet]
+    public async Task<IActionResult> AddFlight(int id)
+    {
+        var trip = await _tripService.GetByIdAsync(id);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        var viewModel = new AddFlightViewModel
+        {
+            TripId = id,
+            DepartureTime = DateTime.Now.AddDays(7),
+            ArrivalTime = DateTime.Now.AddDays(7).AddHours(2),
+            Currency = trip.CurrencyCode.ToString()
+        };
+
+        return View(viewModel);
+    }
+
+    // POST: Trips/AddFlight
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddFlight(AddFlightViewModel viewModel)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(viewModel);
+        }
+
+        try
+        {
+            var trip = await _tripService.GetByIdAsync(viewModel.TripId);
+            if (trip == null)
+            {
+                return NotFound();
+            }
+
+            if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
+            {
+                return Forbid();
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            // Przetwórz segmenty
+            var segments = viewModel.Segments?.Select(s => new FlightSegment
+            {
+                OriginAirportCode = s.OriginAirportCode,
+                DestinationAirportCode = s.DestinationAirportCode,
+                DepartureTime = s.DepartureTime,
+                ArrivalTime = s.ArrivalTime,
+                CarrierCode = s.CarrierCode,
+                FlightNumber = s.FlightNumber,
+                Duration = s.ArrivalTime - s.DepartureTime
+            }).ToList() ?? new List<FlightSegment>();
+
+            // Oblicz całkowity czas lotu
+            var totalDuration = TimeSpan.Zero;
+            if (segments.Count > 0)
+            {
+                var firstSegment = segments.First();
+                var lastSegment = segments.Last();
+                totalDuration = lastSegment.ArrivalTime!.Value - firstSegment.DepartureTime!.Value;
+            }
+
+            // Przetwórz numery lotów z segmentów
+            var flightNumbers = segments
+                .Where(s => !string.IsNullOrEmpty(s.CarrierCode) && !string.IsNullOrEmpty(s.FlightNumber))
+                .Select(s => $"{s.CarrierCode}{s.FlightNumber}")
+                .ToList();
+
+            // Zapisz lot do bazy
+            var flightInfo = new FlightInfo
+            {
+                TripId = viewModel.TripId,
+                OriginAirportCode = segments.FirstOrDefault()?.OriginAirportCode ?? viewModel.OriginAirportCode,
+                DestinationAirportCode = segments.LastOrDefault()?.DestinationAirportCode ?? viewModel.DestinationAirportCode,
+                DepartureTime = segments.FirstOrDefault()?.DepartureTime ?? viewModel.DepartureTime,
+                ArrivalTime = segments.LastOrDefault()?.ArrivalTime ?? viewModel.ArrivalTime,
+                Duration = totalDuration,
+                Price = viewModel.Price,
+                Currency = viewModel.Currency,
+                Airline = viewModel.Airline,
+                FlightNumbers = flightNumbers,
+                BookingReference = viewModel.BookingReference,
+                Notes = viewModel.Notes,
+                IsConfirmed = viewModel.IsConfirmed,
+                PersonId = GetCurrentUserId(),
+                AddedBy = user,
+                Trip = trip,
+                Segments = segments
+            };
+
+            await _flightInfoService.AddAsync(flightInfo);
+
+            TempData["SuccessMessage"] = "Flight added successfully!";
+            return RedirectToAction("FlightList", new { id = viewModel.TripId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding flight manually");
+            ModelState.AddModelError("", "An error occurred while adding the flight.");
+            return View(viewModel);
+        }
+    }
+
+    // POST: Trips/DeleteFlight/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteFlight(int id, int flightId)
+    {
+        try
+        {
+            var trip = await _tripService.GetByIdAsync(id);
+            if (trip == null)
+            {
+                return NotFound();
+            }
+
+            if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
+            {
+                return Forbid();
+            }
+
+            // Sprawdź czy użytkownik może usunąć ten lot
+            if (!await _flightInfoService.UserCanModifyFlightAsync(flightId, GetCurrentUserId()))
+            {
+                return Forbid();
+            }
+
+            await _flightInfoService.DeleteAsync(flightId);
+
+            TempData["SuccessMessage"] = "Flight removed successfully!";
+            return RedirectToAction("FlightList", new { id });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting flight");
+            TempData["ErrorMessage"] = "Error deleting flight.";
+            return RedirectToAction("FlightList", new { id });
+        }
+    }
+
+    // POST: Trips/ToggleFlightConfirmation/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleFlightConfirmation(int id, int flightId)
+    {
+        try
+        {
+            var trip = await _tripService.GetByIdAsync(id);
+            if (trip == null)
+            {
+                return Json(new { success = false, message = "Trip not found" });
+            }
+
+            if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
+            {
+                return Json(new { success = false, message = "Access denied" });
+            }
+
+            // Sprawdź czy użytkownik może modyfikować ten lot
+            if (!await _flightInfoService.UserCanModifyFlightAsync(flightId, GetCurrentUserId()))
+            {
+                return Json(new { success = false, message = "Access denied" });
+            }
+
+            var flight = await _flightInfoService.GetByIdAsync(flightId);
+            if (flight == null)
+            {
+                return Json(new { success = false, message = "Flight not found" });
+            }
+
+            await _flightInfoService.ToggleConfirmationAsync(flightId, !flight.IsConfirmed);
+
+            return Json(new { success = true, isConfirmed = !flight.IsConfirmed });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling flight confirmation");
+            return Json(new { success = false, message = "Error updating flight status" });
+        }
     }
 
     public async Task<IActionResult> GetDistance(int id, double lat, double lng)

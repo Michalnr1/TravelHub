@@ -1,0 +1,626 @@
+﻿/* flights.css - Uproszczone style dla listy lotów */
+
+.flights-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.flights-header {
+    margin-bottom: 30px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.trip-info {
+    color: #666;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+/* Stan pusty */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 40px 0;
+    border: 1px solid #dee2e6;
+}
+
+.empty-icon {
+    font-size: 48px;
+    color: #6c757d;
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.empty-state h3 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #6c757d;
+    max-width: 500px;
+    margin: 0 auto 30px;
+}
+
+.empty-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Statystyki */
+.flights-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #eaeaea;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+/* Karty lotów */
+.flights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.flight-card {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
+}
+
+    .flight-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+.flight-confirmed {
+    border-left: 4px solid #28a745;
+}
+
+.flight-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eaeaea;
+}
+
+.flight-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+    .flight-title h4 {
+        margin: 0;
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+.flight-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.flight-card-body {
+    padding: 20px;
+}
+
+.route-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.airport-info {
+    text-align: center;
+    flex: 1;
+}
+
+.airport-code {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.time {
+    font-size: 18px;
+    font-weight: 500;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.date {
+    font-size: 14px;
+    color: #666;
+}
+
+.flight-details {
+    flex: 2;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.duration {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #495057;
+    font-weight: 500;
+}
+
+.connection-line {
+    position: relative;
+    width: 100%;
+    margin: 10px 0;
+}
+
+    .connection-line .line {
+        height: 2px;
+        background: #dee2e6;
+    }
+
+    .connection-line .plane {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 2px;
+        color: #007bff;
+    }
+
+.airline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #495057;
+    font-size: 14px;
+}
+
+/* Badge'y */
+.badge {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-secondary {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.badge-light {
+    background: #f8f9fa;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+/* Informacje o locie */
+.flight-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.info-value {
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+}
+
+.flight-notes {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-top: 15px;
+    border-left: 3px solid #007bff;
+}
+
+    .flight-notes p {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+/* Segmenty */
+.segments-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.segments-header {
+    margin-bottom: 15px;
+}
+
+    .segments-header h5 {
+        margin: 0 0 10px 0;
+        color: #495057;
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+.segments-summary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.segments-timeline {
+    position: relative;
+    padding-left: 10px;
+}
+
+.segment-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.segment-number {
+    width: 28px;
+    height: 28px;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-right: 15px;
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+.first-segment .segment-number {
+    background: #28a745;
+}
+
+.last-segment .segment-number {
+    background: #17a2b8;
+}
+
+.segment-info {
+    flex: 1;
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.segment-route {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.segment-airport {
+    font-size: 15px;
+    color: #333;
+}
+
+.segment-arrow {
+    color: #6c757d;
+}
+
+.segment-details {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: #666;
+}
+
+.segment-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.segment-flight {
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.segment-duration {
+    color: #6c757d;
+}
+
+/* Przesiadki */
+.stopover {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 15px;
+    margin: 10px 0 15px 43px;
+    background: #fff8e1;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+}
+
+.stopover-icon {
+    width: 28px;
+    height: 28px;
+    background: #ffb300;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+}
+
+.stopover-info {
+    flex: 1;
+}
+
+.stopover-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.stopover-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.stopover-duration {
+    background: #ff9800;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.stopover-times {
+    display: flex;
+    gap: 15px;
+    font-size: 13px;
+    color: #666;
+}
+
+/* Przyciski */
+.btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 13px;
+}
+
+.btn-outline-secondary {
+    color: #6c757d;
+    border-color: #6c757d;
+}
+
+    .btn-outline-secondary:hover {
+        background: #6c757d;
+        color: white;
+    }
+
+.btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+    .btn-outline-danger:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+/* Responsywność */
+@media (max-width: 768px) {
+    .flights-container {
+        padding: 15px;
+    }
+
+    .header-actions {
+        flex-direction: column;
+    }
+
+    .flights-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .flight-card-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .flight-title {
+        justify-content: center;
+    }
+
+    .flight-actions {
+        justify-content: center;
+    }
+
+    .route-section {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .airport-info {
+        width: 100%;
+    }
+
+    .flight-details {
+        order: 3;
+        width: 100%;
+        margin: 10px 0;
+    }
+
+    .flight-info {
+        grid-template-columns: 1fr;
+    }
+
+    .segments-summary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .segment-item {
+        flex-direction: column;
+    }
+
+    .segment-number {
+        margin-bottom: 10px;
+        margin-right: 0;
+    }
+
+    .stopover {
+        margin-left: 20px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .stopover-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .stopover-times {
+        flex-direction: column;
+        gap: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .flights-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .flight-title h4 {
+        font-size: 16px;
+    }
+
+    .badge {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+}

@@ -48,4 +48,7 @@ public class Person : IdentityUser
 
     // A person can have many categories (1:N)
     public ICollection<Category> Categories { get; set; } = new List<Category>();
+
+    // A person can have many flight infos (1:N)
+    public ICollection<FlightInfo> FlightInfos { get; set; } = new List<FlightInfo>();
 }
