@@ -1,0 +1,884 @@
+﻿@model TravelHub.Web.ViewModels.Trips.EditFlightViewModel
+
+@{
+    ViewData["Title"] = "Edit Flight";
+}
+
+<div class="edit-flight-container">
+    <div class="back-navigation">
+        <a href="@Url.Action("FlightList", "Trips", new { id = Model.TripId })" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Flights
+        </a>
+    </div>
+
+    <h1>Edit Flight</h1>
+    <p>Update flight details.</p>
+
+    <form asp-action="EditFlight" method="post" class="flight-form" id="flightForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="TripId" />
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" id="numberOfSegments" asp-for="NumberOfSegments" />
+
+        <div class="form-section">
+            <h3><i class="fas fa-route"></i> Flight Route</h3>
+            <div class="route-summary">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>From (First Segment)</label>
+                        <input asp-for="OriginAirportCode" class="form-control"
+                               placeholder="e.g., WAW" id="firstOrigin" />
+                        <span asp-validation-for="OriginAirportCode" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>To (Last Segment)</label>
+                        <input asp-for="DestinationAirportCode" class="form-control"
+                               placeholder="e.g., CDG" id="lastDestination" />
+                        <span asp-validation-for="DestinationAirportCode" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="section-header">
+                <h3><i class="fas fa-exchange-alt"></i> Flight Segments</h3>
+                <div class="segments-control">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="addSegment">
+                        <i class="fas fa-plus"></i> Add Segment
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="removeSegment"
+                            @(Model.Segments.Count <= 1 ? "disabled" : "")>
+                        <i class="fas fa-minus"></i> Remove Segment
+                    </button>
+                    <span class="segments-count">Currently: <span id="segmentCount">@Model.Segments.Count</span> segment(s)</span>
+                </div>
+            </div>
+
+            <div id="segmentsContainer">
+                @for (int i = 0; i < Model.Segments.Count; i++)
+                {
+                    <div class="segment-card" data-segment-index="@i">
+                        <div class="segment-header">
+                            <h4>Segment @(i + 1)</h4>
+                            @if (i > 0)
+                            {
+                                <div class="connection-info">
+                                    <i class="fas fa-clock"></i>
+                                    <span id="connectionTime_@i">--:--</span> connection
+                                </div>
+                            }
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label asp-for="Segments[i].OriginAirportCode"></label>
+                                <input asp-for="Segments[i].OriginAirportCode"
+                                       class="form-control segment-origin"
+                                       placeholder="e.g., WAW"
+                                       data-index="@i" />
+                                <span asp-validation-for="Segments[i].OriginAirportCode" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="Segments[i].DestinationAirportCode"></label>
+                                <input asp-for="Segments[i].DestinationAirportCode"
+                                       class="form-control segment-destination"
+                                       placeholder="e.g., CDG"
+                                       data-index="@i" />
+                                <span asp-validation-for="Segments[i].DestinationAirportCode" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label asp-for="Segments[i].DepartureTime"></label>
+                                <input asp-for="Segments[i].DepartureTime"
+                                       class="form-control segment-departure"
+                                       type="datetime-local"
+                                       data-index="@i"
+                                       value="@Model.Segments[i].DepartureTime.ToString("yyyy-MM-ddTHH:mm")" />
+                                <span asp-validation-for="Segments[i].DepartureTime" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="Segments[i].ArrivalTime"></label>
+                                <input asp-for="Segments[i].ArrivalTime"
+                                       class="form-control segment-arrival"
+                                       type="datetime-local"
+                                       data-index="@i"
+                                       value="@Model.Segments[i].ArrivalTime.ToString("yyyy-MM-ddTHH:mm")" />
+                                <span asp-validation-for="Segments[i].ArrivalTime" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label asp-for="Segments[i].CarrierCode"></label>
+                                <input asp-for="Segments[i].CarrierCode" class="form-control"
+                                       placeholder="e.g., LO" maxlength="2" />
+                                <span asp-validation-for="Segments[i].CarrierCode" class="text-danger"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label asp-for="Segments[i].FlightNumber"></label>
+                                <input asp-for="Segments[i].FlightNumber" class="form-control"
+                                       placeholder="e.g., 365" />
+                                <span asp-validation-for="Segments[i].FlightNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="flight-summary">
+                <div class="summary-item">
+                    <span class="summary-label">Total Duration:</span>
+                    <span class="summary-value" id="totalDuration">Calculating...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Flight Time:</span>
+                    <span class="summary-value" id="flightTime">Calculating...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Connection Time:</span>
+                    <span class="summary-value" id="connectionTime">0h 0m</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-money-bill-wave"></i> Price Information</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label asp-for="Price"></label>
+                    <input asp-for="Price" class="form-control" type="number" step="0.01" placeholder="0.00" />
+                    <span asp-validation-for="Price" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Currency"></label>
+                    <input asp-for="Currency" class="form-control" placeholder="e.g., EUR" maxlength="3" />
+                    <span asp-validation-for="Currency" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-plane"></i> Additional Details</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label asp-for="Airline"></label>
+                    <input asp-for="Airline" class="form-control" placeholder="e.g., LOT Polish Airlines" />
+                    <span asp-validation-for="Airline" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="BookingReference"></label>
+                    <input asp-for="BookingReference" class="form-control" placeholder="e.g., ABC123" />
+                    <span asp-validation-for="BookingReference" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fas fa-sticky-note"></i> Additional Information</h3>
+            <div class="form-group">
+                <label asp-for="Notes"></label>
+                <textarea asp-for="Notes" class="form-control" rows="3"
+                          placeholder="Any additional notes about the flight..."></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="form-check">
+                <input asp-for="IsConfirmed" class="form-check-input" />
+                <label asp-for="IsConfirmed" class="form-check-label"></label>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update Flight
+            </button>
+            <a href="@Url.Action("FlightList", new { id = Model.TripId })" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+            <button type="button" class="btn btn-outline-danger" id="deleteFlightBtn">
+                <i class="fas fa-trash"></i> Delete Flight
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this flight? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <form asp-action="DeleteFlight" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.TripId" />
+                    <input type="hidden" name="flightId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-danger">Delete Flight</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let segmentCount = @Model.Segments.Count;
+            const maxSegments = 5;
+
+            // Update hidden field
+            function updateNumberOfSegments() {
+                document.getElementById('numberOfSegments').value = segmentCount;
+                document.getElementById('segmentCount').textContent = segmentCount;
+
+                // Update remove button state
+                document.getElementById('removeSegment').disabled = segmentCount <= 1;
+            }
+
+            // Add segment
+            document.getElementById('addSegment').addEventListener('click', function() {
+                if (segmentCount >= maxSegments) {
+                    alert(`Maximum ${maxSegments} segments allowed`);
+                    return;
+                }
+
+                const segmentIndex = segmentCount;
+                const container = document.getElementById('segmentsContainer');
+
+                // Create new segment HTML
+                const segmentHtml = `
+                    <div class="segment-card" data-segment-index="${segmentIndex}">
+                        <div class="segment-header">
+                            <h4>Segment ${segmentIndex + 1}</h4>
+                            <div class="connection-info">
+                                <i class="fas fa-clock"></i>
+                                <span id="connectionTime_${segmentIndex}">--:--</span> connection
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="Segments_${segmentIndex}__OriginAirportCode">From</label>
+                                <input type="text"
+                                       id="Segments_${segmentIndex}__OriginAirportCode"
+                                       name="Segments[${segmentIndex}].OriginAirportCode"
+                                       class="form-control segment-origin"
+                                       placeholder="e.g., WAW"
+                                       data-index="${segmentIndex}" />
+                                <span class="text-danger field-validation-valid"
+                                      data-valmsg-for="Segments[${segmentIndex}].OriginAirportCode"
+                                      data-valmsg-replace="true"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Segments_${segmentIndex}__DestinationAirportCode">To</label>
+                                <input type="text"
+                                       id="Segments_${segmentIndex}__DestinationAirportCode"
+                                       name="Segments[${segmentIndex}].DestinationAirportCode"
+                                       class="form-control segment-destination"
+                                       placeholder="e.g., CDG"
+                                       data-index="${segmentIndex}" />
+                                <span class="text-danger field-validation-valid"
+                                      data-valmsg-for="Segments[${segmentIndex}].DestinationAirportCode"
+                                      data-valmsg-replace="true"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="Segments_${segmentIndex}__DepartureTime">Departure</label>
+                                <input type="datetime-local"
+                                       id="Segments_${segmentIndex}__DepartureTime"
+                                       name="Segments[${segmentIndex}].DepartureTime"
+                                       class="form-control segment-departure"
+                                       data-index="${segmentIndex}" />
+                                <span class="text-danger field-validation-valid"
+                                      data-valmsg-for="Segments[${segmentIndex}].DepartureTime"
+                                      data-valmsg-replace="true"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Segments_${segmentIndex}__ArrivalTime">Arrival</label>
+                                <input type="datetime-local"
+                                       id="Segments_${segmentIndex}__ArrivalTime"
+                                       name="Segments[${segmentIndex}].ArrivalTime"
+                                       class="form-control segment-arrival"
+                                       data-index="${segmentIndex}" />
+                                <span class="text-danger field-validation-valid"
+                                      data-valmsg-for="Segments[${segmentIndex}].ArrivalTime"
+                                      data-valmsg-replace="true"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="Segments_${segmentIndex}__CarrierCode">Airline Code</label>
+                                <input type="text"
+                                       id="Segments_${segmentIndex}__CarrierCode"
+                                       name="Segments[${segmentIndex}].CarrierCode"
+                                       class="form-control"
+                                       placeholder="e.g., LO" maxlength="2" />
+                                <span class="text-danger field-validation-valid"
+                                      data-valmsg-for="Segments[${segmentIndex}].CarrierCode"
+                                      data-valmsg-replace="true"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Segments_${segmentIndex}__FlightNumber">Flight Number</label>
+                                <input type="text"
+                                       id="Segments_${segmentIndex}__FlightNumber"
+                                       name="Segments[${segmentIndex}].FlightNumber"
+                                       class="form-control"
+                                       placeholder="e.g., 365" />
+                                <span class="text-danger field-validation-valid"
+                                      data-valmsg-for="Segments[${segmentIndex}].FlightNumber"
+                                      data-valmsg-replace="true"></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.insertAdjacentHTML('beforeend', segmentHtml);
+                segmentCount++;
+                updateNumberOfSegments();
+
+                // Set default departure time (same as previous arrival + 2 hours)
+                if (segmentIndex > 0) {
+                    const prevArrivalInput = document.querySelector(`input[name="Segments[${segmentIndex-1}].ArrivalTime"]`);
+                    if (prevArrivalInput && prevArrivalInput.value) {
+                        const prevArrival = new Date(prevArrivalInput.value);
+                        const nextDeparture = new Date(prevArrival.getTime() + 2 * 60 * 60 * 1000); // +2 hours
+
+                        const departureInput = document.getElementById(`Segments_${segmentIndex}__DepartureTime`);
+                        departureInput.value = nextDeparture.toISOString().slice(0, 16);
+
+                        // Set arrival time (departure + 2 hours)
+                        const arrivalInput = document.getElementById(`Segments_${segmentIndex}__ArrivalTime`);
+                        const nextArrival = new Date(nextDeparture.getTime() + 2 * 60 * 60 * 1000);
+                        arrivalInput.value = nextArrival.toISOString().slice(0, 16);
+                    }
+                }
+
+                // Add event listeners to new inputs
+                addSegmentEventListeners(segmentIndex);
+                calculateTimes();
+            });
+
+            // Remove segment
+            document.getElementById('removeSegment').addEventListener('click', function() {
+                if (segmentCount <= 1) return;
+
+                const lastSegment = document.querySelector(`[data-segment-index="${segmentCount - 1}"]`);
+                if (lastSegment) {
+                    lastSegment.remove();
+                    segmentCount--;
+                    updateNumberOfSegments();
+                    calculateTimes();
+
+                    // Update last destination
+                    if (segmentCount > 0) {
+                        const lastDestination = document.querySelector(`[data-segment-index="${segmentCount - 1}"] .segment-destination`);
+                        if (lastDestination) {
+                            document.getElementById('lastDestination').value = lastDestination.value;
+                        }
+                    }
+                }
+            });
+
+            // Calculate times
+            function calculateTimes() {
+                let totalDuration = 0;
+                let totalFlightTime = 0;
+                let totalConnectionTime = 0;
+
+                const segments = [];
+
+                // Collect segment data
+                for (let i = 0; i < segmentCount; i++) {
+                    const departureInput = document.querySelector(`input[name="Segments[${i}].DepartureTime"]`);
+                    const arrivalInput = document.querySelector(`input[name="Segments[${i}].ArrivalTime"]`);
+
+                    if (departureInput && departureInput.value && arrivalInput && arrivalInput.value) {
+                        const departure = new Date(departureInput.value);
+                        const arrival = new Date(arrivalInput.value);
+                        const segmentDuration = arrival - departure;
+
+                        segments.push({
+                            departure,
+                            arrival,
+                            duration: segmentDuration
+                        });
+
+                        totalFlightTime += segmentDuration;
+                    }
+                }
+
+                // Calculate connections
+                if (segments.length > 1) {
+                    for (let i = 0; i < segments.length - 1; i++) {
+                        const connectionTime = segments[i + 1].departure - segments[i].arrival;
+                        if (connectionTime > 0) {
+                            totalConnectionTime += connectionTime;
+
+                            // Update connection time display
+                            const connectionElement = document.getElementById(`connectionTime_${i + 1}`);
+                            if (connectionElement) {
+                                const hours = Math.floor(connectionTime / (1000 * 60 * 60));
+                                const minutes = Math.floor((connectionTime % (1000 * 60 * 60)) / (1000 * 60));
+                                connectionElement.textContent = `${hours}h ${minutes}m`;
+                            }
+                        }
+                    }
+                }
+
+                // Calculate total duration
+                if (segments.length > 0) {
+                    totalDuration = segments[segments.length - 1].arrival - segments[0].departure;
+                }
+
+                // Update displays
+                function formatTime(ms) {
+                    const hours = Math.floor(ms / (1000 * 60 * 60));
+                    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+                    return `${hours}h ${minutes}m`;
+                }
+
+                document.getElementById('totalDuration').textContent = formatTime(totalDuration);
+                document.getElementById('flightTime').textContent = formatTime(totalFlightTime);
+                document.getElementById('connectionTime').textContent = formatTime(totalConnectionTime);
+            }
+
+            // Add event listeners to segment inputs
+            function addSegmentEventListeners(index) {
+                const originInput = document.querySelector(`input[name="Segments[${index}].OriginAirportCode"]`);
+                const destinationInput = document.querySelector(`input[name="Segments[${index}].DestinationAirportCode"]`);
+                const departureInput = document.querySelector(`input[name="Segments[${index}].DepartureTime"]`);
+                const arrivalInput = document.querySelector(`input[name="Segments[${index}].ArrivalTime"]`);
+
+                if (index === 0 && originInput) {
+                    originInput.addEventListener('input', function() {
+                        document.getElementById('firstOrigin').value = this.value;
+                    });
+                }
+
+                if (destinationInput) {
+                    destinationInput.addEventListener('input', function() {
+                        if (index === segmentCount - 1) {
+                            document.getElementById('lastDestination').value = this.value;
+                        }
+                    });
+                }
+
+                if (departureInput) {
+                    departureInput.addEventListener('change', calculateTimes);
+                }
+
+                if (arrivalInput) {
+                    arrivalInput.addEventListener('change', calculateTimes);
+                }
+            }
+
+            // Initialize event listeners for existing segments
+            for (let i = 0; i < segmentCount; i++) {
+                addSegmentEventListeners(i);
+            }
+
+            // Auto-sync first and last airports
+            const firstOrigin = document.querySelector('input[name="Segments[0].OriginAirportCode"]');
+            const lastDestination = document.getElementById('lastDestination');
+
+            if (firstOrigin && segmentCount > 0) {
+                const lastSegmentDest = document.querySelector(`input[name="Segments[${segmentCount-1}].DestinationAirportCode"]`);
+                if (lastSegmentDest) {
+                    lastDestination.value = lastSegmentDest.value;
+                }
+            }
+
+            // Delete button
+            document.getElementById('deleteFlightBtn').addEventListener('click', function() {
+                $('#deleteModal').modal('show');
+            });
+
+            // Initial calculation
+            calculateTimes();
+        });
+    </script>
+}
+
+<style>
+    .edit-flight-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px 20px;
+    }
+
+    .back-navigation {
+        margin-bottom: 25px;
+    }
+
+    .flight-form {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-top: 20px;
+    }
+
+    .form-section {
+        margin-bottom: 35px;
+        padding-bottom: 25px;
+        border-bottom: 1px solid #eaeaea;
+    }
+
+        .form-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .segments-control {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .segments-count {
+        font-size: 14px;
+        color: #6c757d;
+        margin-left: 10px;
+    }
+
+    .segment-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: all 0.2s;
+    }
+
+        .segment-card:hover {
+            border-color: #adb5bd;
+        }
+
+    .segment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eaeaea;
+    }
+
+        .segment-header h4 {
+            margin: 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+    .connection-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #fd7e14;
+        background: #fff3e0;
+        padding: 4px 10px;
+        border-radius: 4px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+        .form-group label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 6px;
+            display: block;
+            font-size: 14px;
+        }
+
+    .form-control {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+    }
+
+        .form-control:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+    .form-check {
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-check-input {
+        margin-top: 0;
+    }
+
+    .form-check-label {
+        font-size: 14px;
+        color: #495057;
+    }
+
+    .flight-summary {
+        background: #e8f4fd;
+        border: 1px solid #cfe2ff;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 20px;
+        display: flex;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .summary-label {
+        font-size: 12px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 3px;
+    }
+
+    .summary-value {
+        font-weight: 600;
+        color: #0056b3;
+        font-size: 16px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 25px;
+        border-top: 1px solid #eaeaea;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+    }
+
+        .btn-primary:hover {
+            background-color: #0069d9;
+            border-color: #0062cc;
+            color: white;
+        }
+
+    .btn-outline-secondary {
+        color: #6c757d;
+        border-color: #6c757d;
+        background: transparent;
+    }
+
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            color: white;
+        }
+
+    .btn-outline-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+        background: transparent;
+    }
+
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    /* Modal styles */
+    .modal-content {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .modal-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #eaeaea;
+        padding: 20px;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .modal-title {
+        color: #333;
+        font-weight: 600;
+        font-size: 18px;
+        margin: 0;
+    }
+
+    .modal-body {
+        padding: 25px 20px;
+        color: #555;
+        line-height: 1.6;
+    }
+
+        .modal-body p {
+            margin: 0;
+        }
+
+    .modal-footer {
+        border-top: 1px solid #eaeaea;
+        padding: 20px;
+        border-radius: 0 0 8px 8px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .close {
+        font-size: 28px;
+        color: #6c757d;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        background: none;
+        border: none;
+        padding: 0;
+        line-height: 1;
+    }
+
+        .close:hover {
+            opacity: 1;
+            color: #212529;
+        }
+
+    @@media (max-width: 768px) {
+        .edit-flight-container {
+            padding: 15px;
+        }
+
+        .flight-form {
+            padding: 20px;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .section-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .segments-control {
+            justify-content: flex-start;
+        }
+
+        .flight-summary {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .modal-footer {
+            flex-direction: column;
+        }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+    }
+
+    .text-danger {
+        font-size: 12px;
+        margin-top: 4px;
+        display: block;
+    }
+</style>

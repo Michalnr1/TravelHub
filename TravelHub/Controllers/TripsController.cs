@@ -1517,6 +1517,158 @@ public class TripsController : Controller
         }
     }
 
+    // GET: Trips/EditFlight/5
+    [HttpGet]
+    public async Task<IActionResult> EditFlight(int tripId, int flightId)
+    {
+        var trip = await _tripService.GetByIdAsync(tripId);
+        if (trip == null)
+        {
+            return NotFound();
+        }
+
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        // Sprawdź czy użytkownik może edytować ten lot
+        if (!await _flightInfoService.UserCanModifyFlightAsync(flightId, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        var flight = await _flightInfoService.GetByIdAsync(flightId);
+        if (flight == null)
+        {
+            return NotFound();
+        }
+
+        var viewModel = new EditFlightViewModel
+        {
+            Id = flight.Id,
+            TripId = tripId,
+            OriginAirportCode = flight.OriginAirportCode ?? "",
+            DestinationAirportCode = flight.DestinationAirportCode ?? "",
+            DepartureTime = flight.DepartureTime,
+            ArrivalTime = flight.ArrivalTime,
+            Price = flight.Price,
+            Currency = flight.Currency,
+            Airline = flight.Airline,
+            FlightNumbers = string.Join(", ", flight.FlightNumbers),
+            BookingReference = flight.BookingReference,
+            Notes = flight.Notes,
+            IsConfirmed = flight.IsConfirmed,
+            Segments = flight.Segments.Select(s => new FlightSegmentViewModel
+            {
+                OriginAirportCode = s.OriginAirportCode ?? "",
+                DestinationAirportCode = s.DestinationAirportCode ?? "",
+                DepartureTime = s.DepartureTime ?? DateTime.Now,
+                ArrivalTime = s.ArrivalTime ?? DateTime.Now.AddHours(2),
+                CarrierCode = s.CarrierCode,
+                FlightNumber = s.FlightNumber
+            }).ToList(),
+            NumberOfSegments = flight.Segments.Count
+        };
+
+        return View(viewModel);
+    }
+
+    // POST: Trips/EditFlight/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditFlight(int tripId, EditFlightViewModel viewModel)
+    {
+        if (tripId != viewModel.TripId)
+        {
+            return NotFound();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(viewModel);
+        }
+
+        try
+        {
+            var trip = await _tripService.GetByIdAsync(tripId);
+            if (trip == null)
+            {
+                return NotFound();
+            }
+
+            if (!await _tripParticipantService.UserHasAccessToTripAsync(tripId, GetCurrentUserId()))
+            {
+                return Forbid();
+            }
+
+            // Sprawdź czy użytkownik może edytować ten lot
+            if (!await _flightInfoService.UserCanModifyFlightAsync(viewModel.Id, GetCurrentUserId()))
+            {
+                return Forbid();
+            }
+
+            var existingFlight = await _flightInfoService.GetByIdAsync(viewModel.Id);
+            if (existingFlight == null)
+            {
+                return NotFound();
+            }
+
+            // Przetwórz segmenty
+            var segments = viewModel.Segments?.Select(s => new FlightSegment
+            {
+                OriginAirportCode = s.OriginAirportCode,
+                DestinationAirportCode = s.DestinationAirportCode,
+                DepartureTime = s.DepartureTime,
+                ArrivalTime = s.ArrivalTime,
+                CarrierCode = s.CarrierCode,
+                FlightNumber = s.FlightNumber,
+                Duration = s.ArrivalTime - s.DepartureTime
+            }).ToList() ?? new List<FlightSegment>();
+
+            // Oblicz całkowity czas lotu
+            var totalDuration = TimeSpan.Zero;
+            if (segments.Count > 0)
+            {
+                var firstSegment = segments.First();
+                var lastSegment = segments.Last();
+                totalDuration = lastSegment.ArrivalTime!.Value - firstSegment.DepartureTime!.Value;
+            }
+
+            // Przetwórz numery lotów z segmentów
+            var flightNumbers = segments
+                .Where(s => !string.IsNullOrEmpty(s.CarrierCode) && !string.IsNullOrEmpty(s.FlightNumber))
+                .Select(s => $"{s.CarrierCode}{s.FlightNumber}")
+                .ToList();
+
+            // Aktualizuj lot
+            existingFlight.OriginAirportCode = segments.FirstOrDefault()?.OriginAirportCode ?? viewModel.OriginAirportCode;
+            existingFlight.DestinationAirportCode = segments.LastOrDefault()?.DestinationAirportCode ?? viewModel.DestinationAirportCode;
+            existingFlight.DepartureTime = segments.FirstOrDefault()?.DepartureTime ?? viewModel.DepartureTime;
+            existingFlight.ArrivalTime = segments.LastOrDefault()?.ArrivalTime ?? viewModel.ArrivalTime;
+            existingFlight.Duration = totalDuration;
+            existingFlight.Price = viewModel.Price;
+            existingFlight.Currency = viewModel.Currency;
+            existingFlight.Airline = viewModel.Airline;
+            existingFlight.FlightNumbers = flightNumbers;
+            existingFlight.BookingReference = viewModel.BookingReference;
+            existingFlight.Notes = viewModel.Notes;
+            existingFlight.IsConfirmed = viewModel.IsConfirmed;
+            existingFlight.Segments = segments;
+
+            await _flightInfoService.UpdateAsync(existingFlight);
+
+            TempData["SuccessMessage"] = "Flight updated successfully!";
+            return RedirectToAction("FlightList", new { id = tripId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating flight");
+            ModelState.AddModelError("", "An error occurred while updating the flight.");
+            return View(viewModel);
+        }
+    }
+
     // POST: Trips/DeleteFlight/5
     [HttpPost]
     [ValidateAntiForgeryToken]
