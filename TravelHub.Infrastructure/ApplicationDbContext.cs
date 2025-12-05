@@ -820,7 +820,6 @@ public class ApplicationDbContext : IdentityDbContext<Person>
 
             // Konwersja JSON dla segmentów
             entity.Property(f => f.Segments)
-                .HasColumnName("SegmentsJson")
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, new JsonSerializerOptions
                     {
