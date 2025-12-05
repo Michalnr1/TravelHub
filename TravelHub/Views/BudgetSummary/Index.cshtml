@@ -305,28 +305,34 @@
         </div>
     </div>
 
-    <!-- Wykresy (opcjonalnie) -->
+    <!-- Wykresy -->
     <div class="row">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Category Distribution</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="categoryChart" width="400" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Person Distribution</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="personChart" width="400" height="300"></canvas>
+        @if (Model.CategorySummaries.Any())
+        {
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Category Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="categoryChart" width="400" height="300"></canvas>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
+        @if (Model.PersonSummaries.Any())
+        {
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Person Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="personChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
 

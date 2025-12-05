@@ -4,15 +4,19 @@
 @{
     var tripId = ViewBag.TripId;
     ViewData["Title"] = "Trip Checklist";
+
+    // Sprawdzamy czy to publiczny podgląd
+    var isPublicView = Context.Request.Query["source"] == "public";
+    var backUrl = isPublicView ? Url.Action("Details", "TripsSearch", new { id = tripId }) : Url.Action("Details", "Trips", new { id = tripId });
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>
         <i class="fas fa-list-check text-primary"></i> Trip Checklist
     </h1>
-    <a asp-controller="Trips" asp-action="Details" asp-route-id="@tripId" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left"></i> Back to Trip
-    </a>
+    <div>
+        <a href="@backUrl" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> Back to Trip</a>
+    </div>
 </div>
 
 @if (TempData["SuccessMessage"] != null)
@@ -40,9 +44,12 @@
                     <i class="fas fa-tasks text-primary"></i> Checklist Items
                     <span class="badge bg-primary ms-2">@Model.Checklist.Items.Count items</span>
                 </h5>
-                <div class="text-muted small">
-                    <i class="fas fa-info-circle"></i> Drag to reorder items
-                </div>
+                @if (!isPublicView)
+                {
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle"></i> Drag to reorder items
+                    </div>
+                }
             </div>
             <div class="card-body p-0">
                 @if (Model.Checklist.Items.Any())
@@ -51,45 +58,55 @@
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th width="80" class="text-center">Status</th>
+                                    @if (!isPublicView)
+                                    {
+                                        <th width="80" class="text-center">Status</th>
+                                    }
                                     <th>Item</th>
-                                    <th width="150">Assigned To</th>
-                                    <th width="200" class="text-center">Actions</th>
+                                    @if (!isPublicView)
+                                    {
+                                        <th width="150">Assigned To</th>
+                                        <th width="200" class="text-center">Actions</th>
+                                    }
                                 </tr>
                             </thead>
                             <tbody id="checklistItems">
                                 @foreach (var it in Model.Checklist.Items)
                                 {
                                     <tr data-item-title="@it.Title" class="checklist-item">
-                                        <td class="text-center align-middle">
-                                            <div class="d-flex flex-column align-items-center">
-                                                @if (it.IsCompleted)
-                                                {
-                                                    <span class="badge bg-success mb-1">
-                                                        <i class="fas fa-check"></i> Done
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-secondary mb-1">
-                                                        <i class="fas fa-clock"></i> Pending
-                                                    </span>
-                                                }
 
-                                                <!-- Toggle form -->
-                                                <form method="post"
-                                                      asp-controller="Trips"
-                                                      asp-action="ToggleChecklistItem"
-                                                      asp-route-tripId="@tripId"
-                                                      asp-route-item="@it.Title"
-                                                      class="mb-0">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm @(it.IsCompleted ? "btn-outline-secondary" : "btn-outline-success")">
-                                                        @(it.IsCompleted ? "Undo" : "Complete")
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
+                                        @if (!isPublicView)
+                                        {
+                                            <td class="text-center align-middle">
+                                                <div class="d-flex flex-column align-items-center">
+                                                    @if (it.IsCompleted)
+                                                    {
+                                                        <span class="badge bg-success mb-1">
+                                                            <i class="fas fa-check"></i> Done
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary mb-1">
+                                                            <i class="fas fa-clock"></i> Pending
+                                                        </span>
+                                                    }
+
+                                                    <!-- Toggle form -->
+                                                    <form method="post"
+                                                          asp-controller="Trips"
+                                                          asp-action="ToggleChecklistItem"
+                                                          asp-route-tripId="@tripId"
+                                                          asp-route-item="@it.Title"
+                                                          class="mb-0">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm @(it.IsCompleted ? "btn-outline-secondary" : "btn-outline-success")">
+                                                            @(it.IsCompleted ? "Undo" : "Complete")
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        }
 
                                         <td class="align-middle">
                                             <div class="d-flex align-items-center">
@@ -100,74 +117,77 @@
                                             </div>
                                         </td>
 
-                                        <td class="align-middle">
-                                            @if (it.AssignedParticipantId != null)
-                                            {
-                                                <span class="badge bg-info">
-                                                    <i class="fas fa-user"></i> @it.AssignedParticipantName
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">—</span>
-                                            }
-                                        </td>
+                                        @if (!isPublicView)
+                                        {
+                                            <td class="align-middle">
+                                                @if (it.AssignedParticipantId != null)
+                                                {
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-user"></i> @it.AssignedParticipantName
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">—</span>
+                                                }
+                                            </td>
 
-                                        <td class="align-middle">
-                                            <div class="d-flex align-items-center justify-content-center" style="gap: .35rem; white-space: nowrap;">
+                                            <td class="align-middle">
+                                                <div class="d-flex align-items-center justify-content-center" style="gap: .35rem; white-space: nowrap;">
 
-                                                <!-- Assign Participant -->
-                                                <form method="post"
-                                                      asp-controller="Trips"
-                                                      asp-action="AssignParticipant"
-                                                      class="d-flex align-items-center" style="gap: .25rem;">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="tripId" value="@Model.TripId" />
-                                                    <input type="hidden" name="itemTitle" value="@it.Title" />
+                                                    <!-- Assign Participant -->
+                                                    <form method="post"
+                                                          asp-controller="Trips"
+                                                          asp-action="AssignParticipant"
+                                                          class="d-flex align-items-center" style="gap: .25rem;">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="tripId" value="@Model.TripId" />
+                                                        <input type="hidden" name="itemTitle" value="@it.Title" />
 
-                                                    <select name="participantId" class="form-select form-select-sm" style="width: 95px; min-width: 95px;">
-                                                        <option value="">Unassign</option>
-                                                        @foreach (var p in Model.Participants)
-                                                        {
-                                                            <option value="@p.Id" selected="@(string.Equals(it.AssignedParticipantId, p.Id) ? "selected" : null)">
-                                                                @p.DisplayName
-                                                            </option>
-                                                        }
-                                                    </select>
+                                                        <select name="participantId" class="form-select form-select-sm" style="width: 95px; min-width: 95px;">
+                                                            <option value="">Unassign</option>
+                                                            @foreach (var p in Model.Participants)
+                                                            {
+                                                                <option value="@p.Id" selected="@(string.Equals(it.AssignedParticipantId, p.Id) ? "selected" : null)">
+                                                                    @p.DisplayName
+                                                                </option>
+                                                            }
+                                                        </select>
 
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary px-2">
-                                                        <i class="fas fa-save"></i>
-                                                    </button>
-                                                </form>
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary px-2">
+                                                            <i class="fas fa-save"></i>
+                                                        </button>
+                                                    </form>
 
-                                                <!-- Edit -->
-                                                <a asp-controller="Trips"
-                                                   asp-action="EditChecklistItem"
-                                                   asp-route-tripId="@tripId"
-                                                   asp-route-item="@it.Title"
-                                                   class="btn btn-sm btn-outline-warning px-2"
-                                                   title="Edit item">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
+                                                    <!-- Edit -->
+                                                    <a asp-controller="Trips"
+                                                       asp-action="EditChecklistItem"
+                                                       asp-route-tripId="@tripId"
+                                                       asp-route-item="@it.Title"
+                                                       class="btn btn-sm btn-outline-warning px-2"
+                                                       title="Edit item">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
 
-                                                <!-- Delete -->
-                                                <form method="post"
-                                                      asp-controller="Trips"
-                                                      asp-action="DeleteChecklistItem"
-                                                      asp-route-tripId="@tripId"
-                                                      asp-route-item="@it.Title"
-                                                      class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit"
-                                                            class="btn btn-sm btn-outline-danger px-2"
-                                                            title="Delete item"
-                                                            onclick="return confirm('Are you sure you want to delete this item?')">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
+                                                    <!-- Delete -->
+                                                    <form method="post"
+                                                          asp-controller="Trips"
+                                                          asp-action="DeleteChecklistItem"
+                                                          asp-route-tripId="@tripId"
+                                                          asp-route-item="@it.Title"
+                                                          class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit"
+                                                                class="btn btn-sm btn-outline-danger px-2"
+                                                                title="Delete item"
+                                                                onclick="return confirm('Are you sure you want to delete this item?')">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
 
-                                            </div>
-                                        </td>
+                                                </div>
+                                            </td>
+                                        }
                                     </tr>
                                 }
                             </tbody>
@@ -185,176 +205,178 @@
             </div>
         </div>
 
-        <!-- Add New Item Form -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-plus-circle text-success"></i> Add New Item
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="post" asp-controller="Trips" asp-action="AddChecklistItem" asp-route-tripId="@tripId">
-                    @Html.AntiForgeryToken()
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-8">
-                            <label for="newItem" class="form-label">Item Description</label>
-                            <input type="text"
-                                   name="item"
-                                   id="newItem"
-                                   class="form-control"
-                                   placeholder="Enter checklist item..."
-                                   required>
-                        </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="fas fa-plus"></i> Add Item
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <!-- Checklist Summary -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-pie text-info"></i> Checklist Summary
-                </h5>
-            </div>
-            <div class="card-body">
-                @{
-                    var totalItems = Model.Checklist.Items.Count;
-                    var completedItems = Model.Checklist.Items.Count(i => i.IsCompleted);
-                    var pendingItems = totalItems - completedItems;
-                    var completionPercentage = totalItems > 0 ? (completedItems * 100) / totalItems : 0;
-                }
-
-                <div class="text-center mb-4">
-                    <div class="progress" style="height: 25px;">
-                        <div class="progress-bar bg-success"
-                             role="progressbar"
-                             style="width: @completionPercentage%;"
-                             aria-valuenow="@completionPercentage"
-                             aria-valuemin="0"
-                             aria-valuemax="100">
-                            @completionPercentage%
-                        </div>
-                    </div>
-                    <small class="text-muted mt-1 d-block">Overall Progress</small>
+        @if(!isPublicView)
+        {
+            <!-- Add New Item Form -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus-circle text-success"></i> Add New Item
+                    </h5>
                 </div>
-
-                <div class="row text-center">
-                    <div class="col-6">
-                        <div class="border-end">
-                            <h4 class="text-success mb-0">@completedItems</h4>
-                            <small class="text-muted">Completed</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div>
-                            <h4 class="text-secondary mb-0">@pendingItems</h4>
-                            <small class="text-muted">Pending</small>
-                        </div>
-                    </div>
-                </div>
-
-                <hr>
-
-                <div class="mb-2">
-                    <strong>Total Items:</strong>
-                    <span class="float-end badge bg-primary">@totalItems</span>
-                </div>
-                <div class="mb-2">
-                    <strong>Assigned Items:</strong>
-                    <span class="float-end badge bg-info">@Model.Checklist.Items.Count(i => i.AssignedParticipantId != null)</span>
-                </div>
-                <div>
-                    <strong>Unassigned Items:</strong>
-                    <span class="float-end badge bg-warning">@Model.Checklist.Items.Count(i => i.AssignedParticipantId == null)</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Participants Overview -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-users text-warning"></i> Participants
-                    <span class="badge bg-warning ms-2">@Model.Participants.Count</span>
-                </h5>
-            </div>
-            <div class="card-body">
-                @if (Model.Participants.Any())
-                {
-                    <div class="list-group list-group-flush">
-                        @foreach (var participant in Model.Participants)
-                        {
-                            var assignedItems = Model.Checklist.Items.Count(i => i.AssignedParticipantId == participant.Id);
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                <div>
-                                    <i class="fas fa-user text-muted me-2"></i>
-                                    @participant.DisplayName
-                                </div>
-                                <span class="badge @(assignedItems > 0 ? "bg-info" : "bg-secondary")">
-                                    @assignedItems
-                                </span>
+                <div class="card-body">
+                    <form method="post" asp-controller="Trips" asp-action="AddChecklistItem" asp-route-tripId="@tripId">
+                        @Html.AntiForgeryToken()
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label for="newItem" class="form-label">Item Description</label>
+                                <input type="text"
+                                       name="item"
+                                       id="newItem"
+                                       class="form-control"
+                                       placeholder="Enter checklist item..."
+                                       required>
                             </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="text-center text-muted py-2">
-                        <i class="fas fa-info-circle"></i> No participants
-                    </div>
-                }
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-bolt text-danger"></i> Quick Actions
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <form method="post"
-                          asp-controller="Trips"
-                          asp-action="MarkAllComplete"
-                          asp-route-tripId="@tripId"
-                          class="d-grid">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-success btn-sm">
-                            <i class="fas fa-check-double"></i> Mark All Complete
-                        </button>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-plus"></i> Add Item
+                                </button>
+                            </div>
+                        </div>
                     </form>
+                </div>
+            </div>
+        }
+    </div>
 
-                    <form method="post"
-                          asp-controller="Trips"
-                          asp-action="MarkAllIncomplete"
-                          asp-route-tripId="@tripId"
-                          class="d-grid">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-undo"></i> Mark All Incomplete
-                        </button>
-                    </form>
+    @if(!isPublicView)
+    {
+        <div class="col-md-4">
+            <!-- Checklist Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie text-info"></i> Checklist Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @{
+                        var totalItems = Model.Checklist.Items.Count;
+                        var completedItems = Model.Checklist.Items.Count(i => i.IsCompleted);
+                        var pendingItems = totalItems - completedItems;
+                        var completionPercentage = totalItems > 0 ? (completedItems * 100) / totalItems : 0;
+                    }
 
-                    <a asp-controller="Trips"
-                       asp-action="Details"
-                       asp-route-id="@tripId"
-                       class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-arrow-left"></i> Back to Trip
-                    </a>
+                    <div class="text-center mb-4">
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: @completionPercentage%;"
+                            aria-valuenow="@completionPercentage" aria-valuemin="0" aria-valuemax="100">
+                                @completionPercentage%
+                            </div>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Overall Progress</small>
+                    </div>
+
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-success mb-0">@completedItems</h4>
+                                <small class="text-muted">Completed</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div>
+                                <h4 class="text-secondary mb-0">@pendingItems</h4>
+                                <small class="text-muted">Pending</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-2">
+                        <strong>Total Items:</strong>
+                        <span class="float-end badge bg-primary">@totalItems</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Assigned Items:</strong>
+                        <span class="float-end badge bg-info">@Model.Checklist.Items.Count(i => i.AssignedParticipantId != null)</span>
+                    </div>
+                    <div>
+                        <strong>Unassigned Items:</strong>
+                        <span class="float-end badge bg-warning">@Model.Checklist.Items.Count(i => i.AssignedParticipantId == null)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Participants Overview -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users text-warning"></i> Participants
+                        <span class="badge bg-warning ms-2">@Model.Participants.Count</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Participants.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var participant in Model.Participants)
+                            {
+                                var assignedItems = Model.Checklist.Items.Count(i => i.AssignedParticipantId == participant.Id);
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <div>
+                                        <i class="fas fa-user text-muted me-2"></i>
+                                        @participant.DisplayName
+                                    </div>
+                                    <span class="badge @(assignedItems > 0 ? "bg-info" : "bg-secondary")">
+                                        @assignedItems
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-2">
+                            <i class="fas fa-info-circle"></i> No participants
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt text-danger"></i> Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <form method="post"
+                              asp-controller="Trips"
+                              asp-action="MarkAllComplete"
+                              asp-route-tripId="@tripId"
+                              class="d-grid">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-check-double"></i> Mark All Complete
+                            </button>
+                        </form>
+
+                        <form method="post"
+                              asp-controller="Trips"
+                              asp-action="MarkAllIncomplete"
+                              asp-route-tripId="@tripId"
+                              class="d-grid">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-undo"></i> Mark All Incomplete
+                            </button>
+                        </form>
+
+                        <a asp-controller="Trips"
+                           asp-action="Details"
+                           asp-route-id="@tripId"
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Trip
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 </div>
 
 @section Scripts {

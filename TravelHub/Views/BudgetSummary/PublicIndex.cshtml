@@ -210,14 +210,17 @@
     </div>
 
     <!-- Wykres kategorii -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Category Distribution</h5>
+    @if (Model.CategorySummaries.Any())
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Category Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" width="400" height="300"></canvas>
+            </div>
         </div>
-        <div class="card-body">
-            <canvas id="categoryChart" width="400" height="300"></canvas>
-        </div>
-    </div>
+    }
 </div>
 
 @section Scripts {

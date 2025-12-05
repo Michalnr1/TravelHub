@@ -99,8 +99,6 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
     public async Task MarkAllChecklistItemsAsync(int tripId, bool completed)
     {
         var trip = await _context.Trips
-            .Include(t => t.Checklist)
-            .ThenInclude(c => c.Items)
             .FirstOrDefaultAsync(t => t.Id == tripId);
 
         if (trip == null)
@@ -113,7 +111,8 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
                 item.IsCompleted = completed;
             }
 
-            await _context.SaveChangesAsync();
+            // await _context.SaveChangesAsync();
+            await UpdateAsync(trip);
         }
     }
 
@@ -130,10 +129,10 @@ public class TripRepository : GenericRepository<Trip>, ITripRepository
             .Include(t => t.Participants)
             .Include(t => t.ChatMessages)
             .Include(t => t.Blog)
-                .ThenInclude(b => b.Posts)
+                .ThenInclude(b => b!.Posts)
                     .ThenInclude(p => p.Comments)
             .Include(t => t.Blog)
-                .ThenInclude(b => b.Posts)
+                .ThenInclude(b => b!.Posts)
                     .ThenInclude(p => p.Photos)
             .FirstOrDefaultAsync(t => t.Id == tripId);
 

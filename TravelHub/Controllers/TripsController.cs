@@ -1096,10 +1096,15 @@ public class TripsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Checklist(int tripId)
+    public async Task<IActionResult> Checklist(int tripId, string source = "")
     {
         var trip = await _tripService.GetByIdWithParticipantsAsync(tripId);
         if (trip == null) return NotFound();
+
+        if (source != "public" && !await _tripParticipantService.UserHasAccessToTripAsync(trip.Id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
 
         var vm = new ChecklistPageViewModel
         {
