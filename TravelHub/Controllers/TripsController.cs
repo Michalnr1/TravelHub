@@ -956,9 +956,10 @@ public class TripsController : Controller
     {
         try
         {
-            (double lat, double lng) = await _tripService.GetMedianCoordinates(id);
-            ViewData["Latitude"] = lat;
-            ViewData["Longitude"] = lng;
+            (double latitude, double longitude) = await _tripService.GetMedianCoordinates(id);
+            ViewData["Latitude"] = latitude;
+            ViewData["Longitude"] = longitude;
+            ViewData["TripId"] = id;
             return View("Recommendations");
         }
         catch (Exception)

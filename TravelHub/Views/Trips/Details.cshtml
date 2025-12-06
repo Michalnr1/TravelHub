@@ -316,7 +316,14 @@
                                     <div class="col-md-6">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h5>Spots (@Model.SpotsCount)</h5>
-                                            <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success">Add Spot</a>
+
+                                            <div class="d-flex gap-2">
+                                                <a asp-controller="Trips" asp-action="Recommendations" asp-route-id="@Model.Id"
+                                                   class="btn btn-sm btn-success">Recommendations</a>
+
+                                                <a asp-controller="Spots" asp-action="AddToTrip" asp-route-tripId="@Model.Id"
+                                                   class="btn btn-sm btn-success">Add Spot</a>
+                                            </div>
                                         </div>
                                         <div style="max-height: 400px; overflow-y: auto;">
                                             @if (Model.Spots.Any())
