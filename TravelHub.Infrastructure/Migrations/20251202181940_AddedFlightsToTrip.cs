@@ -33,7 +33,7 @@ namespace TravelHub.Infrastructure.Migrations
                     AddedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     PersonId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
-                    SegmentsJson = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Segments = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
