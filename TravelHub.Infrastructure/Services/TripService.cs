@@ -113,7 +113,7 @@ public class TripService : GenericService<Trip>, ITripService
         return await _tripRepository.ExistsAsync(id);
     }
 
-    public async Task<(double medianLatitude, double medianLongitude)> GetMedianCoords(int id)
+    public async Task<(double medianLatitude, double medianLongitude)> GetMedianCoordinates(int id)
     {
         var trip = await GetTripWithDetailsAsync(id);
 

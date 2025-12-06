@@ -587,7 +587,7 @@ public class SpotsController : Controller
         }
         ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
 
-        (double lat, double lng) = await _tripService.GetMedianCoords(trip.Id);
+        (double lat, double lng) = await _tripService.GetMedianCoordinates(trip.Id);
 
         ViewData["Latitude"] = lat;
         ViewData["Longitude"] = lng;

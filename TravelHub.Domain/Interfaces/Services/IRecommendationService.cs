@@ -9,6 +9,6 @@ namespace TravelHub.Domain.Interfaces.Services;
 
 public interface IRecommendationService
 {
-    Task<List<AttractionDto>> FindRecommendationsByCoords(double lat, double lng, int distanceMeters);
+    Task<List<AttractionDto>> FindRecommendationsByCoordinates(double lat, double lng, int distanceMeters);
     Task<string> GetPhotoUrl(string photoName);
 }
