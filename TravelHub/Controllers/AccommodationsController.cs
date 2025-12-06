@@ -195,10 +195,6 @@ public class AccommodationsController : Controller
             ViewData["TripName"] = trip.Name;
             ViewData["MinDate"] = trip.StartDate.ToString("yyyy-MM-dd");
             ViewData["MaxDate"] = trip.EndDate.ToString("yyyy-MM-dd");
-
-            (double lat, double lng) = await GetMedianCoords(trip.Id);
-            ViewData["Latitude"] = lat;
-            ViewData["Longitude"] = lng;
         }
 
         ViewData["ReturnUrl"] = returnUrl;
@@ -403,13 +399,24 @@ public class AccommodationsController : Controller
             return Forbid();
         }
 
+        DateTime? dayDate = null;
+        if (dayId != null)
+        {
+            var day = await _dayService.GetDayByIdAsync(dayId.Value);
+            if (day == null)
+            {
+                return NotFound();
+            }
+            dayDate = day.Date;
+        }
+
         var viewModel = new AccommodationCreateEditViewModel
         {
             TripId = tripId,
             Order = 0, // Order nie jest edytowalny przez użytkownika
             Duration = 0, // Duration nie jest istotne dla zakwaterowania
-            CheckIn = trip.StartDate,
-            CheckOut = trip.StartDate.AddDays(1),
+            CheckIn = dayDate ?? trip.StartDate,
+            CheckOut = (dayDate ?? trip.StartDate).AddDays(1),
             CheckInTime = 14.0m,
             CheckOutTime = 10.0m,
             CheckInTimeString = "14:00",

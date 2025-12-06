@@ -216,7 +216,7 @@ public class DaysController : Controller
 
         if (viewModel.NextAccommodation != null)
         {
-            viewModel.NextAccommodation.Order = viewModel.Spots.Count + 1; 
+            viewModel.NextAccommodation.Order = viewModel.Spots.Count + viewModel.Activities.Count + 1; 
             viewModel.Spots.Add(viewModel.NextAccommodation);
         }
 

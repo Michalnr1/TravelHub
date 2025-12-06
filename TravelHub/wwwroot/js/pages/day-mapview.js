@@ -200,7 +200,7 @@ function updateRouteInfoBox(legs = null, startTime = null, endTime = null) {
                 </div>`;
 
         // Dodaj ostrzeżenie jeśli dystans jest nierealny dla trybu
-        if (parseFloat(distances.overall) > 100 && travelMode === 'WALKING') {
+        if (parseFloat(distances.walking) > 100) {
             html += `<div class="alert alert-warning mt-2">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         Very long distance for walking. Consider changing to driving mode.
