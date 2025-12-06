@@ -195,10 +195,6 @@ public class AccommodationsController : Controller
             ViewData["TripName"] = trip.Name;
             ViewData["MinDate"] = trip.StartDate.ToString("yyyy-MM-dd");
             ViewData["MaxDate"] = trip.EndDate.ToString("yyyy-MM-dd");
-
-            (double lat, double lng) = await GetMedianCoords(trip.Id);
-            ViewData["Latitude"] = lat;
-            ViewData["Longitude"] = lng;
         }
 
         ViewData["ReturnUrl"] = returnUrl;

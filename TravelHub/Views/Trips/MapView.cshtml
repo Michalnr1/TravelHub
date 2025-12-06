@@ -8,8 +8,9 @@
     var startLng = ViewData["Longitude"];
     var allSpots = new List<SpotDetailsViewModel>();
     allSpots.AddRange(Model.Spots);
-    allSpots.AddRange(Model.Accommodations.Select(a => new SpotDetailsViewModel
+    allSpots.AddRange(Model.Accommodations.Select(a => new AccommodationBasicViewModel
     {
+        Id = a.Id,
         TripName = Model.Name,
         Name = a.Name,
         Latitude = a.Latitude,
@@ -61,6 +62,7 @@
                         }
                         @foreach (var spot in allSpots)
                         {
+                            string controller = spot is AccommodationBasicViewModel ? "Accommodations" : "Spots";
                             <div class="list-group-item" id="spot-@i">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
@@ -82,15 +84,15 @@
                                     <div class="btn-group ms-2 flex-shrink-0">
                                         @if (isPublicView)
                                         {
-                                            <a asp-controller="Spots" asp-action="@detailsAction" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-primary">
+                                            <a asp-controller="@controller" asp-action="@detailsAction" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                         }
                                         else
                                         {
-                                            <a asp-controller="Spots" asp-action="@detailsAction" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
-                                            <a asp-controller="Spots" asp-action="Edit" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
-                                            <form asp-controller="Spots" asp-action="Delete" asp-route-id="@spot.Id" method="post" class="d-inline">
+                                            <a asp-controller="@controller" asp-action="@detailsAction" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
+                                            <a asp-controller="@controller" asp-action="Edit" asp-route-id="@spot.Id" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
+                                            <form asp-controller="@controller" asp-action="Delete" asp-route-id="@spot.Id" method="post" class="d-inline">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this spot?')"><i class="fas fa-trash"></i></button>
                                             </form>
                                         }
