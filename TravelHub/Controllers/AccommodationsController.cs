@@ -164,7 +164,7 @@ public class AccommodationsController : Controller
     }
 
     // GET: Accommodations/Edit/5
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int? id, string? returnUrl = null)
     {
         if (id == null)
         {
@@ -201,7 +201,7 @@ public class AccommodationsController : Controller
             ViewData["Longitude"] = lng;
         }
 
-        ViewData["ReturnUrl"] = Url.Action("Details", "Accommodations", new { id = id });
+        ViewData["ReturnUrl"] = returnUrl;
         ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
 
         return View(viewModel);
@@ -334,7 +334,7 @@ public class AccommodationsController : Controller
     }
 
     // GET: Accommodations/Delete/5
-    public async Task<IActionResult> Delete(int? id)
+    public async Task<IActionResult> Delete(int? id, string? returnUrl = null)
     {
         if (id == null)
         {
@@ -362,13 +362,14 @@ public class AccommodationsController : Controller
             CheckOut = accommodation.CheckOut
         };
 
+        ViewData["ReturnUrl"] = returnUrl;
         return View(viewModel);
     }
 
     // POST: Accommodations/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public async Task<IActionResult> DeleteConfirmed(int id, string? returnUrl = null)
     {
         var accommodation = await _accommodationService.GetByIdAsync(id);
         if (!await _tripParticipantService.UserHasAccessToTripAsync(accommodation.TripId, GetCurrentUserId()))
@@ -376,7 +377,12 @@ public class AccommodationsController : Controller
             return Forbid();
         }
         await _accommodationService.DeleteAsync(id);
-        return RedirectToAction(nameof(Index));
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+        return RedirectToAction("Details", "Trips", new { id = accommodation.TripId });
     }
 
     // GET: Accommodations/AddToTrip/5

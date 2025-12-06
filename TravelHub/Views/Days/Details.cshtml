@@ -16,7 +16,6 @@
     var isPublicView = Context.Request.Query["source"] == "public";
     var returnUrl = ViewData["ReturnUrl"];    
 }
-}
 
 <h1>@ViewData["Title"]</h1>
 
@@ -362,7 +361,7 @@
 <div class="mt-4 d-flex flex-wrap gap-2">
     @if (!isPublicView && isGroup)
     {
-        <a asp-action="EditGroup" asp-route-id="@Model.Id" class="btn btn-warning">
+        <a asp-action="EditGroup" asp-route-id="@Model.Id" asp-route-returnUrl="@Context.Request.Path" class="btn btn-warning">
             <i class="fas fa-edit"></i> Edit Group
         </a>
     }

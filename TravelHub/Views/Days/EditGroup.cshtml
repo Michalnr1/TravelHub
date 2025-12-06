@@ -1,6 +1,7 @@
 ﻿@model TravelHub.Web.ViewModels.Trips.EditDayViewModel
 @{
     ViewData["Title"] = "Edit group";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? Url.Action("Details", "Days", new { id = Model.Id });
 }
 
 <h2>Edit group</h2>
@@ -32,7 +33,7 @@
 
             <div class="form-group mb-3">
                 <button type="submit" class="btn btn-primary">Save</button>
-                <a asp-controller="Trips" asp-action="Details" asp-route-id="@Model.TripId" class="btn btn-secondary">Cancel</a>
+                <a href="@returnUrl" class="btn btn-secondary">Back</a>
             </div>
         </form>
     </div>

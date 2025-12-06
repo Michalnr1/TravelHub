@@ -13,7 +13,7 @@
     <div>
         @if (!isPublicView)
         {
-            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" asp-route-returnUrl="@Context.Request.Path" class="btn btn-warning">Edit</a>
         }
         <a href="@returnUrl" class="btn btn-outline-secondary">Back to Trip</a>
     </div>
@@ -129,7 +129,7 @@
                 <div class="d-grid gap-2">
                     @if (!isPublicView)
                     {
-                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                        <a asp-action="Edit" asp-route-id="@Model.Id" asp-route-returnUrl="@Context.Request.Path" class="btn btn-warning">
                             <i class="fas fa-edit"></i> Edit Transport
                         </a>
                     }

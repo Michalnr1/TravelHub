@@ -486,14 +486,14 @@ public class ApplicationDbContext : IdentityDbContext<Person>
                   .WithOne(s => s.Expense)
                   .HasForeignKey<Expense>(e => e.SpotId)
                   .IsRequired(false)
-                  .OnDelete(DeleteBehavior.NoAction);
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:1 relationship with Transport
             entity.HasOne(e => e.Transport)
                   .WithOne(t => t.Expense)
                   .HasForeignKey<Expense>(e => e.TransportId)
                   .IsRequired(false)
-                  .OnDelete(DeleteBehavior.NoAction);
+                  .OnDelete(DeleteBehavior.ClientCascade);
 
             // 1:N relationship with Category
             entity.HasOne(e => e.Category)

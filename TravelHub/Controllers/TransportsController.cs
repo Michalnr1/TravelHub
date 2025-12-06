@@ -246,6 +246,11 @@ public class TransportsController : Controller
                     throw;
                 }
             }
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
@@ -254,7 +259,7 @@ public class TransportsController : Controller
     }
 
     // GET: Transports/Delete/5
-    public async Task<IActionResult> Delete(int? id)
+    public async Task<IActionResult> Delete(int? id, string? returnUrl = null)
     {
         if (id == null)
         {
@@ -286,13 +291,14 @@ public class TransportsController : Controller
             ToSpotName = transport.ToSpot?.Name!
         };
 
+        ViewData["ReturnUrl"] = returnUrl;
         return View(viewModel);
     }
 
     // POST: Transports/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public async Task<IActionResult> DeleteConfirmed(int id, string? returnUrl = null)
     {
         var transport = await _transportService.GetByIdAsync(id);
         if (!await _tripParticipantService.UserHasAccessToTripAsync(transport.TripId, GetCurrentUserId()))
@@ -300,6 +306,11 @@ public class TransportsController : Controller
             return Forbid();
         }
         await _transportService.DeleteAsync(id);
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
         return RedirectToAction("Details", "Trips", new { id = transport.TripId });
     }
 
