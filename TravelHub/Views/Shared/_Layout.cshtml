@@ -4,6 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - TravelHub</title>
+    
+    <!-- Favicon z folderu icons -->
+    <link rel="icon" type="image/svg+xml" href="~/images/icons/Logo-no-bkg.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="~/images/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="~/images/icons/favicon-16x16.png">
+    <link rel="icon" type="image/x-icon" href="~/images/icons/favicon.ico">
+    <link rel="apple-touch-icon" href="~/images/icons/apple-touch-icon.png">
+    <link rel="manifest" href="~/images/icons/site.webmanifest">
+
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -19,7 +28,11 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Trips" asp-action="MyTrips">TravelHub</a>
+                <a class="navbar-brand" asp-area="" asp-controller="Trips" asp-action="MyTrips">
+                    <img src="~/images/icons/Logo-text.svg"
+                         alt="TravelHub"
+                         class="navbar-brand-logo">
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
