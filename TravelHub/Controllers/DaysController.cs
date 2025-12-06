@@ -264,7 +264,7 @@ public class DaysController : Controller
     }
 
     // GET: Days/Edit/5
-    public async Task<IActionResult> Edit(int id)
+    public async Task<IActionResult> Edit(int id, string? returnUrl = null)
     {
         var day = await _dayService.GetByIdAsync(id);
         if (day == null)
@@ -285,6 +285,7 @@ public class DaysController : Controller
             Date = day.Date
         };
 
+        ViewData["ReturnUrl"] = returnUrl;
         return View(viewModel);
     }
 

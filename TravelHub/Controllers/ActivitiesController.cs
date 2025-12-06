@@ -247,7 +247,7 @@ public class ActivitiesController : Controller
     }
 
     // GET: Activities/Delete/5
-    public async Task<IActionResult> Delete(int? id)
+    public async Task<IActionResult> Delete(int? id, string? returnUrl = null)
     {
         if (id == null)
         {
@@ -280,6 +280,7 @@ public class ActivitiesController : Controller
             Type = activity is Spot ? "Spot" : "Activity"
         };
 
+        ViewData["ReturnUrl"] = returnUrl;
         return View(viewModel);
     }
 
