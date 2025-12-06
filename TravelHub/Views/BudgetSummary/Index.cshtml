@@ -23,7 +23,7 @@
             <h5 class="card-title mb-0">Filters</h5>
         </div>
         <div class="card-body">
-            <form method="post" asp-action="Index" id="filterForm">
+            <form method="post" asp-action="Index" asp-route-tripId="@Model.TripId" id="filterForm">
                 <input type="hidden" asp-for="TripId" />
 
                 <div class="row">
@@ -315,7 +315,11 @@
                         <h5 class="card-title mb-0">Category Distribution</h5>
                     </div>
                     <div class="card-body">
-                        <canvas id="categoryChart" width="400" height="300"></canvas>
+                        <canvas id="categoryChart" width="400" height="300"
+                            data-labels='@Json.Serialize(Model.CategorySummaries.Select(c => c.CategoryName).ToList())'
+                            data-values='@Json.Serialize(Model.CategorySummaries.Select(c => c.Total).ToList())'
+                            data-colors='@Json.Serialize(Model.CategorySummaries.Select(c => c.CategoryColor).ToList())'>
+                        </canvas>
                     </div>
                 </div>
             </div>
@@ -328,7 +332,10 @@
                         <h5 class="card-title mb-0">Person Distribution</h5>
                     </div>
                     <div class="card-body">
-                        <canvas id="personChart" width="400" height="300"></canvas>
+                        <canvas id="personChart" width="400" height="300"
+                            data-labels='@Json.Serialize(Model.PersonSummaries.Select(p => p.PersonName).ToList())'
+                            data-values='@Json.Serialize(Model.PersonSummaries.Select(p => p.Total).ToList())'>
+                        </canvas>
                     </div>
                 </div>
             </div>
@@ -342,29 +349,18 @@
         // Inicjalizacja wykresów
         document.addEventListener('DOMContentLoaded', function() {
             // Wykres kategorii
-            var categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            var categoryCtx = document.getElementById('categoryChart');
+
+            var labels = JSON.parse(categoryCtx.dataset.labels);
+            var values = JSON.parse(categoryCtx.dataset.values);
+            var colors = JSON.parse(categoryCtx.dataset.colors);
             var categoryChart = new Chart(categoryCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: [
-                        @foreach (var category in Model.CategorySummaries)
-                        {
-                                @:'@category.CategoryName',
-                        }
-                    ],
+                    labels: labels,
                     datasets: [{
-                        data: [
-                            @foreach (var category in Model.CategorySummaries)
-                            {
-                                    @:'@category.Total',
-                            }
-                        ],
-                        backgroundColor: [
-                            @foreach (var category in Model.CategorySummaries)
-                            {
-                                    @:'@category.CategoryColor',
-                            }
-                        ],
+                        data: values,
+                        backgroundColor: colors,
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
@@ -391,23 +387,15 @@
             });
 
             // Wykres osób
-            var personCtx = document.getElementById('personChart').getContext('2d');
+            var personCtx = document.getElementById('personChart');
+            var labels = JSON.parse(personCtx.dataset.labels);
+            var values = JSON.parse(personCtx.dataset.values);
             var personChart = new Chart(personCtx, {
                 type: 'pie',
                 data: {
-                    labels: [
-                        @foreach (var person in Model.PersonSummaries)
-                        {
-                                @:'@person.PersonName',
-                        }
-                    ],
+                    labels: labels,
                     datasets: [{
-                        data: [
-                            @foreach (var person in Model.PersonSummaries)
-                            {
-                                    @:'@person.Total',
-                            }
-                        ],
+                        data: values,
                         backgroundColor: [
                             '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
                             '#858796', '#5a5c69', '#6f42c1', '#e83e8c', '#fd7e14'

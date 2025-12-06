@@ -65,17 +65,17 @@ public class BudgetSummaryController : Controller
     // POST: BudgetSummary/Index (dla formularza filtrowania)
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Index(BudgetFilterViewModel filterModel)
+    public async Task<IActionResult> Index(int tripId, BudgetFilterViewModel filterModel)
     {
         if (ModelState.IsValid)
         {
-            var trip = await _tripService.GetByIdAsync(filterModel.TripId);
+            var trip = await _tripService.GetByIdAsync(tripId);
             if (trip == null)
                 return NotFound();
 
             var filter = new BudgetFilterDto
             {
-                TripId = filterModel.TripId,
+                TripId = tripId,
                 PersonId = filterModel.PersonId,
                 CategoryId = filterModel.CategoryId,
                 IncludeTransfers = filterModel.IncludeTransfers,
@@ -87,7 +87,7 @@ public class BudgetSummaryController : Controller
 
             viewModel.FilterByCategoryId = filterModel.CategoryId;
 
-            await PopulateFilterLists(viewModel, filterModel.TripId);
+            await PopulateFilterLists(viewModel, tripId);
 
             viewModel.IncludeTransfers = filterModel.IncludeTransfers;
             viewModel.IncludeEstimated = filterModel.IncludeEstimated;
@@ -97,7 +97,7 @@ public class BudgetSummaryController : Controller
 
         return RedirectToAction(nameof(Index), new
         {
-            tripId = filterModel.TripId,
+            tripId,
             personId = filterModel.PersonId,
             categoryId = filterModel.CategoryId,
             includeTransfers = filterModel.IncludeTransfers,

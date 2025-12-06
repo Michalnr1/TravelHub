@@ -11,13 +11,15 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
     private readonly IExpenseRepository _expenseRepository;
     private readonly ITripService _tripService;
     private readonly IExchangeRateService _exchangeRateService;
+    private readonly IGenericRepository<Person> _personRepository;
 
-    public ExpenseService(IExpenseRepository expenseRepository, IExchangeRateService exchangeRateService, ITripService tripService)
+    public ExpenseService(IExpenseRepository expenseRepository, IExchangeRateService exchangeRateService, ITripService tripService, IGenericRepository<Person> personRepository)
         : base(expenseRepository) // Przekazujemy repozytorium do serwisu generycznego
     {
         _expenseRepository = expenseRepository;
         _exchangeRateService = exchangeRateService;
         _tripService = tripService;
+        _personRepository = personRepository;
     }
 
     public new async Task<Expense> GetByIdAsync(object id)
@@ -705,7 +707,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         return result;
     }
 
-    private Task<BudgetSummaryDto> CalculateBudgetSummary(List<ExpenseCalculation> expenses, Trip trip, BudgetFilterDto filter)
+    private async Task<BudgetSummaryDto> CalculateBudgetSummary(List<ExpenseCalculation> expenses, Trip trip, BudgetFilterDto filter)
     {
         var summary = new BudgetSummaryDto
         {
@@ -756,7 +758,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
         // Uzupełnij nazwy filtrów
         if (!string.IsNullOrEmpty(filter.PersonId))
         {
-            var person = allParticipants.FirstOrDefault(p => p?.Id == filter.PersonId);
+            var person = await _personRepository.GetByIdAsync(filter.PersonId);  // allParticipants.FirstOrDefault(p => p?.Id == filter.PersonId);
             summary.FilterByPersonName = person != null ? $"{person.FirstName} {person.LastName}" : filter.PersonId;
         }
 
@@ -766,7 +768,7 @@ public class ExpenseService : GenericService<Expense>, IExpenseService
             summary.FilterByCategoryName = category?.CategoryName ?? filter.CategoryId.ToString();
         }
 
-        return Task.FromResult(summary);
+        return summary;
     }
 
     private List<BudgetCategorySummaryDto> CalculateCategorySummaries(List<ExpenseCalculation> expenses, BudgetFilterDto filter)
