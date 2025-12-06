@@ -2,15 +2,23 @@
     ViewData["Title"] = "Find Nearby Attractions";
     var defaultLat = ViewData["Latitude"];
     var defaultLng = ViewData["Longitude"];
+    var tripId = ViewData["TripId"] as int?;
 }
 
 <div class="container mt-4">
-    <h2>Find Nearby Attractions</h2>
-    <p class="text-muted">Enter coordinates to discover attractions in the area</p>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            <h2>Find Nearby Attractions</h2>
+            <p class="text-muted">Enter coordinates to discover attractions in the area</p>
+        </div>
+
+        <a asp-controller="Trips" asp-action="Details" asp-route-id="@tripId" class="btn btn-outline-secondary">Back to trip</a>
+    </div>
 
     <div class="card shadow-sm">
         <div class="card-body">
             <form id="attractionsForm">
+                @Html.AntiForgeryToken()
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label for="latitudeInput" class="form-label">
@@ -80,7 +88,11 @@
     <div id="resultsContainer" class="mt-4">
         <h3 class="mb-3">Found Attractions</h3>
         <div id="attractionsList" class="row">
-            <!-- Results will be inserted here -->
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Enter coordinates and click "Find Attractions" to search
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -114,6 +126,17 @@
         #resultsContainer {
             min-height: 300px;
         }
+
+        .btn-add-to-trip {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+
+        .attraction-card {
+            position: relative;
+        }
     </style>
 }
 
@@ -129,6 +152,7 @@
         // Set default values from ViewData
         const defaultLat = "@Html.Raw(defaultLat)";
         const defaultLng = "@Html.Raw(defaultLng)";
+        const tripId = @(tripId?.ToString() ?? "0");
 
         if (defaultLat && defaultLat.length > 0) {
             document.getElementById("latitudeInput").value = defaultLat;
@@ -136,6 +160,9 @@
         if (defaultLng && defaultLng.length > 0) {
             document.getElementById("longitudeInput").value = defaultLng;
         }
+
+        // Store anti-forgery token
+        const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
         // Form submission handler
         document.getElementById("attractionsForm").addEventListener("submit", function (event) {
@@ -295,6 +322,42 @@
             }
         }
 
+        // Add spot to trip via AJAX
+        async function addSpotToTrip(attraction) {
+            if (!tripId || tripId <= 0) {
+                showToast("Please select a trip first", "warning");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('Name', attraction.name);
+            formData.append('Latitude', attraction.latitude);
+            formData.append('Longitude', attraction.longitude);
+            formData.append('TripId', tripId);
+            formData.append('__RequestVerificationToken', antiForgeryToken);
+
+            try {
+                const response = await fetch('/Spots/AddFromRecommendation', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    showToast(`"${attraction.name}" has been added to your trip!`, "success");
+                } else if (response.status === 403) {
+                    showToast("You don't have permission to add spots to this trip", "danger");
+                } else if (response.status === 404) {
+                    showToast("Trip not found", "danger");
+                } else {
+                    const error = await response.text();
+                    showToast(`Error: ${error}`, "danger");
+                }
+            } catch (error) {
+                console.error('Error adding spot to trip:', error);
+                showToast("An error occurred while adding the spot", "danger");
+            }
+        }
+
         // Display attractions
         async function displayAttractions(attractions) {
             const container = document.getElementById("attractionsList");
@@ -318,6 +381,14 @@
                 html += `
                     <div class="col-md-6 col-lg-4 mb-4">
                         <div class="card attraction-card h-100">
+                            <button type="button"
+                                    class="btn btn-sm btn-success btn-add-to-trip"
+                                    onclick="addSpotToTrip(${JSON.stringify(attraction).replace(/"/g, '&quot;')})"
+                                    ${tripId <= 0 ? 'disabled' : ''}
+                                    title="${tripId <= 0 ? 'No trip selected' : 'Add to trip'}">
+                                <i class="bi bi-plus-circle"></i> Add to Trip
+                            </button>
+
                             ${photoUrl ? `
                                 <img src="${photoUrl}"
                                      class="card-img-top attraction-image"
@@ -346,7 +417,10 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            clearResults(); // Show initial message
+            // If tripId is not available, show a warning
+            if (tripId <= 0) {
+                showToast("No trip selected. Please navigate to this page from a trip to add spots directly.", "warning");
+            }
         });
     </script>
 }

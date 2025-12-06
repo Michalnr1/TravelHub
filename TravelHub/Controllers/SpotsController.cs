@@ -593,6 +593,73 @@ public class SpotsController : Controller
         ViewData["Longitude"] = lng;
     }
 
+    // POST: Spots/AddFromRecommendation
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddFromRecommendation(
+        [FromForm] SpotFromRecommendationViewModel model,
+        string? returnUrl = null)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var trip = await _tripService.GetByIdAsync(model.TripId);
+            if (trip == null)
+            {
+                return NotFound("Trip not found");
+            }
+
+            if (!await _tripParticipantService.UserHasAccessToTripAsync(model.TripId, GetCurrentUserId()))
+            {
+                return Forbid();
+            }
+
+            // Utwórz nowy spot tylko z podstawowymi danymi
+            var spot = new Spot
+            {
+                Name = model.Name,
+                Description = String.Empty,
+                Duration = 0.0m,
+                Order = 0,
+                CategoryId = null,
+                TripId = model.TripId,
+                DayId = null,
+                Longitude = model.Longitude,
+                Latitude = model.Latitude,
+                Rating = null
+            };
+
+            var createdSpot = await _spotService.AddAsync(spot);
+
+            // Pobierz kraj i miasto z geokodowania odwrotnego
+            (string? countryName, string? countryCode, string? city) =
+                await _reverseGeocodingService.GetCountryAndCity(model.Latitude, model.Longitude);
+
+            if (countryName != null && countryCode != null)
+            {
+                await _spotService.AddCountry(createdSpot.Id, countryName, countryCode);
+            }
+
+            TempData["SuccessMessage"] = $"Spot '{model.Name}' added successfully!";
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction("Details", "Trips", new { id = model.TripId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding spot from recommendation");
+            return StatusCode(500, "An error occurred while adding the spot.");
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> ExportPdf(int id)
     {
