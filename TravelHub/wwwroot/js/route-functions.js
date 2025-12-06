@@ -32,7 +32,7 @@ async function getRoute(origin, destination, intermediates = [], travelMode = 'W
 }
 
 function durationString(duration) {
-    if (duration.hours > 0) {
+    if (duration.as('hour') > 0) {
         return duration.toFormat("hh 'h' mm 'm'")
     } else {
         return duration.toFormat("mm 'm'")

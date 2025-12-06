@@ -16,13 +16,19 @@ async function initMap() {
     const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
 
     // Initialize the map.
-    map = new google.maps.Map(document.getElementById("map"), {
+    const mapElement = document.getElementById("map");
+    map = new google.maps.Map(mapElement, {
         center: center,
+        zoom: 12,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: true,
         mapId: 'DEMO_MAP_ID'
     });
-    marker = new AdvancedMarkerElement({
-        map,
-    });
+
+    // Oznacz mapę jako załadowaną
+    mapElement.classList.add('loaded');
+
     infoWindow = new google.maps.InfoWindow({});
     routeInfoWindow = new google.maps.InfoWindow({});
 
@@ -30,17 +36,23 @@ async function initMap() {
 
     points.forEach((point, i) => {
         let coords = { lat: parseFloat(point.latitude), lng: parseFloat(point.longitude) }
-
+            
+        let iconImage;
         if (isGroup) {
-            var iconImage = new google.maps.marker.PinElement({});
+            iconImage = new google.maps.marker.PinElement({
+                background: '#dc3545',
+                borderColor: '#b02a37',
+                glyphColor: 'white'
+            });
         } else {
-            point.glyphLabel = document.createElement("div");
-            point.glyphLabel.style = 'color: white; font-size: 17px;';
-            point.glyphLabel.innerText = i + 1;
-            var iconImage = new google.maps.marker.PinElement({
-                glyph: point.glyphLabel,
+            iconImage = new google.maps.marker.PinElement({
+                glyphText: (i + 1).toString(),
+                glyphColor: 'white',
+                background: '#dc3545',
+                borderColor: '#b02a37',
             });
         }
+        point.iconImage = iconImage;
         const marker = new AdvancedMarkerElement({
             position: coords,
             map: map,
@@ -52,8 +64,22 @@ async function initMap() {
 
         if (i == 0 && previousAccommodation?.id == point.id) {
             cardId = cardId + "-prev";
+            // Dla poprzedniego zakwaterowania użyj żółtego koloru
+            const accommodationIcon = new google.maps.marker.PinElement({
+                background: '#ffc107', // Żółty
+                borderColor: '#d39e00',
+                glyphColor: '#212529'
+            });
+            marker.content = accommodationIcon.element;
         } else if (i == points.length - 1 && nextAccommodation?.id == point.id) {
             cardId = cardId + "-next";
+            // Dla następnego zakwaterowania użyj pomarańczowego koloru
+            const accommodationIcon = new google.maps.marker.PinElement({
+                background: '#fd7e14', // Pomarańczowy
+                borderColor: '#d56712',
+                glyphColor: 'white'
+            });
+            marker.content = accommodationIcon.element;
         }
 
         bindActivityListElems(map, cardId, marker, infoWindow);
@@ -64,6 +90,8 @@ async function initMap() {
 
     bindGlobalTravelModeSelector();
     hideLastTravelCard();
+
+    updateRouteInfoBox();
 }
 
 function bindGlobalTravelModeSelector() {
@@ -81,20 +109,21 @@ function bindGlobalTravelModeSelector() {
     });
 }
 
-function setAllTravelModes(mode) {
-    document
-        .querySelectorAll('.travel-mode-radio-button[value="' + mode + '"]')
-        .forEach(radio => {
-            radio.checked = true;
-        });
-}
-
 //-------------------------------
 //--------ROUTING LOGIC----------
 //-------------------------------
 
 async function showRoute() {
-    if (points.length < 2) return;
+
+    if (points.length < 2) {
+        alert('Need at least 2 points to calculate a route');
+        return;
+    }
+
+    const routeButton = document.getElementById("route-walk-btn");
+    const originalText = routeButton.innerHTML;
+    routeButton.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>Calculating Route...`;
+    routeButton.disabled = true;
 
     let startTime = getStartDatetime();
     let travelModes = getTravelModes();
@@ -102,6 +131,7 @@ async function showRoute() {
     let segments = getModalSegments(points, travelModes);
     let legs = [];
 
+    // 1. Wyznacz trasę dla szczegółowego widoku (stara logika)
     for await (const s of segments) {
         let route = await fetchBaseRoute(s);
         if (!route || route.routes.length === 0) {
@@ -126,6 +156,69 @@ async function showRoute() {
     let endTime = activities[activities.length - 1].endTime;
     showRouteSummary(startTime, endTime);
     validatePlan(activities, startTime, endTime);
+
+    updateRouteInfoBox(legs, startTime, endTime);
+
+    routeButton.innerHTML = originalText;
+    routeButton.disabled = false;
+}
+
+function updateRouteInfoBox(legs = null, startTime = null, endTime = null) {
+
+    // Pobierz lub utwórz kontener informacji
+    let routeInfo = document.getElementById('route-info');
+    if (!routeInfo) {
+        routeInfo = document.createElement('div');
+        routeInfo.id = 'route-info';
+        routeInfo.className = 'alert alert-info mt-3';
+        document.querySelector('.card-body').appendChild(routeInfo);
+    }
+
+    let html = `<strong><i class="fas fa-route me-2"></i>`;
+
+    if (legs != null) {
+        // Formatuj dystans i czas
+        const distances = getTotalDistance(legs);        
+        const travelTimes = getTotalTravelTime(legs);
+
+        html += `Route Details: </strong>
+                <div class="mt-2">
+                    <div><i class="fas fa-clock me-2"></i>Total Itinerary Duration: ${durationString(endTime.diff(startTime, ["hours", "minutes"])) }</div>
+                    <div><i class="fas fa-road me-2"></i>Total Distance: ${distances.overall} km</div>`
+
+        if (distances.walking > 0 && distances.walking < distances.overall) {
+            html += `<div><i class="fas fa-walking me-2"></i>Walking Distance: ${distances.walking} km</div>`
+        }
+
+        html += `<div><i class="fas fa-clock me-2"></i>Total Travel Time: ${durationString(travelTimes.overall)} </div>`
+
+        if (travelTimes.walking.as('seconds') > 0 && travelTimes.walking < travelTimes.overall) {
+            html += `<div><i class="fas fa-walking me-2"></i>Walking Time: ${durationString(travelTimes.walking)}</div>`
+        }
+
+        html += `<div><i class="fas fa-map-marker-alt me-2"></i>Stops: ${points.length}</div>
+                </div>`;
+
+        // Dodaj ostrzeżenie jeśli dystans jest nierealny dla trybu
+        if (parseFloat(distances.overall) > 100 && travelMode === 'WALKING') {
+            html += `<div class="alert alert-warning mt-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Very long distance for walking. Consider changing to driving mode.
+                     </div>`;
+        }
+
+    } else {
+        html += `No Route Calculated</strong>
+                <div class="mt-2">
+                    <div><i class="fas fa-map-marker-alt me-2"></i>Stops: ${points.length}</div>
+                    <div class="alert alert-warning mt-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No route calculated. Click "Find Route" to calculate a route for PDF export.
+                    </div>
+                </div>`;
+    }
+
+    routeInfo.innerHTML = html;
 }
 
 function getStartDatetime() {
@@ -227,9 +320,10 @@ async function renderRoute(legs) {
             await renderTransitSteps(leg, travelDiv);
         } else {
             const durationMillis = getTransportDuration(points[i], leg);
+            const mode = leg.desiredTravelMode == 'TRANSIT' ? 'walking' : leg.desiredTravelMode.toLowerCase();
             addEntryToTravelCard(
                 travelDiv,
-                `...${durationStringMillis(durationMillis)} ${leg.desiredTravelMode.toLowerCase()}...`
+                `...${durationStringMillis(durationMillis)} ${mode}...`
             );
 
             const polyline = new Polyline({ map, path: leg.path, strokeColor: leg.desiredTravelMode == 'DRIVING' ? 'yellow' : 'black' });
@@ -288,19 +382,60 @@ function validatePlan(activities, startTime, endTime) {
 function showRouteSummary(startTime, endTime) {
     routeInfoWindow.close();
 
-    const midPolyline = polylines[Math.round((polylines.length - 1) / 2)];
-    const path = midPolyline.getPath().getArray();
-    const pos = path[Math.round((path.length - 1) / 2)];
+    if (polylines.length > 0) {
+        const midPolyline = polylines[Math.round((polylines.length - 1) / 2)];
+        const path = midPolyline.getPath().getArray();
+        const pos = path[Math.round((path.length - 1) / 2)];
 
-    const duration = endTime.diff(startTime, ["hours", "minutes"]);
-    routeInfoWindow.setContent(durationString(duration));
-    routeInfoWindow.setPosition(pos);
-    routeInfoWindow.open(map);
+        const duration = endTime.diff(startTime, ["hours", "minutes"]);
+        routeInfoWindow.setContent(`Total itinerary duration: ${durationString(duration)}`);
+        routeInfoWindow.setPosition(pos);
+        routeInfoWindow.open(map);
+    }
 }
 
 //----------------------------
 //--ROUTING HELPER FUNCTIONS--
 //----------------------------
+
+function getTotalTravelTime(legs) {
+    let time = luxon.Duration.fromMillis(0);
+    let walkingTime = luxon.Duration.fromMillis(0);
+    for (let leg of legs) {
+        time = time.plus(parseInt(leg.durationMillis));
+        if (leg.desiredTravelMode == 'WALKING') {
+            walkingTime = walkingTime.plus(parseInt(leg.durationMillis))
+        } else if (leg.desiredTravelMode == 'TRANSIT') {
+            for (let step of leg.steps) {
+                if (step.travelMode == "WALKING") {
+                    alert(step.staticDurationMillis);
+                    walkingTime = walkingTime.plus(parseInt(step.staticDurationMillis))
+                }
+            }
+        }
+    }
+    return { overall: time, walking: walkingTime };
+}
+
+function getTotalDistance(legs) {
+    let total = 0;
+    let walking = 0;
+
+    for (let leg of legs) {
+        total += leg.distanceMeters;
+        if (leg.desiredTravelMode === "WALKING") {
+            walking += leg.distanceMeters;
+        }
+        else if (leg.desiredTravelMode === "TRANSIT" && leg.steps) {
+            for (let step of leg.steps) {
+                if (step.travelMode === "WALKING") {
+                    walking += step.distanceMeters;
+                }
+            }
+        }
+    }
+    return { overall: (total / 1000).toFixed(1), walking: (walking / 1000).toFixed(1) };
+}
 
 function getTransportDuration(point, leg) {
     if (hasFixedDuration(point)) {
@@ -559,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (point) {
                 newPoints.push(point);
                 newPoints[spotCounter].order = spotCounter + 1;
-                point.glyphLabel.innerText = spotCounter + 1
+                point.iconImage.glyphText = `${spotCounter + 1}`;
                 spotCounter++;
             }
         }
@@ -714,7 +849,7 @@ function displayOptimizedActivityOrder(data) {
         if (point) {
             newPoints.push(point);
             newPoints[spotCounter].order = spotCounter + 1;
-            point.glyphLabel.innerText = spotCounter + 1;
+            point.iconImage.glyphText = `${spotCounter + 1}`;
             spotCounter++;
         }
     });
