@@ -181,7 +181,7 @@ public class ExpensesController : Controller
     }
 
     // GET: Expenses/Edit/5
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int? id, string? returnUrl = null)
     {
         if (id == null)
         {
@@ -208,13 +208,14 @@ public class ExpensesController : Controller
             return View("EditTransfer", viewModel);
         }
 
+        ViewData["ReturnUrl"] = returnUrl;
         return View(viewModel);
     }
 
     // POST: Expenses/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, ExpenseCreateEditViewModel viewModel)
+    public async Task<IActionResult> Edit(int id, ExpenseCreateEditViewModel viewModel, string? returnUrl = null)
     {
         if (id != viewModel.Id)
         {
@@ -300,6 +301,11 @@ public class ExpensesController : Controller
 
                 TempData["SuccessMessage"] = viewModel.IsEstimated ? "Estimated expense updated successfully!" 
                     : viewModel.IsTransfer ? "Transfer updated successfully!" : "Expense updated successfully!";
+
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
                 return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
             }
             catch (DbUpdateConcurrencyException)
