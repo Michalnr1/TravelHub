@@ -183,7 +183,7 @@ public class TripServiceTests
 
         tripRepo.Setup(r => r.GetByIdWithDaysAsync(tripId)).ReturnsAsync(trip);
 
-        var (lat, lon) = await sut.GetMedianCoords(tripId);
+        var (lat, lon) = await sut.GetMedianCoordinates(tripId);
 
         Assert.Equal(12.0, lat, 6);
         Assert.Equal(22.0, lon, 6);
@@ -195,7 +195,7 @@ public class TripServiceTests
         var (sut, tripRepo, _, _, _, _, _) = CreateSut();
         tripRepo.Setup(r => r.GetByIdWithDaysAsync(It.IsAny<int>())).ReturnsAsync((Trip?)null);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => sut.GetMedianCoords(999));
+        await Assert.ThrowsAsync<ArgumentException>(() => sut.GetMedianCoordinates(999));
     }
 
     [Fact]

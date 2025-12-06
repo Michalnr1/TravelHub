@@ -1,14 +1,9 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Interfaces.Services;
 
@@ -24,7 +19,7 @@ public class RecommendationService : AbstractThrottledApiService, IRecommendatio
         apiKey = config["ApiKeys:GoogleApiKey"]!;
     }
 
-    public async Task<List<AttractionDto>> FindRecommendationsByCoords(double lat, double lng, int distanceMeters)
+    public async Task<List<AttractionDto>> FindRecommendationsByCoordinates(double lat, double lng, int distanceMeters)
     {
         string url = "https://places.googleapis.com/v1/places:searchNearby";
         Dictionary<string, string> headers = new Dictionary<string, string>

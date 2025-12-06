@@ -1,0 +1,352 @@
+﻿@{
+    ViewData["Title"] = "Find Nearby Attractions";
+    var defaultLat = ViewData["Latitude"];
+    var defaultLng = ViewData["Longitude"];
+}
+
+<div class="container mt-4">
+    <h2>Find Nearby Attractions</h2>
+    <p class="text-muted">Enter coordinates to discover attractions in the area</p>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form id="attractionsForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="latitudeInput" class="form-label">
+                            <i class="bi bi-geo-alt-fill"></i> Latitude
+                        </label>
+                        <input type="number"
+                               step="any"
+                               id="latitudeInput"
+                               class="form-control"
+                               placeholder="e.g., 52.2297"
+                               required />
+                        <div class="form-text">Decimal degrees format</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="longitudeInput" class="form-label">
+                            <i class="bi bi-geo-alt-fill"></i> Longitude
+                        </label>
+                        <input type="number"
+                               step="any"
+                               id="longitudeInput"
+                               class="form-control"
+                               placeholder="e.g., 21.0122"
+                               required />
+                        <div class="form-text">Decimal degrees format</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="radiusInput" class="form-label">
+                            <i class="bi bi-bullseye"></i> Search Radius
+                        </label>
+                        <div class="input-group">
+                            <input type="number"
+                                   id="radiusInput"
+                                   class="form-control"
+                                   value="5000"
+                                   min="100"
+                                   max="50000"
+                                   required />
+                            <span class="input-group-text">meters</span>
+                        </div>
+                        <div class="form-text">100-50,000 meters</div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Find Attractions
+                    </button>
+                    <button type="button" id="clearBtn" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loadingIndicator" class="text-center mt-4 d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Searching for attractions...</p>
+    </div>
+
+    <!-- Results section -->
+    <div id="resultsContainer" class="mt-4">
+        <h3 class="mb-3">Found Attractions</h3>
+        <div id="attractionsList" class="row">
+            <!-- Results will be inserted here -->
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .attraction-card {
+            transition: transform 0.2s;
+            height: 100%;
+        }
+
+            .attraction-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+
+        .attraction-image {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+        }
+
+        #resultsContainer {
+            min-height: 300px;
+        }
+    </style>
+}
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script src="~/lib/luxon/luxon.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+
+    <script>
+        // Set default values from ViewData
+        const defaultLat = "@Html.Raw(defaultLat)";
+        const defaultLng = "@Html.Raw(defaultLng)";
+
+        if (defaultLat && defaultLat.length > 0) {
+            document.getElementById("latitudeInput").value = defaultLat;
+        }
+        if (defaultLng && defaultLng.length > 0) {
+            document.getElementById("longitudeInput").value = defaultLng;
+        }
+
+        // Form submission handler
+        document.getElementById("attractionsForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const lat = document.getElementById("latitudeInput").value.trim();
+            const lng = document.getElementById("longitudeInput").value.trim();
+            const radius = document.getElementById("radiusInput").value.trim();
+
+            if (!validateCoordinates(lat, lng, radius)) {
+                return;
+            }
+
+            searchAttractions({ latitude: lat, longitude: lng, radius: radius });
+        });
+
+        // Clear button handler
+        document.getElementById("clearBtn").addEventListener("click", function() {
+            document.getElementById("latitudeInput").value = "";
+            document.getElementById("longitudeInput").value = "";
+            document.getElementById("radiusInput").value = "5000";
+            clearResults();
+        });
+
+        // Input validation
+        function validateCoordinates(lat, lng, radius) {
+            let isValid = true;
+
+            // Clear previous errors
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            // Validate latitude
+            const latNum = parseFloat(lat);
+            if (isNaN(latNum) || latNum < -90 || latNum > 90) {
+                document.getElementById("latitudeInput").classList.add('is-invalid');
+                showToast("Please enter a valid latitude (-90 to 90)", "danger");
+                isValid = false;
+            }
+
+            // Validate longitude
+            const lngNum = parseFloat(lng);
+            if (isNaN(lngNum) || lngNum < -180 || lngNum > 180) {
+                document.getElementById("longitudeInput").classList.add('is-invalid');
+                showToast("Please enter a valid longitude (-180 to 180)", "danger");
+                isValid = false;
+            }
+
+            // Validate radius
+            const radiusNum = parseInt(radius);
+            if (isNaN(radiusNum) || radiusNum < 100 || radiusNum > 50000) {
+                document.getElementById("radiusInput").classList.add('is-invalid');
+                showToast("Please enter a valid radius (100-50,000 meters)", "danger");
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Show/hide loading indicator
+        function setLoading(isLoading) {
+            const indicator = document.getElementById("loadingIndicator");
+            const results = document.getElementById("resultsContainer");
+
+            if (isLoading) {
+                indicator.classList.remove("d-none");
+                results.style.opacity = "0.5";
+            } else {
+                indicator.classList.add("d-none");
+                results.style.opacity = "1";
+            }
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById("attractionsList").innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Enter coordinates and click "Find Attractions" to search
+                    </div>
+                </div>`;
+        }
+
+        // Toast notification
+        function showToast(message, type = "info") {
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>`;
+
+            const toastContainer = document.getElementById("toastContainer") || createToastContainer();
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+            const toastEl = toastContainer.lastElementChild;
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        // API call
+        async function searchAttractions({ latitude, longitude, radius }) {
+            setLoading(true);
+
+            try {
+                const params = new URLSearchParams({
+                    lat: latitude,
+                    lng: longitude,
+                    radius: radius
+                });
+
+                const response = await fetch(`/Trips/GetRecommendations?${params}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const attractions = await response.json();
+                displayAttractions(attractions);
+
+            } catch (error) {
+                console.error('Error searching attractions:', error);
+                showToast("Failed to search attractions. Please try again.", "danger");
+                clearResults();
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Get photo URL
+        async function getPhotoUrl(photoName) {
+            if (!photoName) return null;
+
+            try {
+                const params = new URLSearchParams({ name: photoName });
+                const response = await fetch(`/Trips/GetPlacePhoto?${params}`);
+
+                if (!response.ok) {
+                    console.warn("Failed to fetch photo for", photoName);
+                    return null;
+                }
+
+                return await response.text();
+            } catch (err) {
+                console.error("Error fetching photo:", err);
+                return null;
+            }
+        }
+
+        // Display attractions
+        async function displayAttractions(attractions) {
+            const container = document.getElementById("attractionsList");
+
+            if (!attractions || attractions.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> No attractions found within the specified radius.
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            let html = '';
+
+            // Process each attraction
+            for (const attraction of attractions) {
+                const photoUrl = attraction.photoName ? await getPhotoUrl(attraction.photoName) : null;
+
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card attraction-card h-100">
+                            ${photoUrl ? `
+                                <img src="${photoUrl}"
+                                     class="card-img-top attraction-image"
+                                     alt="${attraction.name}"
+                                     onerror="this.style.display='none'">` : ''}
+                            <div class="card-body">
+                                <h5 class="card-title">${attraction.name}</h5>
+                                <div class="card-text">
+                                    <p class="mb-1">
+                                        <i class="bi bi-geo-alt"></i>
+                                        ${attraction.latitude.toFixed(6)}, ${attraction.longitude.toFixed(6)}
+                                    </p>
+                                    ${attraction.photoAuthor ? `
+                                        <p class="mb-1">
+                                            <i class="bi bi-camera"></i>
+                                            Photo by ${attraction.photoAuthor}
+                                        </p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            clearResults(); // Show initial message
+        });
+    </script>
+}

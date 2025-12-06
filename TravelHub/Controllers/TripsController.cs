@@ -555,7 +555,7 @@ public class TripsController : Controller
 
         ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
 
-        (double lat, double lng) = await _tripService.GetMedianCoords(id);
+        (double lat, double lng) = await _tripService.GetMedianCoordinates(id);
 
         ViewData["Latitude"] = lat;
         ViewData["Longitude"] = lng;
@@ -876,7 +876,7 @@ public class TripsController : Controller
         {
             return NotFound();
         }
-        (double lat, double lng) = await _tripService.GetMedianCoords(id);
+        (double lat, double lng) = await _tripService.GetMedianCoordinates(id);
         AirportDto? airport = await _flightService.GetAirportByCoords(lat, lng);
         Person? user = await _userManager.GetUserAsync(User);
         string fromAirport;
@@ -951,46 +951,81 @@ public class TripsController : Controller
         }
     }
 
-    public async Task<IActionResult> RecsView(int id)
+    [HttpGet]
+    public async Task<IActionResult> Recommendations(int id)
     {
-        (double lat, double lng) = await _tripService.GetMedianCoords(id);
-        ViewData["Latitude"] = lat;
-        ViewData["Longitude"] = lng;
-        return View();
-
-    }
-
-    public async Task<IActionResult> Recs(double lat, double lng, int? radius)
-    {
-        //if (lat == null || lng == null) { return BadRequest(); }
-
         try
         {
-            var recs = await _recommendationService.FindRecommendationsByCoords(lat, lng, radius ?? 5000);
-            return Ok(recs);
+            (double lat, double lng) = await _tripService.GetMedianCoordinates(id);
+            ViewData["Latitude"] = lat;
+            ViewData["Longitude"] = lng;
+            return View("Recommendations");
+        }
+        catch (Exception)
+        {
+            // Log error
+            return RedirectToAction("Error", "Home");
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetRecommendations(
+        [FromQuery] double lat,
+        [FromQuery] double lng,
+        [FromQuery] int radius = 5000)
+    {
+        try
+        {
+            if (Math.Abs(lat) > 90 || Math.Abs(lng) > 180)
+            {
+                return BadRequest("Invalid coordinates provided.");
+            }
+
+            if (radius < 100 || radius > 50000)
+            {
+                return BadRequest("Radius must be between 100 and 50,000 meters.");
+            }
+
+            var recommendations = await _recommendationService.FindRecommendationsByCoordinates(lat, lng, radius);
+            return Ok(recommendations);
         }
         catch (HttpRequestException)
         {
-            return BadRequest();
+            // Log the exception
+            return BadRequest("Unable to fetch recommendations. Please try again later.");
         }
-        
+        catch (Exception)
+        {
+            // Log the exception
+            return StatusCode(500, "An unexpected error occurred.");
+        }
     }
-    public async Task<IActionResult> PlacePhoto(string name)
-    {
-        //if (lat == null || lng == null) { return BadRequest(); }
 
+    [HttpGet]
+    public async Task<IActionResult> GetPlacePhoto([FromQuery] string name)
+    {
         try
         {
-            string url = await _recommendationService.GetPhotoUrl(name);
-            return Ok(url);
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return BadRequest("Photo name is required.");
+            }
+
+            var photoUrl = await _recommendationService.GetPhotoUrl(name);
+
+            if (string.IsNullOrEmpty(photoUrl))
+            {
+                return NotFound("Photo not found.");
+            }
+
+            return Ok(photoUrl);
         }
-        catch (HttpRequestException)
+        catch (Exception)
         {
-            return BadRequest();
+            // Log the exception
+            return StatusCode(500, "Unable to retrieve photo.");
         }
-
     }
-
 
     // GET: MyTrips
     public async Task<IActionResult> MyTrips()
