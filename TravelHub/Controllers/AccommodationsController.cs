@@ -236,6 +236,19 @@ public class AccommodationsController : Controller
             {
                 ModelState.AddModelError("CheckOut", "Check-out date must be after check-in date");
             }
+
+            // Sprawdź konflikt dat
+            bool hasConflict = await _accommodationService.HasDateConflictAsync(viewModel.TripId, viewModel.CheckIn, viewModel.CheckOut, id);
+
+            if (hasConflict)
+            {
+                var conflicts = await GetConflictingAccommodations(viewModel.TripId, viewModel.CheckIn, viewModel.CheckOut, id);
+                var conflictNames = string.Join(", ", conflicts.Select(c => c.Name));
+
+                ModelState.AddModelError("",
+                    $"The accommodation dates conflict with existing accommodations: {conflictNames}. " +
+                    $"Please choose different dates or edit/delete the conflicting accommodation(s) first.");
+            }
         }
 
         if (ModelState.IsValid)
@@ -482,6 +495,19 @@ public class AccommodationsController : Controller
         if (viewModel.CheckOut <= viewModel.CheckIn)
         {
             ModelState.AddModelError("CheckOut", "Check-out date must be after check-in date");
+        }
+
+        // Sprawdź konflikt dat
+        bool hasConflict = await _accommodationService.HasDateConflictAsync(viewModel.TripId, viewModel.CheckIn, viewModel.CheckOut);
+
+        if (hasConflict)
+        {
+            var conflicts = await GetConflictingAccommodations(viewModel.TripId, viewModel.CheckIn, viewModel.CheckOut);
+            var conflictNames = string.Join(", ", conflicts.Select(c => c.Name));
+
+            ModelState.AddModelError("",
+                $"The accommodation dates conflict with existing accommodations: {conflictNames}. " +
+                $"Please choose different dates or edit/delete the conflicting accommodation(s) first.");
         }
 
         if (ModelState.IsValid)
@@ -901,5 +927,29 @@ public class AccommodationsController : Controller
     private string GetCurrentUserId()
     {
         return _userManager.GetUserId(User) ?? throw new UnauthorizedAccessException("User is not authenticated");
+    }
+
+    private async Task<List<Accommodation>> GetConflictingAccommodations(int tripId, DateTime checkIn, DateTime checkOut, int? excludeAccommodationId = null)
+    {
+        var accommodations = await _accommodationService.GetAccommodationByTripAsync(tripId);
+
+        var conflictingAccommodations = new List<Accommodation>();
+
+        foreach (var accommodation in accommodations)
+        {
+            if (excludeAccommodationId.HasValue && accommodation.Id == excludeAccommodationId.Value)
+                continue;
+
+            bool newCheckInInExistingRange = checkIn >= accommodation.CheckIn && checkIn < accommodation.CheckOut;
+            bool newCheckOutInExistingRange = checkOut > accommodation.CheckIn && checkOut <= accommodation.CheckOut;
+            bool containsExisting = checkIn <= accommodation.CheckIn && checkOut >= accommodation.CheckOut;
+
+            if (newCheckInInExistingRange || newCheckOutInExistingRange || containsExisting)
+            {
+                conflictingAccommodations.Add(accommodation);
+            }
+        }
+
+        return conflictingAccommodations;
     }
 }
