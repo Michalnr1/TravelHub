@@ -44,3 +44,35 @@ body {
 .navbar-dark .navbar-brand-logo {
     filter: brightness(0) invert(1);
 }
+
+/* Red dot for notifications */
+.notification-dot {
+    width: 10px;
+    height: 10px;
+    background: #dc3545;
+    border-radius: 50%;
+    position: absolute;
+    top: 4px;
+    right: -10px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Dla nav-item z kropk¹ */
+.nav-item .notification-dot {
+    top: 10px;
+    right: -5px;
+}

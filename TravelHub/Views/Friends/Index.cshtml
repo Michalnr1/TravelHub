@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "My Friends";
     var friendsCount = ViewBag.FriendsCount as int? ?? Model.Count;
+    var pendingCount = ViewBag.PendingRequestsCount as int? ?? 0;
 }
 
 <div class="container">
@@ -18,7 +19,16 @@
 
     <div class="mb-3">
         <a href="@Url.Action("AddFriend")" class="btn btn-primary">Add Friend</a>
-        <a href="@Url.Action("Pending")" class="btn btn-outline-secondary">Pending Requests</a>
+        <a href="@Url.Action("Pending")" class="btn btn-outline-secondary position-relative">
+            Pending Requests
+            @if (pendingCount > 0)
+            {
+                <span class="badge rounded-pill bg-danger position-absolute translate-middle" style="right: -1.4rem;">
+                    @pendingCount
+                    <span class="visually-hidden">pending requests</span>
+                </span>
+            }
+        </a>
     </div>
 
     @if (Model.Any())
@@ -35,12 +45,8 @@
                                 <strong>Nationality:</strong> @friend.Nationality<br />
                                 <strong>Email:</strong> @friend.Email
                             </p>
-                            <form method="post" action="@Url.Action("RemoveFriend")" class="d-inline">
-                                <input type="hidden" name="friendId" value="@friend.Id" />
-                                <button type="submit" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Are you sure you want to remove this friend?')">
-                                    Remove Friend
-                                </button>
+                            <form asp-action="RemoveFriend" method="post" asp-route-friendId="@friend.Id" class="d-inline">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove this friend?')">Remove Friend</button>
                             </form>
                         </div>
                     </div>

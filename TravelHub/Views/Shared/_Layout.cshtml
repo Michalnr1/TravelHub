@@ -78,8 +78,16 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Notifications" asp-action="Index">Notifications</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Friends" asp-action="Index">Friends</a>
+                        <li class="nav-item position-relative">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Friends" asp-action="Index">
+                                Friends
+                                @if (ViewBag.PendingRequestsCount > 0)
+                                {
+                                    <span class="notification-dot position-absolute">
+                                        <span class="visually-hidden">Pending friend requests</span>
+                                    </span>
+                                }
+                            </a>
                         </li>
                     </ul>
                     <partial name="_LoginPartial" />

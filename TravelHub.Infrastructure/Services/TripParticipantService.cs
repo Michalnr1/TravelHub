@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using TravelHub.Domain.Entities;
@@ -16,6 +17,7 @@ public class TripParticipantService : GenericService<TripParticipant>, ITripPart
     private readonly IGenericRepository<Trip> _tripRepository;
     private readonly UserManager<Person> _userManager;
     private readonly IEmailSender _emailSender;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<TripParticipantService> _logger;
 
     public TripParticipantService(
@@ -24,6 +26,7 @@ public class TripParticipantService : GenericService<TripParticipant>, ITripPart
         IGenericRepository<Trip> tripRepository,
         UserManager<Person> userManager,
         IEmailSender emailSender,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<TripParticipantService> logger) : base(repository)
     {
         _tripParticipantRepository = repository;
@@ -31,6 +34,7 @@ public class TripParticipantService : GenericService<TripParticipant>, ITripPart
         _tripRepository = tripRepository;
         _userManager = userManager;
         _emailSender = emailSender;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -297,7 +301,12 @@ public class TripParticipantService : GenericService<TripParticipant>, ITripPart
 
     private string GetAppBaseUrl()
     {
-        // W prawdziwej aplikacji pobierz to z konfiguracji
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+
         return "https://localhost:7181";
     }
 }

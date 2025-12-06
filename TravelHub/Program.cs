@@ -1,10 +1,12 @@
-using System.Globalization;
+using DinkToPdf;
+using DinkToPdf.Contracts;
 using Hangfire;
 using Hangfire.Dashboard;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces;
 using TravelHub.Domain.Interfaces.Repositories;
@@ -13,8 +15,7 @@ using TravelHub.Infrastructure;
 using TravelHub.Infrastructure.Email;
 using TravelHub.Infrastructure.Repositories;
 using TravelHub.Infrastructure.Services;
-using DinkToPdf;
-using DinkToPdf.Contracts;
+using TravelHub.Web.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -154,7 +155,11 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 });
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    // Dodaj filtr jako globalny - będzie działał dla WSZYSTKICH akcji
+    options.Filters.Add<FriendNotificationFilter>();
+});
 
 var app = builder.Build();
 

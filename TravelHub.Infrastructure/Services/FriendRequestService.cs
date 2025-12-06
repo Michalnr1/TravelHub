@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TravelHub.Domain.DTOs;
@@ -15,6 +16,7 @@ public class FriendRequestService : IFriendRequestService
     private readonly IPersonFriendsRepository _personFriendsRepository;
     private readonly UserManager<Person> _userManager;
     private readonly IEmailSender _emailSender;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<FriendRequestService> _logger;
 
     public FriendRequestService(
@@ -22,12 +24,14 @@ public class FriendRequestService : IFriendRequestService
         IPersonFriendsRepository personFriendsRepository,
         UserManager<Person> userManager,
         IEmailSender emailSender,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<FriendRequestService> logger)
     {
         _friendRequestRepository = friendRequestRepository;
         _personFriendsRepository = personFriendsRepository;
         _userManager = userManager;
         _emailSender = emailSender;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -253,6 +257,12 @@ public class FriendRequestService : IFriendRequestService
 
     private string GetAppBaseUrl()
     {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            return $"{request.Scheme}://{request.Host}";
+        }
+
         return "https://localhost:7181";
     }
 }
