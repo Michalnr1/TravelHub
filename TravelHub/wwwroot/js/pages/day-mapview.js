@@ -157,7 +157,7 @@ async function showRoute() {
     showRouteSummary(startTime, endTime);
     validatePlan(activities, startTime, endTime);
 
-    updateRouteInfoBox(legs);
+    updateRouteInfoBox(legs, startTime, endTime);
 
     routeButton.innerHTML = originalText;
     routeButton.disabled = false;
@@ -183,16 +183,17 @@ function updateRouteInfoBox(legs = null, startTime = null, endTime = null) {
 
         html += `Route Details: </strong>
                 <div class="mt-2">
+                    <div><i class="fas fa-clock me-2"></i>Total Itinerary Duration: ${durationString(endTime.diff(startTime, ["hours", "minutes"])) }</div>
                     <div><i class="fas fa-road me-2"></i>Total Distance: ${distances.overall} km</div>`
 
         if (distances.walking > 0 && distances.walking < distances.overall) {
             html += `<div><i class="fas fa-walking me-2"></i>Walking Distance: ${distances.walking} km</div>`
         }
 
-        html += `<div><i class="fas fa-clock me-2"></i>Total Time: ${travelTimes.overall.toFormat("hh 'h' mm 'm'")} </div>`
+        html += `<div><i class="fas fa-clock me-2"></i>Total Travel Time: ${durationString(travelTimes.overall)} </div>`
 
         if (travelTimes.walking.as('seconds') > 0 && travelTimes.walking < travelTimes.overall) {
-            html += `<div><i class="fas fa-walking me-2"></i>Walking Time: ${travelTimes.walking.toFormat("hh 'h' mm 'm'")}</div>`
+            html += `<div><i class="fas fa-walking me-2"></i>Walking Time: ${durationString(travelTimes.walking)}</div>`
         }
 
         html += `<div><i class="fas fa-map-marker-alt me-2"></i>Stops: ${points.length}</div>
@@ -319,9 +320,10 @@ async function renderRoute(legs) {
             await renderTransitSteps(leg, travelDiv);
         } else {
             const durationMillis = getTransportDuration(points[i], leg);
+            const mode = leg.desiredTravelMode == 'TRANSIT' ? 'walking' : leg.desiredTravelMode.toLowerCase();
             addEntryToTravelCard(
                 travelDiv,
-                `...${durationStringMillis(durationMillis)} ${leg.desiredTravelMode.toLowerCase()}...`
+                `...${durationStringMillis(durationMillis)} ${mode}...`
             );
 
             const polyline = new Polyline({ map, path: leg.path, strokeColor: leg.desiredTravelMode == 'DRIVING' ? 'yellow' : 'black' });
@@ -404,9 +406,10 @@ function getTotalTravelTime(legs) {
         if (leg.desiredTravelMode == 'WALKING') {
             walkingTime = walkingTime.plus(parseInt(leg.durationMillis))
         } else if (leg.desiredTravelMode == 'TRANSIT') {
-            for (let step of legs[i].steps) {
+            for (let step of leg.steps) {
                 if (step.travelMode == "WALKING") {
-                    walkingTime = walkingTime.plus(parseInt(step.durationMillis))
+                    alert(step.staticDurationMillis);
+                    walkingTime = walkingTime.plus(parseInt(step.staticDurationMillis))
                 }
             }
         }

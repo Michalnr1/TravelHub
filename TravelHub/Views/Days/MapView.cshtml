@@ -399,5 +399,32 @@
             color: #842029;
         }
 
+        #map {
+            min-height: 400px;
+            background: linear-gradient(45deg, #f8f9fa 25%, #e9ecef 25%, #e9ecef 50%, #f8f9fa 50%, #f8f9fa 75%, #e9ecef 75%);
+            background-size: 40px 40px;
+            animation: loadingAnimation 1s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+        }
+        
+        #map::before {
+            content: "Loading map...";
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        #map.loaded::before {
+            content: "";
+        }
+        
+        #map.loaded {
+            background: none;
+            animation: none;
+        }
+
+
     </style>
 }
