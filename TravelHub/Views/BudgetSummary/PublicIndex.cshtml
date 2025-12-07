@@ -32,7 +32,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label asp-for="FilterByCategoryId" class="form-label">Filter by Category</label>
-                            <select asp-for="FilterByCategoryId" asp-items="Model.AvailableCategoriesSelectList" class="form-select" onchange="this.form.submit()">
+                            <select asp-for="FilterByCategoryId" asp-items="Model.AvailableCategoriesSelectList" class="form-select" onchange="refreshData()">
                                 <option value="">All Categories</option>
                             </select>
                         </div>
@@ -43,7 +43,7 @@
                         <div class="form-group">
                             <label class="form-label">Include</label>
                             <div class="form-check">
-                                <input asp-for="IncludeEstimated" class="form-check-input" onchange="this.form.submit()" />
+                                <input asp-for="IncludeEstimated" class="form-check-input" onchange="refreshData()" />
                                 <label asp-for="IncludeEstimated" class="form-check-label">Estimated Expenses</label>
                             </div>
                         </div>
@@ -69,20 +69,9 @@
     </div>
 
     <!-- Aktywne filtry -->
-    @if (!string.IsNullOrEmpty(Model.FilterByCategoryName) || Model.FilterByCategoryId == 0)
-    {
-        <div class="alert alert-info mb-4">
-            <strong>Active Filters:</strong>
-            @if (Model.FilterByCategoryId == 0)
-            {
-                <span class="badge bg-warning me-2">Category: Uncategorized</span>
-            }
-            else if (!string.IsNullOrEmpty(Model.FilterByCategoryName))
-            {
-                <span class="badge bg-success me-2">Category: @Model.FilterByCategoryName</span>
-            }
-        </div>
-    }
+    <div class="alert alert-info mb-4" id="filters-active">
+        <strong>Active Filters:</strong>
+    </div>
 
     <!-- Podsumowanie ogólne -->
     <div class="row mb-4">
@@ -92,7 +81,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title">Actual Expenses</h6>
-                            <h3 class="card-text">@Model.TotalActualExpenses.ToString("N2") @Model.TripCurrency</h3>
+                            <h3 class="card-text" id="actual-total"></h3>
                             <small>Real payments made</small>
                         </div>
                         <div class="align-self-center">
@@ -108,7 +97,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title">Estimated Expenses</h6>
-                            <h3 class="card-text">@Model.TotalEstimatedExpenses.ToString("N2") @Model.TripCurrency</h3>
+                            <h3 class="card-text" id="estimated-total"></h3>
                             <small>Planned budget</small>
                         </div>
                         <div class="align-self-center">
@@ -119,12 +108,12 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card @(Model.Balance >= 0 ? "bg-danger" : "bg-success") text-white">
+            <div class="card text-white" id="balance-container">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title">Balance</h6>
-                            <h3 class="card-text">@Math.Abs(Model.Balance).ToString("N2") @Model.TripCurrency</h3>
+                            <h3 class="card-text" id="balance-total"></h3>
                             <small>Actual vs Estimated</small>
                         </div>
                         <div class="align-self-center">
@@ -152,137 +141,77 @@
             <h5 class="card-title mb-0">Expenses by Category</h5>
         </div>
         <div class="card-body">
-            @if (Model.CategorySummaries.Any())
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th class="text-end">Actual</th>
-                                <th class="text-end">Estimated</th>
-                                @* <th class="text-end">Total</th> *@
-                                <th class="text-end">Balance</th>
-                                <th class="text-end">%</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var category in Model.CategorySummaries.OrderByDescending(c => c.Total))
-                            {
-                                <tr>
-                                    <td>
-                                        <i class="fas fa-circle me-2" style="color: @category.CategoryColor"></i>
-                                        @category.CategoryName
-                                    </td>
-                                    <td class="text-end">@category.ActualExpenses.ToString("N2")</td>
-                                    <td class="text-end">@category.EstimatedExpenses.ToString("N2")</td>
-                                    @* <td class="text-end fw-bold">@category.Total.ToString("N2")</td> *@
-                                    <td class="text-end @(category.Balance >= 0 ? "text-danger" : "text-success")">
-                                        @Math.Abs(category.Balance).ToString("N2")
-                                    </td>
-                                    <td class="text-end">@category.PercentageOfTotal.ToString("N1")%</td>
-                                </tr>
-                            }
-                        </tbody>
-                        <tfoot class="fw-bold">
-                            <tr>
-                                <td>Total</td>
-                                <td class="text-end">@Model.CategorySummaries.Sum(c => c.ActualExpenses).ToString("N2")</td>
-                                <td class="text-end">@Model.CategorySummaries.Sum(c => c.EstimatedExpenses).ToString("N2")</td>
-                                @* <td class="text-end">@Model.CategorySummaries.Sum(c => c.Total).ToString("N2")</td> *@
-                                <td class="text-end @(Model.Balance >= 0 ? "text-danger" : "text-success")">
-                                    @Math.Abs(Model.Balance).ToString("N2")
-                                </td>
-                                <td class="text-end">100%</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="text-center text-muted py-4">
-                    <i class="fas fa-chart-pie fa-3x mb-3"></i>
-                    <p>No expense data available for the selected filters.</p>
-                </div>
-            }
+
+            <div class="table-responsive" id="category-table-container">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th class="text-end">Actual</th>
+                            <th class="text-end">Estimated</th>
+                            <th class="text-end">Balance</th>
+                            <th class="text-end">%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="category-table">
+                    </tbody>
+                    <tfoot class="fw-bold">
+                        <tr>
+                            <td>Total</td>
+                            <td class="text-end" id="category-actual-total"></td>
+                            <td class="text-end" id="category-estimated-total"></td>
+                            <td class="text-end" id="category-balance"></td>
+                            <td class="text-end">100%</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="text-center text-muted py-4" id="category-table-empty">
+                <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                <p>No expense data available for the selected filters.</p>
+            </div>
+            
         </div>
     </div>
 
     <!-- Wykres kategorii -->
     @if (Model.CategorySummaries.Any())
     {
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Category Distribution</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="categoryChart" width="400" height="300"></canvas>
-            </div>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Category Distribution</h5>
         </div>
+        <div class="card-body">
+            <canvas id="categoryChart" width="400" height="300"></canvas>
+        </div>
+    </div>
     }
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="~/js/budget-functions.js"> </script>
+
+    <script src="~/js/pages/budget-summary-public.js"> </script>
+
     <script>
-        // Inicjalizacja wykresu kategorii
+        var categoryChart;
+
+        const dataUrl = "@Html.Raw(Url.Action("PublicIndex", "BudgetSummary"))";
+        const tripId = "@Html.Raw(Model.TripId)";
+        const tripCurrency = "@Html.Raw(Model.TripCurrencyString)";
+
+        // Inicjalizacja wykresów
         document.addEventListener('DOMContentLoaded', function() {
-            // Wykres kategorii
-            var categoryCtx = document.getElementById('categoryChart').getContext('2d');
-            var categoryChart = new Chart(categoryCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: [
-                        @foreach (var category in Model.CategorySummaries)
-                        {
-                                @:'@category.CategoryName',
-                        }
-                    ],
-                    datasets: [{
-                        data: [
-                            @foreach (var category in Model.CategorySummaries)
-                            {
-                                    @:'@category.Total',
-                            }
-                        ],
-                        backgroundColor: [
-                            @foreach (var category in Model.CategorySummaries)
-                            {
-                                    @:'@category.CategoryColor',
-                            }
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    var label = context.label || '';
-                                    var value = context.raw || 0;
-                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    var percentage = Math.round((value / total) * 100);
-                                    return label + ': ' + value.toFixed(2) + ' @Model.TripCurrency (' + percentage + '%)';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            refreshData();
         });
 
-        // Auto-submit form when filters change
-        document.querySelectorAll('.form-select, .form-check-input').forEach(element => {
-            element.addEventListener('change', function() {
-                document.getElementById('filterForm').submit();
-            });
-        });
+        function gettoken() {
+            var token = '@Html.AntiForgeryToken()';
+            token = $(token).val();
+            return token;
+        }
     </script>
 }

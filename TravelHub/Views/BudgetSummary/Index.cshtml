@@ -84,18 +84,6 @@
     <!-- Aktywne filtry -->
     <div class="alert alert-info mb-4" id="filters-active">
         <strong>Active Filters:</strong>
-        @if (!string.IsNullOrEmpty(Model.FilterByPersonName))
-        {
-            <span class="badge bg-primary me-2" id="person-active">Person: @Model.FilterByPersonName</span>
-        }
-        @if (Model.FilterByCategoryId == 0)
-        {
-            <span class="badge bg-warning me-2" id="category-active">Category: Uncategorized</span>
-        }
-        else if (!string.IsNullOrEmpty(Model.FilterByCategoryName))
-        {
-            <span class="badge bg-success me-2" id="category-active">Category: @Model.FilterByCategoryName</span>
-        }
     </div>
 
 
@@ -107,7 +95,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title">Actual Expenses</h6>
-                            <h3 class="card-text" id="actual-total">@Model.TotalActualExpenses.ToString("N2") @Model.TripCurrency</h3>
+                            <h3 class="card-text" id="actual-total"></h3>
                             <small>Real payments made</small>
                         </div>
                         <div class="align-self-center">
@@ -123,7 +111,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title">Estimated Expenses</h6>
-                            <h3 class="card-text" id="estimated-total">@Model.TotalEstimatedExpenses.ToString("N2") @Model.TripCurrency</h3>
+                            <h3 class="card-text" id="estimated-total"></h3>
                             <small>Planned budget</small>
                         </div>
                         <div class="align-self-center">
@@ -139,7 +127,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title">Transfers</h6>
-                            <h3 class="card-text" id="transfers-total">@Model.TotalTransfers.ToString("N2") @Model.TripCurrency</h3>
+                            <h3 class="card-text" id="transfers-total"></h3>
                             <small>Money between participants</small>
                         </div>
                         <div class="align-self-center">
@@ -150,12 +138,12 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card @(Model.Balance >= 0 ? "bg-danger" : "bg-success") text-white" id="balance-container">
+            <div class="card text-white" id="balance-container">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-title">Balance</h6>
-                            <h3 class="card-text" id="balance-total">@Math.Abs(Model.Balance).ToString("N2") @Model.TripCurrency</h3>
+                            <h3 class="card-text" id="balance-total"></h3>
                             <small>Actual vs Estimated</small>
                         </div>
                         <div class="align-self-center">
@@ -187,7 +175,7 @@
                 </div>
                 <div class="card-body">
 
-                    <div class="table-responsive" id="category-table-container" @(Model.CategorySummaries.Any() ? "" : "hidden")>
+                    <div class="table-responsive" id="category-table-container">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
@@ -195,43 +183,24 @@
                                     <th class="text-end">Actual</th>
                                     <th class="text-end">Estimated</th>
                                     <th class="text-end">Balance</th>
-                                    @* <th class="text-end">Total</th> *@
                                     <th class="text-end">%</th>
                                 </tr>
                             </thead>
                             <tbody id="category-table">
-                                @foreach (var category in Model.CategorySummaries.OrderByDescending(c => c.Total))
-                                {
-                                    <tr>
-                                        <td>
-                                            <i class="fas fa-circle me-2" style="color: @category.CategoryColor"></i>
-                                            @category.CategoryName
-                                        </td>
-                                        <td class="text-end">@category.ActualExpenses.ToString("N2")</td>
-                                        <td class="text-end">@category.EstimatedExpenses.ToString("N2")</td>
-                                        <td class="text-end @(category.Balance >= 0 ? "text-danger" : "text-success")">
-                                            @Math.Abs(category.Balance).ToString("N2")
-                                        </td>
-                                        @* <td class="text-end fw-bold">@category.Total.ToString("N2")</td> *@
-                                        <td class="text-end">@category.PercentageOfTotal.ToString("N1")%</td>
-                                    </tr>
-                                }
                             </tbody>
                             <tfoot class="fw-bold">
                                 <tr>
                                     <td>Total</td>
-                                    <td class="text-end" id="category-actual-total">@Model.CategorySummaries.Sum(c => c.ActualExpenses).ToString("N2")</td>
-                                    <td class="text-end" id="category-estimated-total">@Model.CategorySummaries.Sum(c => c.EstimatedExpenses).ToString("N2")</td>
-                                    <td class="text-end @(Model.Balance >= 0 ? "text-danger" : "text-success")" id="category-balance">
-                                        @Math.Abs(Model.Balance).ToString("N2")
-                                    </td>
+                                    <td class="text-end" id="category-actual-total"></td>
+                                    <td class="text-end" id="category-estimated-total"></td>
+                                    <td class="text-end" id="category-balance"></td>
                                     <td class="text-end">100%</td>
                                 </tr>
                             </tfoot>
                         </table>
                     </div>
 
-                    <div class="text-center text-muted py-4" id="category-table-empty" @(Model.CategorySummaries.Any() ? "hidden" : "")>
+                    <div class="text-center text-muted py-4" id="category-table-empty">
                         <i class="fas fa-chart-pie fa-3x mb-3"></i>
                         <p>No expense data available for the selected filters.</p>
                     </div>
@@ -248,7 +217,7 @@
                 </div>
                 <div class="card-body">
 
-                    <div class="table-responsive" id="person-table-container" @(Model.PersonSummaries.Any() ? "" : "hidden")>
+                    <div class="table-responsive" id="person-table-container" >
                         <table class="table table-hover">
                             <thead>
                                 <tr>
@@ -261,32 +230,21 @@
                                 </tr>
                             </thead>
                             <tbody id="person-table">
-                                @foreach (var person in Model.PersonSummaries.OrderByDescending(p => p.Total))
-                                {
-                                    <tr>
-                                        <td>@person.PersonName</td>
-                                        <td class="text-end">@person.ActualExpenses.ToString("N2")</td>
-                                        <td class="text-end">@person.EstimatedExpenses.ToString("N2")</td>
-                                        <td class="text-end">@person.Transfers.ToString("N2")</td>
-                                        <td class="text-end fw-bold">@person.Total.ToString("N2")</td>
-                                        <td class="text-end">@person.PercentageOfTotal.ToString("N1")%</td>
-                                    </tr>
-                                }
                             </tbody>
                             <tfoot class="fw-bold">
                                 <tr>
                                     <td>Total</td>
-                                    <td class="text-end" id="person-actual-total">@Model.PersonSummaries.Sum(p => p.ActualExpenses).ToString("N2")</td>
-                                    <td class="text-end" id="person-estimated-total">@Model.PersonSummaries.Sum(p => p.EstimatedExpenses).ToString("N2")</td>
-                                    <td class="text-end" id="person-transfers-total">@Model.PersonSummaries.Sum(p => p.Transfers).ToString("N2")</td>
-                                    <td class="text-end" id="person-total-total">@Model.PersonSummaries.Sum(p => p.Total).ToString("N2")</td>
+                                    <td class="text-end" id="person-actual-total"></td>
+                                    <td class="text-end" id="person-estimated-total">")</td>
+                                    <td class="text-end" id="person-transfers-total"></td>
+                                    <td class="text-end" id="person-total-total"></td>
                                     <td class="text-end">100%</td>
                                 </tr>
                             </tfoot>
                         </table>
                     </div>
 
-                    <div class="text-center text-muted py-4" id="person-table-empty" @(Model.PersonSummaries.Any() ? "hidden" : "")>
+                    <div class="text-center text-muted py-4" id="person-table-empty">
                         <i class="fas fa-users fa-3x mb-3"></i>
                         <p>No person data available for the selected filters.</p>
                     </div>
@@ -299,36 +257,29 @@
     <div class="row">
         @if (Model.CategorySummaries.Any())
         {
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Category Distribution</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="categoryChart" width="400" height="300"
-                            data-labels='@Json.Serialize(Model.CategorySummaries.Select(c => c.CategoryName).ToList())'
-                            data-values='@Json.Serialize(Model.CategorySummaries.Select(c => c.Total).ToList())'
-                            data-colors='@Json.Serialize(Model.CategorySummaries.Select(c => c.CategoryColor).ToList())'>
-                        </canvas>
-                    </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Category Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart" width="400" height="300"> </canvas>
                 </div>
             </div>
+        </div>     
         }
         @if (Model.PersonSummaries.Any())
         {
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Person Distribution</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="personChart" width="400" height="300"
-                            data-labels='@Json.Serialize(Model.PersonSummaries.Select(p => p.PersonName).ToList())'
-                            data-values='@Json.Serialize(Model.PersonSummaries.Select(p => p.Total).ToList())'>
-                        </canvas>
-                    </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Person Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="personChart" width="400" height="300"> </canvas>
                 </div>
             </div>
+        </div>
         }
     </div>
 </div>
@@ -351,13 +302,13 @@
 
         // Inicjalizacja wykresów
         document.addEventListener('DOMContentLoaded', function() {
-            buildCharts();
+            refreshData();
         });
 
         function gettoken() {
-                var token = '@Html.AntiForgeryToken()';
-                token = $(token).val();
-                return token;
+            var token = '@Html.AntiForgeryToken()';
+            token = $(token).val();
+            return token;
         }
     </script>
 }

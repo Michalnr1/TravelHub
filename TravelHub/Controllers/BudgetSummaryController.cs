@@ -166,15 +166,10 @@ public class BudgetSummaryController : Controller
             viewModel.IncludeEstimated = filterModel.IncludeEstimated;
             viewModel.IncludeTransfers = false;
 
-            return View(viewModel);
+            return Ok(viewModel);
         }
 
-        return RedirectToAction(nameof(PublicIndex), new
-        {
-            tripId = filterModel.TripId,
-            categoryId = filterModel.CategoryId,
-            includeEstimated = filterModel.IncludeEstimated
-        });
+        return BadRequest();
     }
 
     private async Task PopulatePublicFilterLists(BudgetSummaryViewModel viewModel, int tripId)

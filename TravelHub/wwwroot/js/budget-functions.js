@@ -1,6 +1,8 @@
 ﻿function buildCategoryChart() {
     var categoryCtx = document.getElementById('categoryChart');
 
+    if (!categoryCtx) return;
+
     var labels = JSON.parse(categoryCtx.dataset.labels);
     var values = JSON.parse(categoryCtx.dataset.values);
     var colors = JSON.parse(categoryCtx.dataset.colors);
@@ -40,8 +42,8 @@
 }
 
 function buildPersonChart() {
-    // Wykres osób
     var personCtx = document.getElementById('personChart');
+    if (!personCtx) return;
     var labels = JSON.parse(personCtx.dataset.labels);
     var values = JSON.parse(personCtx.dataset.values);
     if (personChart) personChart.destroy();
@@ -147,7 +149,7 @@ function setToplineMetrics(data) {
 function setCategoryTable(data) {
     const categoryTableContainer = document.getElementById("category-table-container");
     const categoryTableEmpty = document.getElementById("category-table-empty");
-    if (data.categorySummaries) {
+    if (data.categorySummaries.length > 0) {
         categoryTableContainer.hidden = false;
         categoryTableEmpty.hidden = true;
 
@@ -192,7 +194,7 @@ function setCategoryTable(data) {
 function setPersonTable(data) {
     const personTableContainer = document.getElementById("person-table-container");
     const personTableEmpty = document.getElementById("person-table-empty");
-    if (data.personSummaries) {
+    if (data.personSummaries.length > 0) {
         personTableContainer.hidden = false;
         personTableEmpty.hidden = true;
         document.getElementById("person-actual-total").innerHTML =
@@ -227,6 +229,7 @@ function setPersonTable(data) {
 
 function updateCategoryChartData(data) {
     let canvas = document.getElementById("categoryChart");
+    if (!canvas) return;
 
     if (!data.categorySummaries || data.categorySummaries.length === 0) {
         canvas.dataset.labels = "[]";
@@ -241,6 +244,7 @@ function updateCategoryChartData(data) {
 
 function updatePersonChartData(data) {
     let canvas = document.getElementById("personChart");
+    if (!canvas) return;
 
     if (!data.personSummaries || data.personSummaries.length === 0) {
         canvas.dataset.labels = "[]";
