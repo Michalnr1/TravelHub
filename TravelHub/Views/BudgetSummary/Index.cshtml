@@ -67,9 +67,9 @@
                         <div class="form-group">
                             <label class="form-label">Actions</label>
                             <div>
-                                <button type="submit" class="btn btn-primary btn-sm">
+                                @* <button type="submit" class="btn btn-primary btn-sm">
                                     <i class="fas fa-filter"></i> Apply Filters
-                                </button>
+                                </button> *@
                                 <a href="@Url.Action("Index", new { tripId = Model.TripId })" class="btn btn-outline-secondary btn-sm">
                                     <i class="fas fa-times"></i> Clear
                                 </a>
@@ -253,34 +253,35 @@
             </div>
         </div>
 
-    <!-- Wykresy -->
-    <div class="row">
-        @if (Model.CategorySummaries.Any())
-        {
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Category Distribution</h5>
+        <!-- Wykresy -->
+        <div class="row">
+            @if (Model.CategorySummaries.Any() && Model.TotalActualExpenses != 0)
+            {
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Category Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="categoryChart" width="400" height="300"> </canvas>
+                        </div>
+                    </div>
+                </div>     
+            }
+            @if (Model.PersonSummaries.Any() && Model.TotalActualExpenses != 0)
+            {
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Person Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="personChart" width="400" height="300"> </canvas>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="categoryChart" width="400" height="300"> </canvas>
-                </div>
-            </div>
-        </div>     
-        }
-        @if (Model.PersonSummaries.Any())
-        {
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Person Distribution</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="personChart" width="400" height="300"> </canvas>
-                </div>
-            </div>
+            }
         </div>
-        }
     </div>
 </div>
 
