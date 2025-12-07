@@ -92,17 +92,10 @@ public class BudgetSummaryController : Controller
             viewModel.IncludeTransfers = filterModel.IncludeTransfers;
             viewModel.IncludeEstimated = filterModel.IncludeEstimated;
 
-            return View(viewModel);
+            return Ok(viewModel);
         }
 
-        return RedirectToAction(nameof(Index), new
-        {
-            tripId,
-            personId = filterModel.PersonId,
-            categoryId = filterModel.CategoryId,
-            includeTransfers = filterModel.IncludeTransfers,
-            includeEstimated = filterModel.IncludeEstimated
-        });
+        return BadRequest();
     }
 
     // GET: BudgetSummary/PublicIndex/5

@@ -10,6 +10,7 @@ public class BudgetSummaryViewModel
     public int TripId { get; set; }
     public string TripName { get; set; } = string.Empty;
     public CurrencyCode TripCurrency { get; set; }
+    public string? TripCurrencyString { get; set; }
     public bool IncludeTransfers { get; set; } = true;
     public bool IncludeEstimated { get; set; } = true;
 
@@ -46,6 +47,7 @@ public class BudgetSummaryViewModel
             TripId = dto.TripId,
             TripName = dto.TripName,
             TripCurrency = dto.TripCurrency,
+            TripCurrencyString = dto.TripCurrency.ToString(),
             FilterByPersonId = dto.FilterByPersonId,
             FilterByPersonName = dto.FilterByPersonName,
             FilterByCategoryId = dto.FilterByCategoryId,
