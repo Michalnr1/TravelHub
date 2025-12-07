@@ -233,7 +233,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             entity.HasMany(t => t.Participants)
                 .WithOne(tp => tp.Trip)
                 .HasForeignKey(tp => tp.TripId);
-                //.OnDelete(DeleteBehavior.ClientCascade);
+            //.OnDelete(DeleteBehavior.ClientCascade);
+
+            // 1:N relationship with FlightInfos
+            entity.HasMany(t => t.FlightInfos)
+                .WithOne(f => f.Trip)
+                .HasForeignKey(f => f.TripId);
+                //.OnDelete(DeleteBehavior.Cascade);
 
             // Indexy dla lepszej wydajności
             entity.HasIndex(t => t.PersonId);
@@ -835,13 +841,13 @@ public class ApplicationDbContext : IdentityDbContext<Person>
             // Relacje
             // 1:N relationship with Trip (FlightInfo belongs to one Trip)
             entity.HasOne(f => f.Trip)
-                .WithMany(t => t.FlightInfos) // Zakładając, że Trip ma kolekcję FlightInfos
+                .WithMany(t => t.FlightInfos)
                 .HasForeignKey(f => f.TripId)
-                .OnDelete(DeleteBehavior.ClientCascade);
+                .OnDelete(DeleteBehavior.Cascade);
 
             // 1:1 relationship with Person (AddedBy)
             entity.HasOne(f => f.AddedBy)
-                .WithMany(p => p.FlightInfos) // Zakładając, że Person ma kolekcję FlightInfos
+                .WithMany(p => p.FlightInfos)
                 .HasForeignKey(f => f.PersonId)
                 .OnDelete(DeleteBehavior.Cascade);
 
