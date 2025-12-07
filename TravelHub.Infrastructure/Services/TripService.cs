@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.Metrics;
+using System.Linq;
 using TravelHub.Application.DTOs;
 using TravelHub.Domain.DTOs;
 using TravelHub.Domain.Entities;
@@ -467,11 +468,22 @@ public class TripService : GenericService<Trip>, ITripService
         return blog != null;
     }
 
-    public async Task<IEnumerable<PublicTripDto>> SearchPublicTripsAsync(PublicTripSearchCriteriaDto criteria)
+    public async Task<IEnumerable<PublicTripDto>> SearchPublicTripsAsync(PublicTripSearchCriteriaDto criteria, string userId)
     {
         var allPublicTrips = await _tripRepository.GetPublicTripsAsync();
+        var allUserTrips = await _tripParticipantService.GetUserParticipatingTripsAsync(userId);
 
-        var filteredTrips = allPublicTrips.AsEnumerable();
+        var notParticipatingPublicTrips = new List<Trip>();
+        if (allPublicTrips != null)
+        {
+            var userTripIds = allUserTrips.Select(t => t.Id).ToHashSet();
+
+            notParticipatingPublicTrips = allPublicTrips
+                .Where(trip => !userTripIds.Contains(trip.Id))
+                .ToList();
+        }
+
+        var filteredTrips = notParticipatingPublicTrips.AsEnumerable();
 
         // Filtrowanie po frazie wyszukiwania (nazwa podróży lub nazwy miejsc)
         if (!string.IsNullOrEmpty(criteria.SearchTerm))

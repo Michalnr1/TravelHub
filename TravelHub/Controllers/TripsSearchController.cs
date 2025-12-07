@@ -47,8 +47,9 @@ public class TripsSearchController : Controller
     {
         var availableCountries = await _tripService.GetAvailableCountriesForPublicTripsAsync();
 
+        var userId = GetCurrentUserId();
         var emptyCriteria = new PublicTripSearchCriteriaDto();
-        var publicTripDtos = await _tripService.SearchPublicTripsAsync(emptyCriteria);
+        var publicTripDtos = await _tripService.SearchPublicTripsAsync(emptyCriteria, userId);
 
         var tripViewModels = publicTripDtos.Select(dto => new PublicTripViewModel
         {
@@ -83,7 +84,8 @@ public class TripsSearchController : Controller
             MaxDays = viewModel.MaxDays
         };
 
-        var publicTripDtos = await _tripService.SearchPublicTripsAsync(criteria);
+        var userId = GetCurrentUserId();
+        var publicTripDtos = await _tripService.SearchPublicTripsAsync(criteria, userId);
         var availableCountries = await _tripService.GetAvailableCountriesForPublicTripsAsync();
 
         var tripViewModels = publicTripDtos.Select(dto => new PublicTripViewModel
