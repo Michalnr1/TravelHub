@@ -26,6 +26,6 @@ function updateDisplay(data) {
     setCategoryTable(data);
 
     updateCategoryChartData(data);
-
+    
     buildCharts();
 }
