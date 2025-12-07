@@ -336,9 +336,14 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <script src="~/js/budget-functions.js"> </script>
+
     <script src="~/js/pages/budget-summary.js"> </script>
 
     <script>
+
+        var categoryChart;
+        var personChart;
 
         const dataUrl = "@Html.Raw(Url.Action("Index", "BudgetSummary"))";
         const tripId = "@Html.Raw(Model.TripId)";
