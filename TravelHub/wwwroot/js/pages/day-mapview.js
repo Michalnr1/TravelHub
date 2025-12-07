@@ -100,7 +100,7 @@ function bindGlobalTravelModeSelector() {
             const selectedMode = this.value;
 
             document
-                .querySelectorAll('.travel-mode-radio-button[value="' + selectedMode + '"]')
+                .querySelectorAll('.travel-mode-radio[value="' + selectedMode + '"]')
                 .forEach(r => {
                     r.checked = true;
                     r.dispatchEvent(new Event('change'));
@@ -128,8 +128,13 @@ async function showRoute() {
     let startTime = getStartDatetime();
     let travelModes = getTravelModes();
 
+    console.log(points);
+    console.log(travelModes);
+
     let segments = getModalSegments(points, travelModes);
     let legs = [];
+
+    console.log(segments);
 
     // 1. Wyznacz trasę dla szczegółowego widoku (stara logika)
     for await (const s of segments) {
@@ -144,6 +149,8 @@ async function showRoute() {
         });
         legs.push(...segmentLegs);
     }
+
+    console.log(legs);
 
     clearPolylines();
     clearTravelCards();
@@ -229,7 +236,7 @@ function getStartDatetime() {
 
 function getTravelModes() {
     const container = document.getElementById('activitiesContainer');
-    const travelDivs = Array.from(container.querySelectorAll('[id^="travel-"]'));
+    const travelDivs = Array.from(container.querySelectorAll('div[id^="travel-"]'));
     return travelDivs.slice(0, travelDivs.length - 1)
         .map(div => {
             const checked = div.querySelector('input[type="radio"]:checked');
@@ -408,7 +415,6 @@ function getTotalTravelTime(legs) {
         } else if (leg.desiredTravelMode == 'TRANSIT') {
             for (let step of leg.steps) {
                 if (step.travelMode == "WALKING") {
-                    alert(step.staticDurationMillis);
                     walkingTime = walkingTime.plus(parseInt(step.staticDurationMillis))
                 }
             }
@@ -504,8 +510,6 @@ function addEntryToTravelCard(card, text) {
 
 function addIconToTravelCard(card, url) {
     let img = document.createElement('img');
-    //img.width = 32;
-    //img.height = 32;
     img.src = url;
     card.appendChild(img);
 }
@@ -697,8 +701,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 point.iconImage.glyphText = `${spotCounter + 1}`;
                 spotCounter++;
             }
+
         }
         points = newPoints;
+
+        let i = 0;
+        for (let point of points) {
+            let travelDiv = document.getElementById("travel-" + point.id);
+            travelDiv.getElementsByClassName("to-spot")[0].innerHTML = i < points.length - 1 ? points[i + 1].name : "";
+            i++;
+        }
 
         // recompute fixed durations
         fillFixedDurations(points);
@@ -944,13 +956,14 @@ function realignTravelSelectors() {
     // Get all activity items in their CURRENT order
     const activityItems = Array.from(container.querySelectorAll('.activity-item'));
 
-    activityItems.forEach(activity => {
+    activityItems.forEach((activity, i) => {
         const activityId = activity.dataset.activityId;
 
         // Only spots have travel selectors
         const travelDiv = document.getElementById('travel-' + activityId);
 
         if (!travelDiv) return;
+        travelDiv.getElementsByClassName("to-spot")[0].innerHTML = i < points.length - 1 ? points[i + 1].name : "";
 
         travelDiv.hidden = false;
 
@@ -965,9 +978,6 @@ function realignTravelSelectors() {
 
 function hideLastTravelCard() {
     const container = document.getElementById('activitiesContainer');
-    const activityItems = Array.from(container.querySelectorAll('.activity-item'));
-    const finalId = activityItems[activityItems.length - 1].dataset.activityId;
-    const finalTravelDiv = document.getElementById('travel-' + finalId);
-    if (!finalTravelDiv) return;
-    finalTravelDiv.hidden = true;
+    const activityItems = Array.from(container.querySelectorAll('div[id^="travel-"]'));
+    activityItems[activityItems.length - 1].hidden = true;
 }
