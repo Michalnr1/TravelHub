@@ -358,7 +358,7 @@ public class DaysController : Controller
     }
 
     // POST: Days/Delete/5
-    [HttpPost, ActionName("DeleteConfirmed")]
+    [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
