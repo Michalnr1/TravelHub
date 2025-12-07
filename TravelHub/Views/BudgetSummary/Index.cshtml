@@ -23,7 +23,7 @@
             <h5 class="card-title mb-0">Filters</h5>
         </div>
         <div class="card-body">
-            <form method="post" asp-action="Index" asp-route-tripId="@Model.TripId" id="filterForm">
+            <form method="get" asp-action="Index" asp-route-tripId="@Model.TripId" id="filterForm">
                 <input type="hidden" asp-for="TripId" />
 
                 <div class="row">
@@ -31,7 +31,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label asp-for="FilterByPersonId" class="form-label">Filter by Person</label>
-                            <select asp-for="FilterByPersonId" asp-items="Model.AvailablePeopleSelectList" class="form-select" onchange="this.form.submit()">
+                            <select asp-for="FilterByPersonId" asp-items="Model.AvailablePeopleSelectList" name="personId" class="form-select" onchange="this.form.submit()">
                                 <option value="">All People</option>
                             </select>
                         </div>
@@ -41,7 +41,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label asp-for="FilterByCategoryId" class="form-label">Filter by Category</label>
-                            <select asp-for="FilterByCategoryId" asp-items="Model.AvailableCategoriesSelectList" class="form-select" onchange="this.form.submit()">
+                            <select asp-for="FilterByCategoryId" asp-items="Model.AvailableCategoriesSelectList" name="categoryId" class="form-select" onchange="this.form.submit()">
                                 <option value="">All Categories</option>
                             </select>
                         </div>
