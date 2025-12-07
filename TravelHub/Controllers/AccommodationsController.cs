@@ -568,6 +568,8 @@ public class AccommodationsController : Controller
         }
 
         await PopulateSelectListsForTrip(viewModel, tripId);
+        ViewData["Latitude"] =  viewModel.Latitude;
+        ViewData["Longitude"] = viewModel.Longitude;
         ViewData["TripName"] = trip.Name;
         ViewData["ReturnUrl"] = Url.Action("Details", "Trips", new { id = tripId });
         ViewData["GoogleApiKey"] = _configuration["ApiKeys:GoogleApiKey"];
