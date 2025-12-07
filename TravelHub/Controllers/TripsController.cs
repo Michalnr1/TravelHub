@@ -1059,7 +1059,7 @@ public class TripsController : Controller
 
         // Odfiltruj wycieczki, których użytkownik jest właścicielem
         var ownedTripIds = ownedTrips.Select(t => t.Id).ToHashSet();
-        var filteredParticipatingTrips = participatingTrips.Where(tp => !ownedTripIds.Contains(tp.Trip.Id));
+        var filteredParticipatingTrips = participatingTrips.Where(tp => !ownedTripIds.Contains(tp.Trip.Id) && tp.Status == TripParticipantStatus.Accepted);
 
         var participatingTripsViewModel = new List<TripViewModel>();
         foreach (var tp in filteredParticipatingTrips)

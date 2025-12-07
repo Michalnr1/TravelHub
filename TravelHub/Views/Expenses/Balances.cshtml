@@ -35,8 +35,8 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Participant</th>
-                                    <th class="text-end text-danger">Owes to Others</th>
-                                    <th class="text-end text-success">Owed by Others</th>
+                                    @* <th class="text-end text-danger">Owes to Others</th>
+                                    <th class="text-end text-success">Owed by Others</th> *@
                                     <th class="text-end">Net Balance</th>
                                 </tr>
                             </thead>
@@ -59,8 +59,8 @@
                                                 <span class="badge bg-secondary ms-2">0</span>
                                             }
                                         </td>
-                                        <td class="text-end text-danger">@balance.FormattedOwesToOthers @Model.TripCurrency</td>
-                                        <td class="text-end text-success">@balance.FormattedOwedByOthers @Model.TripCurrency</td>
+                                        @* <td class="text-end text-danger">@balance.FormattedOwesToOthers @Model.TripCurrency</td>
+                                        <td class="text-end text-success">@balance.FormattedOwedByOthers @Model.TripCurrency</td> *@
                                         <td class="text-end @balance.NetBalanceClass fw-bold">
                                             @balance.FormattedNetBalance @Model.TripCurrency
                                         </td>
