@@ -4,376 +4,153 @@
     ViewData["Title"] = "Trip Details";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>@Model.Name</h1>
-    <div>
-        <a href="@Url.Action("Clone", "TripsSearch", new { id = Model.Id })"
-           class="btn btn-outline-success">
-            <i class="fas fa-copy"></i> Clone This Trip
-        </a>
-        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#countriesModal">
-            <i class="fas fa-globe"></i> View Countries
-        </button>
-        <a asp-controller="Trips" asp-action="Checklist" asp-route-tripId="@Model.Id" asp-route-source="public" class="btn btn-primary">
-            <i class="fas fa-tasks"></i> Checklist
-        </a>
-        <a asp-controller="Trips" asp-action="MapView" asp-route-id="@Model.Id" asp-route-source="public" class="btn btn-secondary">
-            <i class="fas fa-map"></i> View on Map
-        </a>
-        <a href="@Url.Action("PublicIndex", "BudgetSummary", new { tripId = Model.Id })" class="btn btn-info">
-            <i class="fas fa-chart-pie"></i> Budget Summary
-        </a>
-        <a asp-action="Search" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Search
-        </a>
-    </div>
-</div>
-
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-}
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-}
-
-<!-- Trip Overview -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-2">
-                        <strong>Status:</strong> <span class="badge bg-info">@Model.Status</span>
-                    </div>
-                    <div class="col-md-2">
-                        <strong>Dates:</strong> @Model.DateRange
-                    </div>
-                    <div class="col-md-2">
-                        <strong>Duration:</strong> @Model.Duration days
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Actual Expenses:</strong> @Model.FormattedTotalExpenses
-                    </div>
-                    <div class="col-md-3">
-                        @if (Model.EstimatedExpensesTotal > 0)
-                        {
-                            <strong>Estimated Expenses:</strong>
-                            <span class="text-warning">@Model.FormattedEstimatedExpensesTotal</span>
-                        }
-                        else
-                        {
-                            <strong>Estimated Expenses:</strong>
-                            <span class="text-muted">None</span>
-                        }
+<div class="container">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-4" style="width: 20%">
+            <div class="trip-sidebar sticky-top">
+                <div class="sidebar-section">
+                    <h6 class="sidebar-title">Trip Tools</h6>
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Clone", "TripsSearch", new { id = Model.Id })"
+                           class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-copy"></i> Clone This Trip
+                        </a>
+                        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#countriesModal">
+                            <i class="fas fa-globe"></i> View Countries
+                        </button>
+                        <a asp-controller="Trips" asp-action="Checklist" asp-route-tripId="@Model.Id" asp-route-source="public" class="btn btn-primary btn-sm">
+                            <i class="fas fa-tasks"></i> Checklist
+                        </a>
+                        <a asp-controller="Trips" asp-action="MapView" asp-route-id="@Model.Id" asp-route-source="public" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-map"></i> View on Map
+                        </a>
+                        <a href="@Url.Action("PublicIndex", "BudgetSummary", new { tripId = Model.Id })" class="btn btn-info btn-sm">
+                            <i class="fas fa-chart-pie"></i> Budget Summary
+                        </a>
+                        <a asp-action="Search" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Search
+                        </a>
                     </div>
                 </div>
-                <div class="row mt-2">
-                    <div class="col-md-4">
-                        <strong>Owner:</strong> @Model.OwnerDisplay
+
+                <div class="sidebar-section">
+                    <h6 class="sidebar-title">Statistics</h6>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-number text-primary">@Model.Days.Count</span>
+                            <span class="stat-label">Days + Groups</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number text-success">@Model.ActivitiesCount</span>
+                            <span class="stat-label">Activities</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number text-warning">@Model.SpotsCount</span>
+                            <span class="stat-label">Spots</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number text-info">@Model.TransportsCount</span>
+                            <span class="stat-label">Transports</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number text-secondary">@Model.AccommodationsCount</span>
+                            <span class="stat-label">Accommodations</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number text-danger">@Model.ParticipantsCount</span>
+                            <span class="stat-label">Participants</span>
+                        </div>
                     </div>
-                    <div class="col-md-4">
-                        <strong>Participants:</strong> @Model.ParticipantsCount
-                    </div>
-                    @* <div class="col-md-4">
-                        @if (Model.EstimatedExpensesTotal > 0)
-                        {
-                            <strong>Combined Total:</strong>
-                            <span class="fw-bold">@Model.FormattedCombinedTotal</span>
-                        }
-                    </div> *@
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-primary">@Model.Days.Count</h3>
-                <p class="mb-0">Days + Groups</p>
+        <!-- Main Content -->
+        <div class="col-md-8" style="width: 80%">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>@Model.Name</h1>
             </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-success">@Model.ActivitiesCount</h3>
-                <p class="mb-0">Activities</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-warning">@Model.SpotsCount</h3>
-                <p class="mb-0">Spots</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-info">@Model.TransportsCount</h3>
-                <p class="mb-0">Transports</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-secondary">@Model.AccommodationsCount</h3>
-                <p class="mb-0">Accommodations</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2 col-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h3 class="text-danger">@Model.ParticipantsCount</h3>
-                <p class="mb-0">Participants</p>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Days and Groups -->
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Days (@Model.NormalDaysCount)</h5>
-            </div>
-            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                @{
-                    var normalDays = Model.Days.Where(d => !d.IsGroup).OrderBy(d => d.Number).ThenBy(d => d.Date).ToList();
-                }
-                @if (normalDays.Any())
-                {
-                    <div class="list-group">
-                        @foreach (var day in normalDays)
-                        {
-                            <div class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1 text-primary">@day.DisplayName</h6>
-                                        <small class="text-muted">@day.Date.ToString("MMM dd, yyyy")</small>
-                                        <br>
-                                        <small>Activities: @day.ActivitiesCount</small>
-                                    </div>
-                                    <div>
-                                        <a asp-controller="Days" asp-action="Details" asp-route-id="@day.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </div>
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+            }
+
+            <!-- Trip Overview -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    <strong>Status:</strong> <span class="badge bg-info">@Model.Status</span>
                                 </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <p class="text-muted">No standard days added to this trip yet.</p>
-                }
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card mb-4">
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">Groups (@Model.GroupsCount)</h5>
-            </div>
-            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                @{
-                    var groups = Model.Days.Where(d => d.IsGroup).OrderBy(d => d.Date).ThenBy(d => d.Name).ToList();
-                }
-                @if (groups.Any())
-                {
-                    <div class="list-group">
-                        @foreach (var group in groups)
-                        {
-                            <div class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1 text-info">@group.DisplayName</h6>
-                                        <small class="text-muted">@group.Date.ToString("MMM dd, yyyy")</small>
-                                        <br>
-                                        <small>Activities: @group.ActivitiesCount</small>
-                                    </div>
-                                    <div>
-                                        <a asp-controller="Days" asp-action="Details" asp-route-id="@group.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </div>
+                                <div class="col-md-2">
+                                    <strong>Dates:</strong> @Model.DateRange
                                 </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <p class="text-muted">No groups added to this trip yet.</p>
-                }
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Content Tabs -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="contentTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="activities-tab" data-bs-toggle="tab" data-bs-target="#activities" type="button" role="tab" aria-controls="activities" aria-selected="true">
-                            Activities & Spots (@(Model.ActivitiesCount + Model.SpotsCount))
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="accommodations-tab" data-bs-toggle="tab" data-bs-target="#accommodations" type="button" role="tab" aria-controls="accommodations" aria-selected="false">
-                            Accommodations (@Model.AccommodationsCount)
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="transports-tab" data-bs-toggle="tab" data-bs-target="#transports" type="button" role="tab" aria-controls="transports" aria-selected="false">
-                            Transports (@Model.TransportsCount)
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses" type="button" role="tab" aria-controls="expenses" aria-selected="false">
-                            Expenses (@Model.ExpensesCount)
-                        </button>
-                    </li>
-                </ul>
-            </div>
-            <div class="card-body">
-                <div class="tab-content" id="contentTabsContent">
-                    <!-- Activities & Spots Tab -->
-                    <div class="tab-pane fade show active" id="activities" role="tabpanel" aria-labelledby="activities-tab">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h5 class="mb-3">Activities (@Model.ActivitiesCount)</h5>
-                                <div style="max-height: 400px; overflow-y: auto;">
-                                    @if (Model.Activities.Any())
+                                <div class="col-md-2">
+                                    <strong>Duration:</strong> @Model.Duration days
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Actual Expenses:</strong> @Model.FormattedTotalExpenses
+                                </div>
+                                <div class="col-md-3">
+                                    @if (Model.EstimatedExpensesTotal > 0)
                                     {
-                                        <div class="list-group">
-                                            @foreach (var activity in Model.Activities)
-                                            {
-                                                <div class="list-group-item">
-                                                    <div class="d-flex justify-content-between align-items-start">
-                                                        <div class="flex-grow-1">
-                                                            <h6 class="mb-1">@activity.Name</h6>
-                                                            <p class="mb-1 small text-muted">@activity.Description</p>
-                                                            <div class="small">
-                                                                <span class="badge bg-light text-dark">@activity.DurationString</span>
-                                                                @if (!string.IsNullOrEmpty(activity.CategoryName))
-                                                                {
-                                                                    <span class="badge bg-secondary">@activity.CategoryName</span>
-                                                                }
-                                                                @if (!string.IsNullOrEmpty(activity.DayName))
-                                                                {
-                                                                    <span class="badge bg-info">@activity.DayName</span>
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <a asp-controller="Activities" asp-action="Details" asp-route-id="@activity.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
-                                                                <i class="fas fa-eye"></i>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
+                                        <strong>Estimated Expenses:</strong>
+                                        <span class="text-warning">@Model.FormattedEstimatedExpensesTotal</span>
                                     }
                                     else
                                     {
-                                        <p class="text-muted">No activities added to this trip yet.</p>
+                                        <strong>Estimated Expenses:</strong>
+                                        <span class="text-muted">None</span>
                                     }
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <h5 class="mb-3">Spots (@Model.SpotsCount)</h5>
-                                <div style="max-height: 400px; overflow-y: auto;">
-                                    @if (Model.Spots.Any())
-                                    {
-                                        <div class="list-group">
-                                            @foreach (var spot in Model.Spots)
-                                            {
-                                                <div class="list-group-item">
-                                                    <div class="d-flex justify-content-between align-items-start">
-                                                        <div class="flex-grow-1">
-                                                            <h6 class="mb-1">@spot.Name</h6>
-                                                            <p class="mb-1 small text-muted">@spot.Description</p>
-                                                            <div class="small">
-                                                                <span class="badge bg-light text-dark">@spot.DurationString</span>
-                                                                @if (!string.IsNullOrEmpty(spot.CategoryName))
-                                                                {
-                                                                    <span class="badge bg-secondary">@spot.CategoryName</span>
-                                                                }
-                                                                <br>
-                                                                <small class="text-muted">
-                                                                    📍 @spot.Latitude.ToString("F4"), @spot.Longitude.ToString("F4")
-                                                                </small>
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <a asp-controller="Spots" asp-action="Details" asp-route-id="@spot.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
-                                                                <i class="fas fa-eye"></i>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <p class="text-muted">No spots added to this trip yet.</p>
-                                    }
+                            <div class="row mt-2">
+                                <div class="col-md-4">
+                                    <strong>Owner:</strong> @Model.OwnerDisplay
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Participants:</strong> @Model.ParticipantsCount
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Accommodations Tab -->
-                    <div class="tab-pane fade" id="accommodations" role="tabpanel" aria-labelledby="accommodations-tab">
-                        <h5 class="mb-3">Accommodations (@Model.AccommodationsCount)</h5>
-                        <div style="max-height: 400px; overflow-y: auto;">
-                            @if (Model.Accommodations.Any())
+            <!-- Days and Groups -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Days (@Model.NormalDaysCount)</h5>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            @{
+                                var normalDays = Model.Days.Where(d => !d.IsGroup).OrderBy(d => d.Number).ThenBy(d => d.Date).ToList();
+                            }
+                            @if (normalDays.Any())
                             {
                                 <div class="list-group">
-                                    @foreach (var accommodation in Model.Accommodations.OrderBy(a => a.CheckIn))
+                                    @foreach (var day in normalDays)
                                     {
                                         <div class="list-group-item">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1">@accommodation.Name</h6>
-                                                    <p class="mb-1 small text-muted">@accommodation.Description</p>
-                                                    <div class="small">
-                                                        <span class="badge bg-light text-dark">@accommodation.DurationString</span>
-                                                        @if (!string.IsNullOrEmpty(accommodation.CategoryName))
-                                                        {
-                                                            <span class="badge bg-secondary">@accommodation.CategoryName</span>
-                                                        }
-                                                        @if (!string.IsNullOrEmpty(accommodation.DayName))
-                                                        {
-                                                            <span class="badge bg-info">@accommodation.DayName</span>
-                                                        }
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            🏨 @accommodation.CheckIn.ToString("MMM dd") - @accommodation.CheckOut.ToString("MMM dd")
-                                                        </small>
-                                                    </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-1 text-primary">@day.DisplayName</h6>
+                                                    <small class="text-muted">@day.Date.ToString("MMM dd, yyyy")</small>
+                                                    <br>
+                                                    <small>Activities: @day.ActivitiesCount</small>
                                                 </div>
                                                 <div>
-                                                    <a asp-controller="Accommodations" asp-action="Details" asp-route-id="@accommodation.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
+                                                    <a asp-controller="Days" asp-action="Details" asp-route-id="@day.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                 </div>
@@ -384,35 +161,36 @@
                             }
                             else
                             {
-                                <p class="text-muted">No accommodations added to this trip yet.</p>
+                                <p class="text-muted">No standard days added to this trip yet.</p>
                             }
                         </div>
                     </div>
+                </div>
 
-                    <!-- Transports Tab -->
-                    <div class="tab-pane fade" id="transports" role="tabpanel" aria-labelledby="transports-tab">
-                        <h5 class="mb-3">Transports (@Model.TransportsCount)</h5>
-                        <div style="max-height: 400px; overflow-y: auto;">
-                            @if (Model.Transports.Any())
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">Groups (@Model.GroupsCount)</h5>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            @{
+                                var groups = Model.Days.Where(d => d.IsGroup).OrderBy(d => d.Date).ThenBy(d => d.Name).ToList();
+                            }
+                            @if (groups.Any())
                             {
                                 <div class="list-group">
-                                    @foreach (var transport in Model.Transports)
+                                    @foreach (var group in groups)
                                     {
                                         <div class="list-group-item">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1">@transport.Name</h6>
-                                                    <div class="small">
-                                                        <span class="badge bg-light text-dark">@transport.DurationString</span>
-                                                        <span class="badge bg-secondary">@transport.Type</span>
-                                                    </div>
-                                                    <div class="small text-muted">
-                                                        <div>From: @transport.FromSpotName</div>
-                                                        <div>To: @transport.ToSpotName</div>
-                                                    </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-1 text-info">@group.DisplayName</h6>
+                                                    <small class="text-muted">@group.Date.ToString("MMM dd, yyyy")</small>
+                                                    <br>
+                                                    <small>Activities: @group.ActivitiesCount</small>
                                                 </div>
                                                 <div>
-                                                    <a asp-controller="Transports" asp-action="Details" asp-route-id="@transport.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
+                                                    <a asp-controller="Days" asp-action="Details" asp-route-id="@group.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                 </div>
@@ -423,103 +201,312 @@
                             }
                             else
                             {
-                                <p class="text-muted">No transports added to this trip yet.</p>
+                                <p class="text-muted">No groups added to this trip yet.</p>
                             }
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Expenses Tab -->
-                    <div class="tab-pane fade" id="expenses" role="tabpanel" aria-labelledby="expenses-tab">
-                        <h5 class="mb-3">
-                            Expenses (@Model.ExpensesCount)
-                            @if (Model.EstimatedExpensesCount > 0)
-                            {
-                                <span class="badge bg-warning text-dark">@Model.EstimatedExpensesCount estimated</span>
-                            }
-                        </h5>
-
-                        <!-- Summary Stats -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="card bg-light">
-                                    <div class="card-body py-2">
-                                        <small class="text-muted">Actual Expenses Total:</small>
-                                        <div class="fw-bold text-success">@Model.FormattedTotalExpenses</div>
-                                        <small class="text-muted">Combined costs</small>
-                                    </div>
-                                </div>
-                            </div>
-                            @if (Model.EstimatedExpensesTotal > 0)
-                            {
-                                <div class="col-md-6">
-                                    <div class="card bg-warning bg-opacity-10">
-                                        <div class="card-body py-2">
-                                            <small class="text-muted">Estimated Expenses Total:</small>
-                                            <div class="fw-bold text-warning">@Model.FormattedEstimatedExpensesTotal</div>
-                                            <small class="text-muted">@Model.EstimatedExpensesCount planned items</small>
+            <!-- Content Tabs -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" id="contentTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="activities-tab" data-bs-toggle="tab" data-bs-target="#activities" type="button" role="tab" aria-controls="activities" aria-selected="true">
+                                        Activities & Spots (@(Model.ActivitiesCount + Model.SpotsCount))
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="accommodations-tab" data-bs-toggle="tab" data-bs-target="#accommodations" type="button" role="tab" aria-controls="accommodations" aria-selected="false">
+                                        Accommodations (@Model.AccommodationsCount)
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="transports-tab" data-bs-toggle="tab" data-bs-target="#transports" type="button" role="tab" aria-controls="transports" aria-selected="false">
+                                        Transports (@Model.TransportsCount)
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses" type="button" role="tab" aria-controls="expenses" aria-selected="false">
+                                        Expenses (@Model.ExpensesCount)
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content" id="contentTabsContent">
+                                <!-- Activities & Spots Tab -->
+                                <div class="tab-pane fade show active" id="activities" role="tabpanel" aria-labelledby="activities-tab">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h5 class="mb-3">Activities (@Model.ActivitiesCount)</h5>
+                                            <div style="max-height: 400px; overflow-y: auto;">
+                                                @if (Model.Activities.Any())
+                                                {
+                                                    <div class="list-group">
+                                                        @foreach (var activity in Model.Activities)
+                                                        {
+                                                            <div class="list-group-item">
+                                                                <div class="d-flex justify-content-between align-items-start">
+                                                                    <div class="flex-grow-1">
+                                                                        <h6 class="mb-1">@activity.Name</h6>
+                                                                        <p class="mb-1 small text-muted">@activity.Description</p>
+                                                                        <div class="small">
+                                                                            <span class="badge bg-light text-dark">@activity.DurationString</span>
+                                                                            @if (!string.IsNullOrEmpty(activity.CategoryName))
+                                                                            {
+                                                                                <span class="badge bg-secondary">@activity.CategoryName</span>
+                                                                            }
+                                                                            @if (!string.IsNullOrEmpty(activity.DayName))
+                                                                            {
+                                                                                <span class="badge bg-info">@activity.DayName</span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <a asp-controller="Activities" asp-action="Details" asp-route-id="@activity.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
+                                                                            <i class="fas fa-eye"></i>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <p class="text-muted">No activities added to this trip yet.</p>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h5 class="mb-3">Spots (@Model.SpotsCount)</h5>
+                                            <div style="max-height: 400px; overflow-y: auto;">
+                                                @if (Model.Spots.Any())
+                                                {
+                                                    <div class="list-group">
+                                                        @foreach (var spot in Model.Spots)
+                                                        {
+                                                            <div class="list-group-item">
+                                                                <div class="d-flex justify-content-between align-items-start">
+                                                                    <div class="flex-grow-1">
+                                                                        <h6 class="mb-1">@spot.Name</h6>
+                                                                        <p class="mb-1 small text-muted">@spot.Description</p>
+                                                                        <div class="small">
+                                                                            <span class="badge bg-light text-dark">@spot.DurationString</span>
+                                                                            @if (!string.IsNullOrEmpty(spot.CategoryName))
+                                                                            {
+                                                                                <span class="badge bg-secondary">@spot.CategoryName</span>
+                                                                            }
+                                                                            <br>
+                                                                            <small class="text-muted">
+                                                                                📍 @spot.Latitude.ToString("F4"), @spot.Longitude.ToString("F4")
+                                                                            </small>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <a asp-controller="Spots" asp-action="Details" asp-route-id="@spot.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
+                                                                            <i class="fas fa-eye"></i>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <p class="text-muted">No spots added to this trip yet.</p>
+                                                }
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            }
-                        </div>
 
-                        <div style="max-height: 400px; overflow-y: auto;">
-                            <!-- Tylko wydatki szacowane na liście -->
-                            @if (Model.Expenses.Any())
-                            {
-                                <div class="mb-3">
-                                    <h6 class="text-warning">
-                                        <i class="fas fa-clock me-1"></i>Estimated Expenses
-                                    </h6>
-                                    <div class="list-group">
-                                        @foreach (var expense in Model.Expenses)
+                                <!-- Accommodations Tab -->
+                                <div class="tab-pane fade" id="accommodations" role="tabpanel" aria-labelledby="accommodations-tab">
+                                    <h5 class="mb-3">Accommodations (@Model.AccommodationsCount)</h5>
+                                    <div style="max-height: 400px; overflow-y: auto;">
+                                        @if (Model.Accommodations.Any())
                                         {
-                                            <div class="list-group-item estimated">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <div class="flex-grow-1">
-                                                        <h6 class="mb-1">@expense.Name</h6>
-                                                        <div class="small">
-                                                            <span class="badge bg-warning text-dark">
-                                                                @expense.EstimatedValue.ToString("F2") @expense.CurrencyCode
-                                                                @if (expense.Multiplier > 1)
-                                                                {
-                                                                    <text>×@expense.Multiplier</text>
-                                                                }
-                                                            </span>
-                                                            @if (!string.IsNullOrEmpty(expense.CategoryName))
-                                                            {
-                                                                <span class="badge bg-secondary">@expense.CategoryName</span>
-                                                            }
-                                                            @if (!string.IsNullOrEmpty(expense.SpotName))
-                                                            {
-                                                                <span class="badge bg-info">@expense.SpotName</span>
-                                                            }
-                                                            @if (!string.IsNullOrEmpty(expense.TransportName))
-                                                            {
-                                                                <span class="badge bg-info">@expense.TransportName</span>
-                                                            }
+                                            <div class="list-group">
+                                                @foreach (var accommodation in Model.Accommodations.OrderBy(a => a.CheckIn))
+                                                {
+                                                    <div class="list-group-item">
+                                                        <div class="d-flex justify-content-between align-items-start">
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="mb-1">@accommodation.Name</h6>
+                                                                <p class="mb-1 small text-muted">@accommodation.Description</p>
+                                                                <div class="small">
+                                                                    <span class="badge bg-light text-dark">@accommodation.DurationString</span>
+                                                                    @if (!string.IsNullOrEmpty(accommodation.CategoryName))
+                                                                    {
+                                                                        <span class="badge bg-secondary">@accommodation.CategoryName</span>
+                                                                    }
+                                                                    @if (!string.IsNullOrEmpty(accommodation.DayName))
+                                                                    {
+                                                                        <span class="badge bg-info">@accommodation.DayName</span>
+                                                                    }
+                                                                    <br>
+                                                                    <small class="text-muted">
+                                                                        🏨 @accommodation.CheckIn.ToString("MMM dd") - @accommodation.CheckOut.ToString("MMM dd")
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <a asp-controller="Accommodations" asp-action="Details" asp-route-id="@accommodation.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </a>
+                                                            </div>
                                                         </div>
-                                                        @if (expense.Multiplier > 1)
-                                                        {
-                                                            <small class="text-muted">
-                                                                Total: @((expense.EstimatedValue * expense.Multiplier).ToString("F2")) @expense.CurrencyCode
-                                                            </small>
-                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted">No accommodations added to this trip yet.</p>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Transports Tab -->
+                                <div class="tab-pane fade" id="transports" role="tabpanel" aria-labelledby="transports-tab">
+                                    <h5 class="mb-3">Transports (@Model.TransportsCount)</h5>
+                                    <div style="max-height: 400px; overflow-y: auto;">
+                                        @if (Model.Transports.Any())
+                                        {
+                                            <div class="list-group">
+                                                @foreach (var transport in Model.Transports)
+                                                {
+                                                    <div class="list-group-item">
+                                                        <div class="d-flex justify-content-between align-items-start">
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="mb-1">@transport.Name</h6>
+                                                                <div class="small">
+                                                                    <span class="badge bg-light text-dark">@transport.DurationString</span>
+                                                                    <span class="badge bg-secondary">@transport.Type</span>
+                                                                </div>
+                                                                <div class="small text-muted">
+                                                                    <div>From: @transport.FromSpotName</div>
+                                                                    <div>To: @transport.ToSpotName</div>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <a asp-controller="Transports" asp-action="Details" asp-route-id="@transport.Id" asp-route-source="public" class="btn btn-sm btn-outline-primary">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted">No transports added to this trip yet.</p>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Expenses Tab -->
+                                <div class="tab-pane fade" id="expenses" role="tabpanel" aria-labelledby="expenses-tab">
+                                    <h5 class="mb-3">
+                                        Expenses (@Model.ExpensesCount)
+                                        @if (Model.EstimatedExpensesCount > 0)
+                                        {
+                                            <span class="badge bg-warning text-dark">@Model.EstimatedExpensesCount estimated</span>
+                                        }
+                                    </h5>
+
+                                    <!-- Summary Stats -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body py-2">
+                                                    <small class="text-muted">Actual Expenses Total:</small>
+                                                    <div class="fw-bold text-success">@Model.FormattedTotalExpenses</div>
+                                                    <small class="text-muted">Combined costs</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @if (Model.EstimatedExpensesTotal > 0)
+                                        {
+                                            <div class="col-md-6">
+                                                <div class="card bg-warning bg-opacity-10">
+                                                    <div class="card-body py-2">
+                                                        <small class="text-muted">Estimated Expenses Total:</small>
+                                                        <div class="fw-bold text-warning">@Model.FormattedEstimatedExpensesTotal</div>
+                                                        <small class="text-muted">@Model.EstimatedExpensesCount planned items</small>
                                                     </div>
                                                 </div>
                                             </div>
                                         }
                                     </div>
-                                </div>
-                            }
 
-                            @if (!Model.Expenses.Any() && Model.TotalExpenses == 0)
-                            {
-                                <div class="text-center py-4">
-                                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted">No expenses added to this trip.</p>
+                                    <div style="max-height: 400px; overflow-y: auto;">
+                                        <!-- Tylko wydatki szacowane na liście -->
+                                        @if (Model.Expenses.Any())
+                                        {
+                                            <div class="mb-3">
+                                                <h6 class="text-warning">
+                                                    <i class="fas fa-clock me-1"></i>Estimated Expenses
+                                                </h6>
+                                                <div class="list-group">
+                                                    @foreach (var expense in Model.Expenses)
+                                                    {
+                                                        <div class="list-group-item estimated">
+                                                            <div class="d-flex justify-content-between align-items-start">
+                                                                <div class="flex-grow-1">
+                                                                    <h6 class="mb-1">@expense.Name</h6>
+                                                                    <div class="small">
+                                                                        <span class="badge bg-warning text-dark">
+                                                                            @expense.EstimatedValue.ToString("F2") @expense.CurrencyCode
+                                                                            @if (expense.Multiplier > 1)
+                                                                            {
+                                                                                <text>×@expense.Multiplier</text>
+                                                                            }
+                                                                        </span>
+                                                                        @if (!string.IsNullOrEmpty(expense.CategoryName))
+                                                                        {
+                                                                            <span class="badge bg-secondary">@expense.CategoryName</span>
+                                                                        }
+                                                                        @if (!string.IsNullOrEmpty(expense.SpotName))
+                                                                        {
+                                                                            <span class="badge bg-info">@expense.SpotName</span>
+                                                                        }
+                                                                        @if (!string.IsNullOrEmpty(expense.TransportName))
+                                                                        {
+                                                                            <span class="badge bg-info">@expense.TransportName</span>
+                                                                        }
+                                                                    </div>
+                                                                    @if (expense.Multiplier > 1)
+                                                                    {
+                                                                        <small class="text-muted">
+                                                                            Total: @((expense.EstimatedValue * expense.Multiplier).ToString("F2")) @expense.CurrencyCode
+                                                                        </small>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+
+                                        @if (!Model.Expenses.Any() && Model.TotalExpenses == 0)
+                                        {
+                                            <div class="text-center py-4">
+                                                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                                                <p class="text-muted">No expenses added to this trip.</p>
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
-                            }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -579,6 +566,74 @@
 
 @section Scripts {
     <style>
+        .container {
+            margin: 10px;
+            max-width: 100% !important;
+            width: auto;
+        }
+
+        .trip-sidebar {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+
+            .sidebar-section:last-child {
+                margin-bottom: 0;
+            }
+
+        .sidebar-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat-item {
+            background-color: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+            .stat-item:hover {
+                transform: translateY(-2px);
+            }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            display: block;
+        }
+
+        .sticky-top {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 20px;
+        }
+
         .expense-item.estimated {
             border-left: 4px solid #ffc107;
             background-color: #fffbf0;
@@ -605,6 +660,18 @@
 
             .card-body::-webkit-scrollbar-thumb:hover {
                 background: #a8a8a8;
+            }
+
+        .d-grid .btn-sm {
+            margin-bottom: 5px;
+            text-align: left;
+            padding: 8px 12px;
+        }
+
+            .d-grid .btn-sm i {
+                margin-right: 6px;
+                width: 18px;
+                text-align: center;
             }
     </style>
 }
