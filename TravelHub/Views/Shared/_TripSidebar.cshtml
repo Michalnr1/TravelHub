@@ -29,6 +29,9 @@
                 <a asp-controller="Chat" asp-action="Index" asp-route-tripId="@tripId.Value" class="btn btn-primary btn-sm">
                     <i class="fas fa-comments"></i> Trip Chat
                 </a>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#participantsModal">
+                    <i class="fas fa-users"></i> View Participants
+                </button>
             </div>
         </div>
 
@@ -66,9 +69,6 @@
                 {
                     <a asp-action="Edit" asp-route-id="@tripId.Value" class="btn btn-secondary btn-sm">
                         <i class="fas fa-edit"></i> Edit Trip
-                    </a>
-                    <a asp-action="Participants" asp-route-id="@tripId.Value" class="btn btn-secondary btn-sm">
-                        <i class="fas fa-users"></i> Participants
                     </a>
                 }
                 <a asp-action="MyTrips" class="btn btn-outline-secondary btn-sm">

@@ -476,7 +476,7 @@ public class TripService : GenericService<Trip>, ITripService
         var notParticipatingPublicTrips = new List<Trip>();
         if (allPublicTrips != null)
         {
-            var userTripIds = allUserTrips.Select(t => t.Id).ToHashSet();
+            var userTripIds = allUserTrips.Select(t => t.TripId).ToHashSet();
 
             notParticipatingPublicTrips = allPublicTrips
                 .Where(trip => !userTripIds.Contains(trip.Id))
