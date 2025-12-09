@@ -13,7 +13,7 @@
     <!-- Main Content -->
     <div class="col-lg-10 col-md-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>@Model.Name</h1>
+            <h1 class="trip-main-title">@Model.Name</h1>
         </div>
 
         @if (TempData["SuccessMessage"] != null)
@@ -56,16 +56,6 @@
                                 }
                             </div>
                         </div>
-                        @* @if (Model.EstimatedExpensesTotal > 0)
-                        {
-                            <div class="row mt-2">
-                                <div class="col-12">
-                                    <strong>Combined Total:</strong>
-                                    <span class="fw-bold">@Model.FormattedCombinedTotal</span>
-                                    <small class="text-muted ms-2">(Actual + Estimated)</small>
-                                </div>
-                            </div>
-                        } *@
                     </div>
                 </div>
             </div>
@@ -149,8 +139,8 @@
                                 {
                                     <div class="list-group-item list-group-item-action">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1 text-primary">@day.DisplayName</h6>
+                                            <div class="list-item-content">
+                                                <h6 class="mb-1 text-primary text-wrap-full">@day.DisplayName</h6>
                                                 <small class="text-muted">@day.Date.ToString("MMM dd, yyyy")</small>
                                                 <br>
                                                 <small>Activities: @day.ActivitiesCount</small>
@@ -195,8 +185,8 @@
                                 {
                                     <div class="list-group-item list-group-item-action">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h6 class="mb-1 text-info">@group.DisplayName</h6>
+                                            <div class="list-item-content">
+                                                <h6 class="mb-1 text-info text-wrap-full">@group.DisplayName</h6>
                                                 <small class="text-muted">@group.Date.ToString("MMM dd, yyyy")</small>
                                                 <br>
                                                 <small>Activities: @group.ActivitiesCount</small>
@@ -274,18 +264,21 @@
                                                     {
                                                         <div class="list-group-item">
                                                             <div class="d-flex justify-content-between align-items-start">
-                                                                <div class="flex-grow-1">
-                                                                    <h6 class="mb-1">@activity.Name</h6>
-                                                                    <p class="mb-1 small text-muted">@activity.Description</p>
+                                                                <div class="list-item-content">
+                                                                    <h6 class="mb-1 text-wrap-full">@activity.Name</h6>
+                                                                    @if (!string.IsNullOrEmpty(activity.Description))
+                                                                    {
+                                                                        <p class="mb-1 small-text-muted description-truncate" title="@activity.Description">@activity.Description</p>
+                                                                    }
                                                                     <div class="small">
                                                                         <span class="badge bg-light text-dark">@activity.DurationString</span>
                                                                         @if (!string.IsNullOrEmpty(activity.CategoryName))
                                                                         {
-                                                                            <span class="badge bg-secondary">@activity.CategoryName</span>
+                                                                            <span class="badge bg-secondary text-wrap">@activity.CategoryName</span>
                                                                         }
                                                                         @if (!string.IsNullOrEmpty(activity.DayName))
                                                                         {
-                                                                            <span class="badge bg-info">@activity.DayName</span>
+                                                                            <span class="badge bg-info text-wrap">@activity.DayName</span>
                                                                         }
                                                                     </div>
                                                                 </div>
@@ -333,15 +326,17 @@
                                                     {
                                                         <div class="list-group-item">
                                                             <div class="d-flex justify-content-between align-items-start">
-                                                                <div class="flex-grow-1">
-                                                                    <h6 class="mb-1">@spot.Name</h6>
-                                                                    <p class="mb-1 small text-muted">@spot.Description</p>
+                                                                <div class="list-item-content">
+                                                                    <h6 class="mb-1 text-wrap-full">@spot.Name</h6>
+                                                                    @if (!string.IsNullOrEmpty(spot.Description))
+                                                                    {
+                                                                        <p class="mb-1 small-text-muted description-truncate" title="@spot.Description">@spot.Description</p>
+                                                                    }
                                                                     <div class="small">
                                                                         <span class="badge bg-light text-dark">@spot.DurationString</span>
-                                                                        @* <span class="badge bg-warning">$@spot.Cost</span> *@
                                                                         @if (!string.IsNullOrEmpty(spot.CategoryName))
                                                                         {
-                                                                            <span class="badge bg-secondary">@spot.CategoryName</span>
+                                                                            <span class="badge bg-secondary text-wrap">@spot.CategoryName</span>
                                                                         }
                                                                         <br>
                                                                         <small class="text-muted">
@@ -390,19 +385,21 @@
                                             {
                                                 <div class="list-group-item">
                                                     <div class="d-flex justify-content-between align-items-start">
-                                                        <div class="flex-grow-1">
-                                                            <h6 class="mb-1">@accommodation.Name</h6>
-                                                            <p class="mb-1 small text-muted">@accommodation.Description</p>
+                                                        <div class="list-item-content">
+                                                            <h6 class="mb-1 text-wrap-full">@accommodation.Name</h6>
+                                                            @if (!string.IsNullOrEmpty(accommodation.Description))
+                                                            {
+                                                                <p class="mb-1 small-text-muted description-truncate" title="@accommodation.Description">@accommodation.Description</p>
+                                                            }
                                                             <div class="small">
                                                                 <span class="badge bg-light text-dark">@accommodation.DurationString</span>
-                                                                @* <span class="badge bg-warning">$@accommodation.Cost</span> *@
                                                                 @if (!string.IsNullOrEmpty(accommodation.CategoryName))
                                                                 {
-                                                                    <span class="badge bg-secondary">@accommodation.CategoryName</span>
+                                                                    <span class="badge bg-secondary text-wrap">@accommodation.CategoryName</span>
                                                                 }
                                                                 @if (!string.IsNullOrEmpty(accommodation.DayName))
                                                                 {
-                                                                    <span class="badge bg-info">@accommodation.DayName</span>
+                                                                    <span class="badge bg-info text-wrap">@accommodation.DayName</span>
                                                                 }
                                                                 <br>
                                                                 <small class="text-muted">
@@ -449,16 +446,15 @@
                                             {
                                                 <div class="list-group-item">
                                                     <div class="d-flex justify-content-between align-items-start">
-                                                        <div class="flex-grow-1">
-                                                            <h6 class="mb-1">@transport.Name</h6>
+                                                        <div class="list-item-content">
+                                                            <h6 class="mb-1 text-wrap-full">@transport.Name</h6>
                                                             <div class="small">
                                                                 <span class="badge bg-light text-dark">@transport.DurationString</span>
-                                                                <span class="badge bg-secondary">@transport.Type</span>
-                                                                @* <span class="badge bg-warning">$@transport.Cost</span> *@
+                                                                <span class="badge bg-secondary text-wrap">@transport.Type</span>
                                                             </div>
                                                             <div class="small text-muted">
-                                                                <div>From: @transport.FromSpotName</div>
-                                                                <div>To: @transport.ToSpotName</div>
+                                                                <div class="text-wrap-full">From: @transport.FromSpotName</div>
+                                                                <div class="text-wrap-full">To: @transport.ToSpotName</div>
                                                             </div>
                                                         </div>
                                                         <div class="btn-group ms-2 flex-shrink-0">
@@ -549,9 +545,9 @@
                                                 <div class="list-group-item expense-item @(expense.IsEstimated ? "estimated" : string.IsNullOrEmpty(expense.TransferredToName) ? "actual" : "transfer")"
                                                      data-expense-type="@(expense.IsEstimated ? "estimated" : string.IsNullOrEmpty(expense.TransferredToName) ? "actual" : "transfer")">
                                                     <div class="d-flex justify-content-between align-items-start">
-                                                        <div class="flex-grow-1">
+                                                        <div class="list-item-content">
                                                             <div class="d-flex align-items-center mb-1">
-                                                                <h6 class="mb-0 me-2">@expense.Name</h6>
+                                                                <h6 class="mb-0 me-2 text-wrap-full">@expense.Name</h6>
                                                                 @if (expense.IsEstimated)
                                                                 {
                                                                     <span class="badge bg-warning text-dark">
@@ -592,12 +588,12 @@
                                                                 </span>
                                                                 @if (!string.IsNullOrEmpty(expense.CategoryName))
                                                                 {
-                                                                    <span class="badge bg-secondary">@expense.CategoryName</span>
+                                                                    <span class="badge bg-secondary text-wrap">@expense.CategoryName</span>
                                                                 }
-                                                                <span class="badge bg-primary">Paid by: @expense.PaidByName</span>
+                                                                <span class="badge bg-primary text-wrap">Paid by: @expense.PaidByName</span>
                                                                 @if (!string.IsNullOrEmpty(expense.TransferredToName))
                                                                 {
-                                                                    <span class="badge bg-info">To: @expense.TransferredToName</span>
+                                                                    <span class="badge bg-info text-wrap">To: @expense.TransferredToName</span>
                                                                 }
                                                             </div>
                                                         </div>
@@ -884,7 +880,7 @@
                                 countryElement.className = 'list-group-item d-flex justify-content-between align-items-center';
                                 countryElement.innerHTML = `
                                     <div>
-                                        <strong>${country.name}</strong>
+                                        <strong class="text-wrap-full">${country.name}</strong>
                                     </div>
                                     <span class="badge bg-primary rounded-pill">${country.spotsCount} spots</span>
                                 `;
@@ -1047,12 +1043,12 @@
                                 <span class="text-white fw-bold">${getInitials(participant.firstName, participant.lastName)}</span>
                             </div>
                         </div>
-                        <div>
-                            <div class="fw-bold">
+                        <div class="list-item-content">
+                            <div class="fw-bold text-wrap-full">
                                 ${participant.firstName} ${participant.lastName}
                                 ${participant.isOwner ? '<span class="badge bg-warning text-dark ms-2">Owner</span>' : ''}
                             </div>
-                            <div class="small text-muted">${participant.email}</div>
+                            <div class="small text-muted text-wrap-full">${participant.email}</div>
                             <div class="mt-1">
                                 <span class="${statusClass}">
                                     ${participant.isOwner ? 'Owner' : participant.status}
@@ -1161,6 +1157,73 @@
         /* Styl dla avatara */
         .avatar-placeholder {
             font-size: 14px;
+        }
+        
+        /* Style dla zawijania tekstu */
+        .text-wrap-full {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.3;
+        }
+        
+        .badge.text-wrap {
+            white-space: normal;
+            text-align: left;
+            max-width: 200px;
+            word-break: break-word;
+        }
+
+        /* Style dla zawijania tekstu */
+        .text-wrap-full {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.3;
+        }
+
+        .description-truncate {
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Limit do 2 linii */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.4;
+            max-height: 2.8em;
+        }
+
+        /* Style dla list - lepsze zarządzanie przestrzenią */
+        .list-group-item h6 {
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .small-text-muted {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+
+        /* Dla lepszego układu w list-group-item */
+        .list-item-content {
+            flex: 1;
+            min-width: 0; /* Ważne dla zawijania tekstu w flexbox */
+        }
+
+        /* Styl dla głównej nazwy wycieczki */
+        .trip-main-title {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+            line-height: 1.2;
+            margin: 0;
+            max-width: 100%;
+        }
+
+        /* Dla długich nazw w badge'ach */
+        .badge.text-wrap {
+            white-space: normal;
+            text-align: left;
         }
     </style>
 }
