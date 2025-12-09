@@ -20,24 +20,45 @@ public class CurrencyConversionService : AbstractThrottledApiService, ICurrencyC
     public async Task<decimal> GetExchangeRate(string from, string to)
     {
         string url = $"https://hexarate.paikama.co/api/rates/latest/{from}";
-        Dictionary<string, string?> param = new Dictionary<string, string?>() { { "target", to } };
-        Uri newUrl = new Uri(QueryHelpers.AddQueryString(url, param));
+        var param = new Dictionary<string, string?> { { "target", to } };
+        string fullUrl = QueryHelpers.AddQueryString(url, param);
 
-        using HttpResponseMessage response = await GetAsync(newUrl.ToString());
-        System.Diagnostics.Debug.WriteLine($"{await response.Content.ReadAsStringAsync()}\n");
+        using HttpResponseMessage response = await GetAsync(fullUrl);
+
+        // Logowanie dla diagnostyki
+        System.Diagnostics.Trace.TraceInformation($"Request URL: {fullUrl}");
+        System.Diagnostics.Trace.TraceInformation($"Response Status: {response.StatusCode}");
+
         response.EnsureSuccessStatusCode();
+
+        string jsonString = await response.Content.ReadAsStringAsync();
+        System.Diagnostics.Trace.TraceInformation($"Response JSON: {jsonString}");
 
         try
         {
-            string jsonString = await response.Content.ReadAsStringAsync();
-            object json = JsonConvert.DeserializeObject<object>(jsonString);
-            JObject joResponse = JObject.Parse(jsonString);
-            JObject data = (JObject)joResponse["data"]!;
+            // Uproszczona deserializacja
+            var jsonObject = JObject.Parse(jsonString);
 
-            return decimal.Parse(data["mid"].ToString());
-        } catch
+            if (jsonObject["data"] == null || jsonObject["data"]!["mid"] == null)
+            {
+                System.Diagnostics.Trace.TraceError($"Unexpected JSON structure: {jsonString}");
+                throw new InvalidOperationException("Invalid response format from API");
+            }
+
+            string midValue = jsonObject["data"]!["mid"]!.ToString();
+
+            if (!decimal.TryParse(midValue, out decimal rate))
+            {
+                System.Diagnostics.Trace.TraceError($"Cannot parse mid value: {midValue}");
+                throw new FormatException($"Invalid rate value: {midValue}");
+            }
+
+            return rate;
+        }
+        catch (Exception ex)
         {
-            throw new HttpRequestException();
+            System.Diagnostics.Trace.TraceError($"JSON parsing error: {ex.Message}\nJSON: {jsonString}");
+            throw new HttpRequestException($"Failed to parse API response: {ex.Message}", ex);
         }
     }
 }
