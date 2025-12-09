@@ -952,6 +952,7 @@ public async Task<IActionResult> EditPost(int id, CreatePostViewModel model)
                 AuthorId = p.AuthorId,
                 DayId = p.DayId,
                 DayName = p.Day?.Name,
+                PublishedDate = p.PublishedDate,
                 Photos = p.Photos.Select(ph => new PhotoViewModel
                 {
                     Id = ph.Id,

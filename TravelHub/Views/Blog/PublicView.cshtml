@@ -35,7 +35,7 @@
         <div class="col-md-8">
             @if (Model.Posts.Any())
             {
-                foreach (var post in Model.Posts)
+                foreach (var post in Model.Posts.OrderByDescending(p => p.PublishedDate))
                 {
                     <div class="card mb-4">
                         <div class="card-body">
