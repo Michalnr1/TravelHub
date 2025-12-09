@@ -199,6 +199,7 @@ public class DaysController : Controller
                                 TransportsFrom = s.TransportsFrom?.Select(t => new TransportBasicViewModel {
                                     Id = t.Id,
                                     Name = t.Name,
+                                    Type = t.Type.ToString(),
                                     Duration = t.Duration,
                                     FromSpotId = t.FromSpotId,
                                     ToSpotId = t.ToSpotId,
