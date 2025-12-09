@@ -679,6 +679,113 @@
     </div>
 </div>
 
+<!-- Modal dla uczestników -->
+<div class="modal fade" id="participantsModal" tabindex="-1" aria-labelledby="participantsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="participantsModalLabel">
+                    Trip Participants
+                    <span id="participantsCountBadge" class="badge bg-primary ms-2">0</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Loading indicator -->
+                <div id="participantsLoading" class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading participants...</p>
+                </div>
+
+                <!-- Participants content -->
+                <div id="participantsContent" style="display: none;">
+                    <!-- Status filter tabs -->
+                    <ul class="nav nav-tabs mb-3" id="participantTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-tab" data-bs-toggle="tab"
+                                    data-bs-target="#allParticipants" type="button" role="tab">
+                                All <span id="allCount" class="badge bg-secondary">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="owner-tab" data-bs-toggle="tab"
+                                    data-bs-target="#ownerTab" type="button" role="tab">
+                                Owner <span id="ownerCount" class="badge bg-primary">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="accepted-tab" data-bs-toggle="tab"
+                                    data-bs-target="#acceptedTab" type="button" role="tab">
+                                Accepted <span id="acceptedCount" class="badge bg-success">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="pending-tab" data-bs-toggle="tab"
+                                    data-bs-target="#pendingTab" type="button" role="tab">
+                                Pending <span id="pendingCount" class="badge bg-warning">0</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="declined-tab" data-bs-toggle="tab"
+                                    data-bs-target="#declinedTab" type="button" role="tab">
+                                Declined <span id="declinedCount" class="badge bg-danger">0</span>
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab content -->
+                    <div class="tab-content" id="participantTabsContent">
+                        <!-- All participants tab -->
+                        <div class="tab-pane fade show active" id="allParticipants" role="tabpanel">
+                            <div id="allParticipantsList" class="list-group"></div>
+                        </div>
+
+                        <!-- Owner tab -->
+                        <div class="tab-pane fade" id="ownerTab" role="tabpanel">
+                            <div id="ownerList" class="list-group"></div>
+                        </div>
+
+                        <!-- Accepted tab -->
+                        <div class="tab-pane fade" id="acceptedTab" role="tabpanel">
+                            <div id="acceptedList" class="list-group"></div>
+                        </div>
+
+                        <!-- Pending tab -->
+                        <div class="tab-pane fade" id="pendingTab" role="tabpanel">
+                            <div id="pendingList" class="list-group"></div>
+                        </div>
+
+                        <!-- Declined tab -->
+                        <div class="tab-pane fade" id="declinedTab" role="tabpanel">
+                            <div id="declinedList" class="list-group"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No participants message -->
+                <div id="noParticipantsMessage" class="text-muted text-center" style="display: none;">
+                    <i class="fas fa-users fa-3x mb-3 text-muted"></i>
+                    <p>No participants found for this trip.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto">
+                    @if (Model.IsCurrentUserOwner)
+                    {
+                        <a asp-action="Participants" asp-route-id="@Model.Id"
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-cog"></i> Manage Participants
+                        </a>
+                    }
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -795,6 +902,184 @@
                         noCountriesMessage.style.display = 'block';
                     });
             }
+
+            const participantsModal = document.getElementById('participantsModal');
+
+            participantsModal.addEventListener('show.bs.modal', function() {
+                loadParticipants();
+            });
+
+            function loadParticipants() {
+                const loadingElement = document.getElementById('participantsLoading');
+                const contentElement = document.getElementById('participantsContent');
+                const noParticipantsMessage = document.getElementById('noParticipantsMessage');
+
+                // Pokaż loading, ukryj resztę
+                loadingElement.style.display = 'block';
+                contentElement.style.display = 'none';
+                noParticipantsMessage.style.display = 'none';
+
+                // Wyczysc listy
+                ['allParticipantsList', 'ownerList', 'acceptedList', 'pendingList', 'declinedList']
+                    .forEach(id => {
+                        document.getElementById(id).innerHTML = '';
+                    });
+
+                // Resetuj liczniki
+                ['allCount', 'ownerCount', 'acceptedCount', 'pendingCount', 'declinedCount', 'participantsCountBadge']
+                    .forEach(id => {
+                        const element = document.getElementById(id);
+                        if (element) element.textContent = '0';
+                    });
+
+                fetch(`@Url.Action("GetTripParticipants", "Trips")/${@Model.Id}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(participants => {
+                        // Ukryj loading
+                        loadingElement.style.display = 'none';
+
+                        if (participants && participants.length > 0) {
+                            contentElement.style.display = 'block';
+                            populateParticipants(participants);
+                        } else {
+                            noParticipantsMessage.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading participants:', error);
+                        loadingElement.style.display = 'none';
+                        noParticipantsMessage.innerHTML = '<p class="text-danger">Error loading participants. Please try again.</p>';
+                        noParticipantsMessage.style.display = 'block';
+                    });
+            }
+
+            function populateParticipants(participants) {
+                const counters = {
+                    all: participants.length,
+                    owner: 0,
+                    accepted: 0,
+                    pending: 0,
+                    declined: 0
+                };
+
+                // Sortuj uczestników: właściciel pierwszy, potem status, potem nazwisko
+                participants.sort((a, b) => {
+                    // Właściciel na górze
+                    if (a.isOwner && !b.isOwner) return -1;
+                    if (!a.isOwner && b.isOwner) return 1;
+
+                    // Status: Accepted > Pending > Declined
+                    const statusOrder = { 'Owner': 0, 'Accepted': 1, 'Pending': 2, 'Declined': 3 };
+                    if (statusOrder[a.status] !== statusOrder[b.status]) {
+                        return statusOrder[a.status] - statusOrder[b.status];
+                    }
+
+                    // Alfabetycznie po nazwisku
+                    return a.lastName.localeCompare(b.lastName);
+                });
+
+                // Wypełnij listy
+                participants.forEach(participant => {
+                    const participantElement = createParticipantElement(participant);
+
+                    // Dodaj do ogólnej listy
+                    document.getElementById('allParticipantsList').appendChild(participantElement.cloneNode(true));
+
+                    // Dodaj do odpowiedniej kategorii
+                    if (participant.isOwner) {
+                        counters.owner++;
+                        document.getElementById('ownerList').appendChild(createParticipantElement(participant));
+                    }
+
+                    if (participant.status === 'Accepted') {
+                        counters.accepted++;
+                        document.getElementById('acceptedList').appendChild(createParticipantElement(participant));
+                    } else if (participant.status === 'Pending') {
+                        counters.pending++;
+                        document.getElementById('pendingList').appendChild(createParticipantElement(participant));
+                    } else if (participant.status === 'Declined') {
+                        counters.declined++;
+                        document.getElementById('declinedList').appendChild(createParticipantElement(participant));
+                    }
+                });
+
+                // Zaktualizuj liczniki
+                document.getElementById('allCount').textContent = counters.all;
+                document.getElementById('ownerCount').textContent = counters.owner;
+                document.getElementById('acceptedCount').textContent = counters.accepted;
+                document.getElementById('pendingCount').textContent = counters.pending;
+                document.getElementById('declinedCount').textContent = counters.declined;
+                document.getElementById('participantsCountBadge').textContent = counters.all;
+            }
+
+            function createParticipantElement(participant) {
+                const div = document.createElement('div');
+                div.className = 'list-group-item d-flex justify-content-between align-items-start';
+
+                // Ikona statusu
+                let statusIcon = '';
+                let statusClass = '';
+
+                if (participant.isOwner) {
+                    statusIcon = '<i class="fas fa-crown text-warning"></i>';
+                    statusClass = 'badge bg-warning text-dark';
+                } else if (participant.status === 'Accepted') {
+                    statusIcon = '<i class="fas fa-check-circle text-success"></i>';
+                    statusClass = 'badge bg-success';
+                } else if (participant.status === 'Pending') {
+                    statusIcon = '<i class="fas fa-clock text-warning"></i>';
+                    statusClass = 'badge bg-warning';
+                } else if (participant.status === 'Declined') {
+                    statusIcon = '<i class="fas fa-times-circle text-danger"></i>';
+                    statusClass = 'badge bg-danger';
+                }
+
+                div.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <div class="avatar-placeholder bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width: 40px; height: 40px;">
+                                <span class="text-white fw-bold">${getInitials(participant.firstName, participant.lastName)}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="fw-bold">
+                                ${participant.firstName} ${participant.lastName}
+                                ${participant.isOwner ? '<span class="badge bg-warning text-dark ms-2">Owner</span>' : ''}
+                            </div>
+                            <div class="small text-muted">${participant.email}</div>
+                            <div class="mt-1">
+                                <span class="${statusClass}">
+                                    ${participant.isOwner ? 'Owner' : participant.status}
+                                </span>
+                                ${!participant.isOwner ?
+                                    `<small class="text-muted ms-2">Joined: ${formatDate(participant.joinedAt)}</small>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                return div;
+            }
+
+            function getInitials(firstName, lastName) {
+                return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+            }
+
+            function formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            }
         });
     </script>
 
@@ -871,6 +1156,11 @@
         .sticky-summary .card {
             transition: all 0.3s ease;
             border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Styl dla avatara */
+        .avatar-placeholder {
+            font-size: 14px;
         }
     </style>
 }

@@ -1783,6 +1783,31 @@ public class TripsController : Controller
         }
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetTripParticipants(int id)
+    {
+        if (!await _tripParticipantService.UserHasAccessToTripAsync(id, GetCurrentUserId()))
+        {
+            return Forbid();
+        }
+
+        var participants = await _tripParticipantService.GetTripParticipantsAsync(id);
+
+        var participantViewModels = participants.Select(p => new
+        {
+            id = p.Id,
+            personId = p.PersonId,
+            firstName = p.Person?.FirstName ?? "Unknown",
+            lastName = p.Person?.LastName ?? "User",
+            email = p.Person?.Email ?? "No email",
+            status = p.Status.ToString(),
+            isOwner = p.Status == TripParticipantStatus.Owner,
+            joinedAt = p.JoinedAt.ToString("yyyy-MM-ddTHH:mm:ss")
+        }).ToList();
+
+        return Ok(participantViewModels);
+    }
+
     public async Task<IActionResult> GetDistance(int id, double lat, double lng)
     {
         double distance = await _tripService.GetDistance(id, lat, lng);
