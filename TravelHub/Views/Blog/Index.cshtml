@@ -9,20 +9,20 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h1>@Model.Name</h1>
+                <div class="flex-grow-1 me-3">
+                    <h1 class="blog-main-title">@Model.Name</h1>
                     @if (!string.IsNullOrEmpty(Model.Description))
                     {
-                        <p class="lead">@Model.Description</p>
+                        <p class="lead blog-description">@Model.Description</p>
                     }
                     <p class="text-muted">
-                        Blog for trip: @Model.TripName |
+                        Blog for trip: <span class="text-wrap-full">@Model.TripName</span> |
                         <span class="badge @(Model.Visibility == BlogVisibility.Private ? "bg-danger" : Model.Visibility == BlogVisibility.Public ? "bg-success" : "bg-warning")">
                             @(Model.Visibility == BlogVisibility.Private ? "Private" : Model.Visibility == BlogVisibility.ForMyFriends ? "For owner's friends" : Model.Visibility == BlogVisibility.ForTripParticipantsFriends ? "For all participants friends" : "Public")
                         </span>
                     </p>
                 </div>
-                <div>
+                <div class="flex-shrink-0">
                     @if (User.Identity!.IsAuthenticated && Model.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
                     {
                         <a href="@Url.Action("EditBlog", new { id = Model.Id })" class="btn btn-outline-secondary">
@@ -59,19 +59,21 @@
                     {
                         <div class="card mb-3 border-warning">
                             <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                                <div>
+                                <div class="text-wrap-full">
                                     <i class="fas fa-clock me-1"></i>
                                     <strong>Scheduled</strong> - Will be published on @post.ScheduledFor?.ToString("MM/dd/yyyy HH:mm")
                                 </div>
                                 <span class="badge bg-dark">Scheduled</span>
                             </div>
                             <div class="card-body">
-                                <h5 class="card-title">
-                                    <a href="@Url.Action("Post", new { id = post.Id })" class="text-decoration-none text-dark">
+                                <h5 class="card-title post-title">
+                                    <a href="@Url.Action("Post", new { id = post.Id })" class="text-decoration-none text-dark text-wrap-full">
                                         @post.Title
                                     </a>
                                 </h5>
-                                <p class="card-text">@Html.Raw(post.Content.Replace("\n", "<br>"))</p>
+                                <div class="post-content-truncate">
+                                    @Html.Raw(post.Content.Replace("\n", "<br>"))
+                                </div>
 
                                 @if (post.Photos.Any())
                                 {
@@ -92,7 +94,7 @@
                                 }
                             </div>
                             <div class="card-footer text-muted">
-                                <small>
+                                <small class="text-wrap-full">
                                     Author: @post.AuthorName |
                                     Created: @post.CreationDate.ToString("MM/dd/yyyy HH:mm") |
                                     Scheduled: @post.ScheduledFor?.ToString("MM/dd/yyyy HH:mm")
@@ -118,12 +120,14 @@
                     {
                         <div class="card mb-4">
                             <div class="card-body">
-                                <h3 class="card-title">
-                                    <a href="@Url.Action("Post", new { id = post.Id })" class="text-decoration-none">
+                                <h3 class="card-title post-title">
+                                    <a href="@Url.Action("Post", new { id = post.Id })" class="text-decoration-none text-wrap-full">
                                         @post.Title
                                     </a>
                                 </h3>
-                                <p class="card-text">@Html.Raw(post.Content.Replace("\n", "<br>"))</p>
+                                <div class="post-content-truncate">
+                                    @Html.Raw(post.Content.Replace("\n", "<br>"))
+                                </div>
 
                                 @if (post.Photos.Any())
                                 {
@@ -144,7 +148,7 @@
                                 }
                             </div>
                             <div class="card-footer text-muted">
-                                <small>
+                                <small class="text-wrap-full">
                                     Author: @post.AuthorName |
                                     Published: @post.PublishedDate?.ToString("MM/dd/yyyy HH:mm") |
                                     Comments: @post.Comments.Count
@@ -177,7 +181,7 @@
                     <h5>Blog Information</h5>
                 </div>
                 <div class="card-body">
-                    <p><strong>Trip:</strong> @Model.TripName</p>
+                    <p class="text-wrap-full"><strong>Trip:</strong> @Model.TripName</p>
                     <p>
                         <strong>Visibility:</strong>
                         <span class="badge @(Model.Visibility == BlogVisibility.Private ? "bg-danger" : Model.Visibility == BlogVisibility.Public ? "bg-success" : "bg-warning")">
@@ -208,3 +212,48 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* Style dla zawijania tekstu */
+    .text-wrap-full {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        line-height: 1.3;
+    }
+
+    .post-content-truncate {
+        display: -webkit-box;
+        -webkit-line-clamp: 5; /* Limit do 5 linii */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.4;
+        max-height: 7.0em; /* 5 linii × 1.4 line-height */
+    }
+
+    /* Dla tytułów postów */
+    .post-title {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+
+    /* Dla głównego tytułu bloga */
+    .blog-main-title {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        hyphens: auto;
+        line-height: 1.2;
+        margin: 0;
+        max-width: 100%;
+    }
+
+    /* Dla opisu bloga */
+    .blog-description {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        line-height: 1.4;
+    }
+</style>
