@@ -473,6 +473,7 @@ public class TripService : GenericService<Trip>, ITripService
         var allPublicTrips = await _tripRepository.GetPublicTripsAsync();
         var allUserTrips = await _tripParticipantService.GetUserParticipatingTripsAsync(userId);
 
+        allUserTrips = allUserTrips.Where(tp => tp.Status != TripParticipantStatus.Declined).ToList();
         var notParticipatingPublicTrips = new List<Trip>();
         if (allPublicTrips != null)
         {
