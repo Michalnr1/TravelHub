@@ -142,6 +142,8 @@ public class CommentViewModel
 
 public class CreateCommentViewModel
 {
+    [Required(ErrorMessage = "Content is required")]
+    [StringLength(1500, ErrorMessage = "Comment cannot be longer than 1500 characters")]
     public string Content { get; set; } = string.Empty;
     public int PostId { get; set; }
     public IFormFileCollection? Photos { get; set; }
@@ -152,7 +154,7 @@ public class EditCommentViewModel
     public int Id { get; set; }
 
     [Required(ErrorMessage = "Content is required")]
-    [StringLength(1000, ErrorMessage = "Comment cannot be longer than 1000 characters")]
+    [StringLength(1500, ErrorMessage = "Comment cannot be longer than 1500 characters")]
     public string Content { get; set; } = string.Empty;
 
     public int PostId { get; set; }

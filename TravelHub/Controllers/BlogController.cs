@@ -457,7 +457,9 @@ public class BlogController : Controller
     {
         if (!ModelState.IsValid)
         {
-            TempData["Error"] = "Comment cannot be empty";
+            TempData["Error"] = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .FirstOrDefault()?.ErrorMessage;
             return RedirectToAction("Post", new { id = model.PostId });
         }
 
