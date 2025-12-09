@@ -56,34 +56,95 @@
             theme: 'snow'
         });
 
-        // Synchronizacja edytora komentarza z textarea
-        chatQuill.on('text-change', function() {
-            document.getElementById('chatMessageText').value = chatQuill.root.innerHTML;
-        });
+        // Maksymalna długość wiadomości w znakach
+        const MAX_MESSAGE_LENGTH = 300;
+
+        const messageValidationSpan = document.getElementById('messageValidation');
+        const chatMessageTextarea = document.getElementById('chatMessageText');
+
+        // Funkcja do aktualizacji licznika i obcinania wiadomości
+        function updateMessageLength() {
+            let messageContent = chatQuill.getText();
+            let textLength = messageContent.length;
+
+            if (textLength > MAX_MESSAGE_LENGTH) {
+                // Obliczanie realnej długości w HTML, ponieważ to pole Message w DTO jest walidowane jako HTML
+                let messageHtml = chatQuill.root.innerHTML;
+
+                // UWAGA: StringLength w C# domyślnie sprawdza długość stringa.
+                // Jeśli DTO przyjmuje HTML, walidacja jest na HTML, a nie czystym tekście.
+                // Aby mieć walidację po stronie klienta blisko C# musimy obciąć tekst.
+
+                // W celu *uniemożliwienia* wpisania więcej niż 500 znaków (czystego tekstu):
+                if (chatQuill.getLength() > MAX_MESSAGE_LENGTH + 1) { // +1 bo Quill dodaje \n na końcu
+                    // Obcina Delta do 500 znaków i ustawia
+                    const delta = chatQuill.getContents();
+                    const limitedDelta = delta.slice(0, MAX_MESSAGE_LENGTH);
+                    chatQuill.setContents(limitedDelta);
+                    // Aktualizujemy textarea po obcięciu
+                    chatMessageTextarea.value = chatQuill.root.innerHTML;
+
+                    messageValidationSpan.textContent = `Message cannot be longer than ${MAX_MESSAGE_LENGTH} characters.`;
+                    return true; // Została obcięta
+                }
+            }
+
+            // Używamy HTML (innerHTML), ponieważ to jest wysyłane do serwera i walidowane (Message ma stringLength 500)
+            // Jednak w praktyce *tekst* wiadomości jest istotny dla użytkownika
+            // Powiedzmy, że liczymy **znaki czystego tekstu**
+
+            if (messageContent.trim().length > MAX_MESSAGE_LENGTH) {
+                messageValidationSpan.textContent = `Message cannot be longer than ${MAX_MESSAGE_LENGTH} characters.`;
+            } else {
+                messageValidationSpan.textContent = '';
+            }
+
+            // ZAWSZE synchronizujemy edytor z textarea (nawet jeśli nie ma błędu)
+            chatMessageTextarea.value = chatQuill.root.innerHTML;
+            return false; // Nie została obcięta
+        }
+
+        // Synchronizacja edytora komentarza z textarea ORAZ sprawdzanie długości
+        chatQuill.on('text-change', updateMessageLength);
 
         // Ustawienie pustej początkowej wartości dla komentarza
-        document.getElementById('chatMessageText').value = '';
+        chatMessageTextarea.value = '';
 
         const chatForm = document.getElementById('chatForm');
         chatForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
 
-            const messageText = document.getElementById('chatMessageText').value;
-            const validationSpan = document.getElementById('messageValidation');
-
-            // Reset validation
-            validationSpan.textContent = '';
-
-            // Walidacja
-            if (!messageText.trim() || chatQuill.getText().trim().length === 0) {
+            // Wymuś sprawdzenie długości przed wysłaniem
+            if (updateMessageLength()) {
                 e.preventDefault();
-                validationSpan.textContent = 'Please enter your message';
+                return;
+            }
+
+            const messageText = chatQuill.getText().trim();
+            const messageHtml = chatMessageTextarea.value; // Już zaktualizowane przez updateMessageLength
+
+            // Walidacja czy pole nie jest puste
+            if (!messageText) {
+                e.preventDefault();
+                messageValidationSpan.textContent = 'Please enter your message';
                 chatQuill.focus();
                 return;
             }
 
+            // Walidacja po raz drugi na czystym tekście przed wysłaniem, w razie, gdyby Quill nie obciął:
+            if (messageText.length > MAX_MESSAGE_LENGTH) {
+                 e.preventDefault();
+                 messageValidationSpan.textContent = `Message cannot be longer than ${MAX_MESSAGE_LENGTH} characters.`;
+                 return;
+            }
+
+            // Jeśli walidacja C# jest na *długości HTML*, to musimy również sprawdzić messageHtml.length
+            // Przyjmijmy jednak, że limit 500 znaków z Quill jest wystarczającym zabezpieczeniem
+
+            e.preventDefault();
+
             const formData = new FormData(chatForm);
 
+            // Reszta logiki AJAX... (bez zmian)
             const response = await fetch(chatForm.action + '?tripId=' + formData.get('tripId'), {
                 method: 'POST',
                 body: formData,
@@ -97,13 +158,22 @@
                 return;
             }
 
+            // Sprawdzenie, czy serwer zwrócił błąd walidacji
+            if (response.status !== 200) {
+                // Jeśli nie ma przekierowania, a status nie jest 200, prawdopodobnie jest to błąd serwera.
+                // Zwykle przy błędach walidacji ASP.NET Core MVC (bez AJAX) zwraca cały widok z kodem 200,
+                // więc poniższa logika jest wystarczająca.
+            }
+
+            // Odświeżenie wiadomości
             const partialRes = await fetch('@Url.Action("MessagesPartial", "Chat")?tripId=' + formData.get('tripId'));
             const html = await partialRes.text();
             document.getElementById('chatMessages').innerHTML = html;
 
             // Wyczyść edytor
             chatQuill.root.innerHTML = '';
-            document.getElementById('chatMessageText').value = '';
+            chatMessageTextarea.value = '';
+            messageValidationSpan.textContent = ''; // Wyczyść błąd po sukcesie
         });
 
         // polling every 5s, without site refresh

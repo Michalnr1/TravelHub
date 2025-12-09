@@ -7,6 +7,9 @@ namespace TravelHub.Web.ViewModels.Trips;
 public class ChatMessageViewModel
 {
     public int Id { get; set; }
+
+    [Required(ErrorMessage = "Message is required")]
+    [StringLength(300, ErrorMessage = "Message cannot be longer than 300 characters")]
     public string Message { get; set; } = string.Empty;
     public string PersonId { get; set; } = string.Empty;
     public string PersonFirstName { get; set; } = string.Empty;
