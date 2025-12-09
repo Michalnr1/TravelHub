@@ -6,6 +6,7 @@ using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using System.Globalization;
 using TravelHub.Domain.Entities;
 using TravelHub.Domain.Interfaces;
@@ -175,6 +176,15 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+app.UseStaticFiles(); // To serwuje tylko wwwroot
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.WebRootPath, "images")), // Ścieżka do images
+    RequestPath = "/images" // URL w przeglądarce
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
