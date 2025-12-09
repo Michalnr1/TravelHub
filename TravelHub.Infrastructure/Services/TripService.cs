@@ -1104,8 +1104,14 @@ public class TripService : GenericService<Trip>, ITripService
                 }
                 catch
                 {
-                    // W przypadku błędu pobierania kursu, pomiń tę walutę
-                    continue;
+                    var rate = new ExchangeRate
+                    {
+                        CurrencyCodeKey = sourceCurrency,
+                        ExchangeRateValue = 1.0m,
+                        TripId = newTrip.Id
+                    };
+                    var savedRate = await _exchangeRateRepository.AddAsync(rate);
+                    exchangeRates.Add(savedRate);
                 }
             }
         }

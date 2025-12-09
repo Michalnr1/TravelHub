@@ -504,7 +504,7 @@
                                                 <li><a class="dropdown-item expense-filter" href="#" data-filter="transfers">Transfers</a></li>
                                             </ul>
                                         </div>
-                                        <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-success rounded">Add Expense</a>
+                                        <a asp-controller="Expenses" asp-action="AddToTrip" asp-route-tripId="@Model.Id" asp-route-returnUrl="@Context.Request.Path" class="btn btn-sm btn-success rounded">Add Expense</a>
                                         <a asp-controller="Expenses" asp-action="AddTransferToTrip" asp-route-tripId="@Model.Id" class="btn btn-sm btn-info rounded">Add Transfer</a>
                                     </div>
                                 </div>
