@@ -21,6 +21,8 @@
             <input type="hidden" asp-for="Duration" />
             <input type="hidden" asp-for="Order" />
 
+            <div id="warning-box" class="alert alert-warning d-none"></div>
+
             <!-- Sekcja podstawowych danych Accommodation -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -262,7 +264,11 @@
         };
 
         const dayId = "@Model.DayId";
-        const tripId = "@Model.TripId"
+        const tripId = "@Model.TripId";
+
+        const collisionCheckUrl = "@Html.Raw(Url.Action("CheckNewForCollisions", "Days"))";
+        const distanceCheckUrl = "@Html.Raw(Url.Action("GetDistance", "Trips"))";
+        const warningBox = document.getElementById("warning-box");
 
         // Automatyczne ustawienie minimalnej daty check-out na dzień po check-in
         document.getElementById("CheckIn").addEventListener("change", function() {
