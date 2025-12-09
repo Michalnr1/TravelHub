@@ -125,7 +125,8 @@
                 <div class="col-lg-6 col-xl-4 mb-4">
                     <div class="card h-100">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">@trip.Name</h5>
+                            <!-- Zastosowanie stylu dla nazw publicznych wycieczek -->
+                            <h5 class="card-title mb-0 public-trip-name" title="@trip.Name">@trip.Name</h5>
                             <span class="badge bg-success">
                                 <i class="fas fa-globe me-1"></i>Public
                             </span>
@@ -232,4 +233,26 @@
             this.form.submit();
         });
     </script>
+}
+
+@section Styles {
+    <style>
+        /* Dodatkowe style dla sekcji Discover Public Trips */
+        .public-trip-name {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.3;
+            max-height: 3.9em; /* Ograniczenie do 3 linii */
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3; /* Liczba widocznych linii */
+            -webkit-box-orient: vertical;
+        }
+
+        /* Dla kart w sekcji public trips */
+        .card-title {
+            margin-bottom: 0.5rem;
+        }
+    </style>
 }
