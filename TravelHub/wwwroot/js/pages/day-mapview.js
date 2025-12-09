@@ -315,18 +315,26 @@ async function getTransitLeg(leg, time) {
 
 async function renderRoute(legs) {
     const { Polyline } = await google.maps.importLibrary("maps");
-    for (let i = 0; i < legs.length; i++) {
-        const leg = legs[i];
+    let i = 0;
+    for (let leg of legs) {
 
         let travelId = `travel-${points[i].id}`;
         let travelDiv = document.querySelector(`#${travelId} .travel-info`);
 
         travelDiv.innerHTML = ""; // Clear previous content
-
-        if (leg.type === 'Transit') {
+        const durationMillis = getTransportDuration(points[i], leg);
+        if (leg.isFixed) {
+            addEntryToTravelCard(
+                travelDiv,
+                `...${durationStringMillis(durationMillis)} ${transportTypeToMode(leg.fixedTypeFrom)}... (Overriden)`
+            );
+            const polyline = new Polyline({ map, path: leg.path, strokeColor: leg.desiredTravelMode == 'DRIVING' ? 'yellow' : 'black' });
+            setPolylineEventBindings(polyline, travelDiv);
+            polylines.push(polyline);
+        }
+        else if (leg.type === 'Transit') {
             await renderTransitSteps(leg, travelDiv);
         } else {
-            const durationMillis = getTransportDuration(points[i], leg);
             const mode = leg.desiredTravelMode == 'TRANSIT' ? 'walking' : leg.desiredTravelMode.toLowerCase();
             addEntryToTravelCard(
                 travelDiv,
@@ -337,6 +345,8 @@ async function renderRoute(legs) {
             setPolylineEventBindings(polyline, travelDiv);
             polylines.push(polyline);
         }
+
+        i++;
     }
 }
 
@@ -445,7 +455,11 @@ function getTotalDistance(legs) {
 
 function getTransportDuration(point, leg) {
     if (hasFixedDuration(point)) {
+        leg.isFixed = true;
+        leg.fixedTypeFrom = point.fixedTypeFrom;
         return point.fixedDurationFrom * 3600 * 1000;
+    } else {
+        leg.isFixed = false;
     }
     return leg.durationMillis;
 }

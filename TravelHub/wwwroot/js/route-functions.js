@@ -60,9 +60,24 @@ function fillFixedDurations(points) {
             for (let j = 0; j < point.transportsFrom.length; j++) {
                 if (point.transportsFrom[j].toSpotId == points[i + 1].id) {
                     point.fixedDurationFrom = parseFloat(point.transportsFrom[j].duration);
+                    point.fixedTypeFrom = point.transportsFrom[j].type;
                     break;
                 }
             }
         }
     });
+}
+
+function transportTypeToMode(type) {
+    switch (type) {
+        case "Car":
+        case "Motorcycle": return "driving";
+        case "Plane": return "flying";
+        case "Ferry":
+        case "Ship": return "sailing";
+        case "Taxi": return "by taxi";
+        case "Bus": return "by bus";
+        case "Walk": return "walking";
+        default: return "walking";
+    }
 }
