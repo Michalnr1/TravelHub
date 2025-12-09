@@ -1,6 +1,8 @@
 ﻿using Azure.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using System.ComponentModel;
 using System.Diagnostics.Metrics;
 using System.Linq;
 using TravelHub.Application.DTOs;
@@ -1001,6 +1003,14 @@ public class TripService : GenericService<Trip>, ITripService
         // Pobierz kursy wymiany
         var exchangeRates = await GetOrCreateExchangeRatesAsync(sourceTrip, newTrip, targetCurrency);
 
+        if(estimatedExpenses.IsNullOrEmpty())
+        {
+            throw new InvalidEnumArgumentException("List: estimatedExpenses is empty");
+        }
+        if(sourceExpenses.IsNullOrEmpty())
+        {
+            throw new InvalidDataException("List: sourceExpenses is empty");
+        }
         foreach (var sourceExpense in estimatedExpenses)
         {
             // Znajdź odpowiedni kurs wymiany
