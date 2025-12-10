@@ -232,6 +232,16 @@ public class ExpensesController : Controller
             ModelState.AddModelError("TransferredToId", "Cannot transfer to the same person who paid");
         }
 
+        if (!viewModel.IsEstimated && viewModel.Value <= 0)
+        {
+            ModelState.AddModelError("Value", "Value cannot be less or equal to zero");
+        }
+
+        if (viewModel.IsEstimated && viewModel.EstimatedValue <= 0)
+        {
+            ModelState.AddModelError("IsEstimated", "EstimatedValue cannot be less or equal to zero");
+        }
+
         // Tymczasowo wyłącz walidację dla ParticipantsShares
         ModelState.Remove("ParticipantsShares");
 
@@ -408,11 +418,21 @@ public class ExpensesController : Controller
     // POST: Expenses/AddToTrip
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddToTrip(ExpenseCreateEditViewModel viewModel)
+    public async Task<IActionResult> AddToTrip(ExpenseCreateEditViewModel viewModel, string? returnUrl = null)
     {
         if (!await _tripParticipantService.UserHasAccessToTripAsync(viewModel.TripId, GetCurrentUserId()))
         {
             return Forbid();
+        }
+
+        if (!viewModel.IsEstimated && viewModel.Value <= 0)
+        {
+            ModelState.AddModelError("Value", "Value cannot be less or equal to zero");
+        }
+
+        if (viewModel.IsEstimated && viewModel.EstimatedValue <= 0)
+        {
+            ModelState.AddModelError("EstimatedValue", "EstimatedValue cannot be less or equal to zero");
         }
 
         if (ModelState.IsValid)
@@ -449,6 +469,11 @@ public class ExpensesController : Controller
 
             await _expenseService.AddAsync(expense, participantSharesDto);
             TempData["SuccessMessage"] = viewModel.IsEstimated ? "Estimated expense created successfully!" : "Expense created successfully!";
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
             return RedirectToAction("Details", "Trips", new { id = viewModel.TripId });
         }
 
