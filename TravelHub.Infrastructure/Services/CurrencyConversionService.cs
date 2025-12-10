@@ -17,35 +17,25 @@ public class CurrencyConversionService : AbstractThrottledApiService, ICurrencyC
     {
     }
 
-    public async Task<decimal> GetExchangeRate(string from, string to)
+    private async Task<decimal> GetRateToPLN(string from)
     {
-        string url = $"https://hexarate.paikama.co/api/rates/latest/{from}";
-        var param = new Dictionary<string, string?> { { "target", to } };
-        string fullUrl = QueryHelpers.AddQueryString(url, param);
-
-        using HttpResponseMessage response = await GetAsync(fullUrl);
-
-        // Logowanie dla diagnostyki
-        System.Diagnostics.Trace.TraceInformation($"Request URL: {fullUrl}");
-        System.Diagnostics.Trace.TraceInformation($"Response Status: {response.StatusCode}");
-
+        if (from.ToLower() == "pln") return 1;
+        string url = $"https://api.nbp.pl/api/exchangerates/rates/a/{from}";
+        using HttpResponseMessage response = await GetAsync(url);
         response.EnsureSuccessStatusCode();
-
         string jsonString = await response.Content.ReadAsStringAsync();
-        System.Diagnostics.Trace.TraceInformation($"Response JSON: {jsonString}");
-
         try
         {
             // Uproszczona deserializacja
             var jsonObject = JObject.Parse(jsonString);
 
-            if (jsonObject["data"] == null || jsonObject["data"]!["mid"] == null)
+            if (jsonObject["rates"] == null || jsonObject["rates"]![0] == null || jsonObject["rates"]![0]!["mid"] == null)
             {
                 System.Diagnostics.Trace.TraceError($"Unexpected JSON structure: {jsonString}");
                 throw new InvalidOperationException("Invalid response format from API");
             }
 
-            string midValue = jsonObject["data"]!["mid"]!.ToString();
+            string midValue = jsonObject["rates"]![0]!["mid"]!.ToString();
 
             if (!decimal.TryParse(midValue, out decimal rate))
             {
@@ -60,5 +50,12 @@ public class CurrencyConversionService : AbstractThrottledApiService, ICurrencyC
             System.Diagnostics.Trace.TraceError($"JSON parsing error: {ex.Message}\nJSON: {jsonString}");
             throw new HttpRequestException($"Failed to parse API response: {ex.Message}", ex);
         }
+    }
+
+    public async Task<decimal> GetExchangeRate(string from, string to)
+    {
+        decimal fromRate = await GetRateToPLN(from);
+        decimal toRate = await GetRateToPLN(to);
+        return Math.Round(fromRate / toRate, 4);
     }
 }
