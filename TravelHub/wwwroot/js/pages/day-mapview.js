@@ -722,9 +722,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let i = 0;
         for (let point of points) {
-            console.log(point.id);
             let travelDiv = document.getElementById("travel-" + point.id);
-            travelDiv.getElementsByClassName("to-spot")[0].innerHTML = i < points.length - 1 ? points[i + 1].name : "";
+            if (travelDiv)
+                travelDiv.getElementsByClassName("to-spot")[0].innerHTML = i < points.length - 1 ? points[i + 1].name : "";
             i++;
         }
 

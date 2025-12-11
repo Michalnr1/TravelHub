@@ -1128,7 +1128,7 @@ public class TripsController : Controller
         {
             Code = c.Code,
             Name = c.Name,
-            SpotsCount = c.Spots?.Count ?? 0
+            SpotsCount = c.Spots?.Where(s => s.TripId == id).ToList().Count ?? 0
         }).ToList();
 
         return Ok(countryViewModels);
