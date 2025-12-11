@@ -168,6 +168,7 @@ async function showRoute() {
 
     routeButton.innerHTML = originalText;
     routeButton.disabled = false;
+    loadingScreen.hidden = false;
 }
 
 function updateRouteInfoBox(legs = null, startTime = null, endTime = null) {
@@ -220,7 +221,7 @@ function updateRouteInfoBox(legs = null, startTime = null, endTime = null) {
                     <div><i class="fas fa-map-marker-alt me-2"></i>Stops: ${points.length}</div>
                     <div class="alert alert-warning mt-2">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        No route calculated. Click "Find Route" to calculate a route for PDF export.
+                        No route calculated.
                     </div>
                 </div>`;
     }
@@ -721,6 +722,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let i = 0;
         for (let point of points) {
+            console.log(point.id);
             let travelDiv = document.getElementById("travel-" + point.id);
             travelDiv.getElementsByClassName("to-spot")[0].innerHTML = i < points.length - 1 ? points[i + 1].name : "";
             i++;
@@ -797,6 +799,9 @@ function getOptimizedActivityOrders(travelMode) {
         return;
     }
 
+    const loadingScreen = document.getElementById('loading');
+    loadingScreen.hidden = false;
+
     fetch(routeOptimizationUrl + '?' + new URLSearchParams({
         id: dayId,
         travelMode: travelMode,
@@ -805,19 +810,22 @@ function getOptimizedActivityOrders(travelMode) {
     }).toString(), {
         method: 'GET',
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            displayOptimizedActivityOrder(data);
-        })
-        .catch(error => {
-            console.error('Error updating order:', error);
-            // Optional: show error message to user and revert order
-        });
+    .then(response => {
+        if (!response.ok) {
+            loadingScreen.hidden = true;
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        displayOptimizedActivityOrder(data);
+        loadingScreen.hidden = true;
+    })
+    .catch(error => {
+        console.error('Error updating order:', error);
+        loadingScreen.hidden = true;
+        // Optional: show error message to user and revert order
+    });
 }
 
 function displayOptimizedActivityOrder(data) {
