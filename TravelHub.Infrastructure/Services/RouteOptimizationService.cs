@@ -470,7 +470,7 @@ public class RouteOptimizationService : AbstractThrottledApiService, IRouteOptim
     private async Task<List<RouteMatrixElement>> GetRouteMatrix(List<RouteOptimizationSpot> from, List<RouteOptimizationSpot> to, string travelMode)
     {
         // Safety
-        if (from.Count * to.Count > 49) throw new ArgumentException();
+        if (from.Count * to.Count > 100) throw new ArgumentException();
 
         string url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix";
         Dictionary<string, string> headers = new Dictionary<string, string>
