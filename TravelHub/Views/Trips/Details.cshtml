@@ -1022,8 +1022,8 @@
                 let statusClass = '';
 
                 if (participant.isOwner) {
-                    statusIcon = '<i class="fas fa-crown text-warning"></i>';
-                    statusClass = 'badge bg-warning text-dark';
+                    statusIcon = '<i class="fas fa-crown text-primary"></i>';
+                    statusClass = 'badge bg-primary text-dark';
                 } else if (participant.status === 'Accepted') {
                     statusIcon = '<i class="fas fa-check-circle text-success"></i>';
                     statusClass = 'badge bg-success';
@@ -1046,7 +1046,7 @@
                         <div class="list-item-content">
                             <div class="fw-bold text-wrap-full">
                                 ${participant.firstName} ${participant.lastName}
-                                ${participant.isOwner ? '<span class="badge bg-warning text-dark ms-2">Owner</span>' : ''}
+                                ${participant.isOwner ? '<span class="badge bg-primary text-dark ms-2">Owner</span>' : ''}
                             </div>
                             <div class="small text-muted text-wrap-full">${participant.email}</div>
                             <div class="mt-1">
