@@ -220,7 +220,7 @@ function updateRouteInfoBox(legs = null, startTime = null, endTime = null) {
                     <div><i class="fas fa-map-marker-alt me-2"></i>Stops: ${points.length}</div>
                     <div class="alert alert-warning mt-2">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        No route calculated. Click "Find Route" to calculate a route for PDF export.
+                        No route calculated.
                     </div>
                 </div>`;
     }
