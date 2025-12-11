@@ -24,7 +24,9 @@ public class TripParticipantRepository : GenericRepository<TripParticipant>, ITr
     {
         return await _context.TripParticipants
             .Include(tp => tp.Trip)
-            .ThenInclude(t => t!.Person)
+                .ThenInclude(t => t!.Person)
+            .Include(tp => tp.Trip)
+                .ThenInclude(t => t.Days)
             .Where(tp => tp.PersonId == personId)
             .ToListAsync();
     }
