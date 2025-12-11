@@ -3,6 +3,7 @@
     var defaultLat = ViewData["Latitude"];
     var defaultLng = ViewData["Longitude"];
     var tripId = ViewData["TripId"] as int?;
+    var existingSpots = ViewData["ExistingSpots"] as IEnumerable<TravelHub.Domain.Entities.Spot> ?? new List<TravelHub.Domain.Entities.Spot>();
 }
 
 <div class="container mt-4">
@@ -137,6 +138,23 @@
         .attraction-card {
             position: relative;
         }
+
+        .already-added-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            background-color: rgba(25, 135, 84, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .attraction-added {
+            border: 2px solid #28a745 !important;
+        }
     </style>
 }
 
@@ -153,6 +171,25 @@
         const defaultLat = "@Html.Raw(defaultLat)";
         const defaultLng = "@Html.Raw(defaultLng)";
         const tripId = @(tripId?.ToString() ?? "0");
+        
+        // Convert existing spots to JavaScript array
+        const existingSpots = @Html.Raw(Json.Serialize(existingSpots.Select(s => new {
+            Name = s.Name,
+            Latitude = s.Latitude,
+            Longitude = s.Longitude
+        })));
+
+        // Helper function to check if spot already exists
+        function isSpotAlreadyAdded(attraction) {
+            if (!existingSpots || existingSpots.length === 0) return false;
+            
+            const tolerance = 0.0001; // Small tolerance for coordinate comparison
+            
+            return existingSpots.some(spot => 
+                Math.abs(spot.latitude - attraction.latitude) < tolerance &&
+                Math.abs(spot.longitude - attraction.longitude) < tolerance
+            );
+        }
 
         if (defaultLat && defaultLat.length > 0) {
             document.getElementById("latitudeInput").value = defaultLat;
@@ -344,6 +381,29 @@
 
                 if (response.ok) {
                     showToast(`"${attraction.name}" has been added to your trip!`, "success");
+                    
+                    // Add spot to local existingSpots array
+                    existingSpots.push({
+                        name: attraction.name,
+                        latitude: attraction.latitude,
+                        longitude: attraction.longitude
+                    });
+                    
+                    // Refresh the display to update button states
+                    const currentAttractions = document.querySelectorAll('.attraction-card');
+                    currentAttractions.forEach(card => {
+                        const nameElement = card.querySelector('.card-title');
+                        if (nameElement && nameElement.textContent === attraction.name) {
+                            const btn = card.querySelector('.btn-add-to-trip');
+                            if (btn) {
+                                btn.innerHTML = '<i class="bi bi-check-circle"></i> Added';
+                                btn.classList.remove('btn-success');
+                                btn.classList.add('btn-secondary');
+                                btn.disabled = true;
+                                card.classList.add('attraction-added');
+                            }
+                        }
+                    });
                 } else if (response.status === 403) {
                     showToast("You don't have permission to add spots to this trip", "danger");
                 } else if (response.status === 404) {
@@ -377,16 +437,22 @@
             // Process each attraction
             for (const attraction of attractions) {
                 const photoUrl = attraction.photoName ? await getPhotoUrl(attraction.photoName) : null;
-
+                const alreadyAdded = isSpotAlreadyAdded(attraction);
+                
                 html += `
                     <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card attraction-card h-100">
+                        <div class="card attraction-card h-100 ${alreadyAdded ? 'attraction-added' : ''}">
+                            ${alreadyAdded ? 
+                                '<div class="already-added-badge"><i class="bi bi-check-circle"></i> Already in trip</div>' : 
+                                ''}
+                            
                             <button type="button"
-                                    class="btn btn-sm btn-success btn-add-to-trip"
-                                    onclick="addSpotToTrip(${JSON.stringify(attraction).replace(/"/g, '&quot;')})"
-                                    ${tripId <= 0 ? 'disabled' : ''}
-                                    title="${tripId <= 0 ? 'No trip selected' : 'Add to trip'}">
-                                <i class="bi bi-plus-circle"></i> Add to Trip
+                                    class="btn btn-sm ${alreadyAdded ? 'btn-secondary' : 'btn-success'} btn-add-to-trip"
+                                    onclick="${alreadyAdded ? '' : `addSpotToTrip(${JSON.stringify(attraction).replace(/"/g, '&quot;')})`}"
+                                    ${alreadyAdded || tripId <= 0 ? 'disabled' : ''}
+                                    title="${alreadyAdded ? 'Already added to trip' : tripId <= 0 ? 'No trip selected' : 'Add to trip'}">
+                                <i class="bi ${alreadyAdded ? 'bi-check-circle' : 'bi-plus-circle'}"></i> 
+                                ${alreadyAdded ? 'Added' : 'Add to Trip'}
                             </button>
 
                             ${photoUrl ? `

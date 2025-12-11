@@ -957,9 +957,12 @@ public class TripsController : Controller
         try
         {
             (double latitude, double longitude) = await _tripService.GetMedianCoordinates(id);
+            var existingSpots = await _spotService.GetSpotsByTripAsync(id);
+
             ViewData["Latitude"] = latitude;
             ViewData["Longitude"] = longitude;
             ViewData["TripId"] = id;
+            ViewData["ExistingSpots"] = existingSpots;
             return View("Recommendations");
         }
         catch (Exception)
