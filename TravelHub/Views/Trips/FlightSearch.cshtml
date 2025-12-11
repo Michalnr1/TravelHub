@@ -465,7 +465,7 @@
             return duration.replace('PT', '').toLowerCase();
         }
 
-        function selectFlight(flight) {
+        function selectFlight(flight, searchParams) {
             if (confirm(`Add flight ${flight.originAirportCode} → ${flight.destinationAirportCode} to your trip?`)) {
                 showLoading(true);
 
