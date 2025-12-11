@@ -272,7 +272,10 @@
             clearFlightCards();
             showLoading(true);
 
-            make_get_request(`/Trips/Flights?${searchParams}`, processFlightList);
+            make_get_request(`/Trips/Flights?${searchParams}`, (flights) => {
+                // Przekaż params do processFlightList
+                processFlightList(flights, params);
+            });
         }
 
         function showLoading(show) {
@@ -299,7 +302,7 @@
             document.getElementById("flights").innerHTML = '';
         }
 
-        function processFlightList(flights){
+                function processFlightList(flights, searchParams){
             showLoading(false);
             const listDiv = document.getElementById('flights');
 
@@ -320,11 +323,12 @@
             listDiv.appendChild(flightsHeader);
 
             flights.slice(0, Math.min(10, flights.length)).forEach((flight, index) => {
-                listDiv.appendChild(buildFlightCard(flight, index));
+                // Przekaż searchParams do buildFlightCard
+                listDiv.appendChild(buildFlightCard(flight, index, searchParams));
             });
         }
 
-        function buildFlightCard(flight, index) {
+        function buildFlightCard(flight, index, searchParams) {
             const card = document.createElement("div");
             card.className = 'flight-card';
 
@@ -332,6 +336,20 @@
             const departureTime = formatTime(flight.departureTime);
             const arrivalTime = formatTime(flight.arrivalTime);
             const duration = formatDuration(flight.duration);
+
+            // Użyj searchParams zamiast flight.adults
+            const adults = searchParams?.adults || 1;
+            const children = searchParams?.children || 0;
+            const seatedInfants = searchParams?.seatedInfants || 0;
+            const heldInfants = searchParams?.heldInfants || 0;
+
+            // Oblicz całkowitą liczbę pasażerów
+            const totalPassengers = adults + children + seatedInfants + heldInfants;
+
+            let travelersText = `${adults} Adult${adults !== 1 ? 's' : ''}`;
+            if (children > 0) travelersText += `, ${children} Child${children !== 1 ? 'ren' : ''}`;
+            if (seatedInfants > 0) travelersText += `, ${seatedInfants} Seated Infant${seatedInfants !== 1 ? 's' : ''}`;
+            if (heldInfants > 0) travelersText += `, ${heldInfants} Held Infant${heldInfants !== 1 ? 's' : ''}`;
 
             card.innerHTML = `
                 <div class="flight-card-header">
@@ -369,7 +387,7 @@
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Travelers:</span>
-                        <span class="detail-value">${flight.adults || 1} Adult${flight.adults !== 1 ? 's' : ''}</span>
+                        <span class="detail-value">${travelersText}</span>
                     </div>
                 </div>
 
@@ -382,9 +400,9 @@
                 </div>
             `;
 
-            // Zaktualizuj przycisk select
+            // Zaktualizuj przycisk select - przekaż searchParams
             card.querySelector('.select-btn').addEventListener('click', () => {
-                selectFlight(flight);
+                selectFlight(flight, searchParams);
             });
 
             return card;
@@ -447,7 +465,7 @@
             return duration.replace('PT', '').toLowerCase();
         }
 
-                function selectFlight(flight) {
+        function selectFlight(flight) {
             if (confirm(`Add flight ${flight.originAirportCode} → ${flight.destinationAirportCode} to your trip?`)) {
                 showLoading(true);
 
@@ -471,7 +489,11 @@
                     totalPrice: flight.totalPrice,
                     currency: flight.currency,
                     carrierCode: flight.segments?.[0]?.carrierCode,
-                    segments: segments
+                    segments: segments,
+                    adults: searchParams?.adults || 1,
+                    children: searchParams?.children || 0,
+                    seatedInfants: searchParams?.seatedInfants || 0,
+                    heldInfants: searchParams?.heldInfants || 0
                 };
 
                 fetch(`/Trips/SaveFlightFromSearch?tripId=${@Model.TripId}`, {
