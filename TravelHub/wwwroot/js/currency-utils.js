@@ -1,4 +1,4 @@
-﻿function fetchExchangeRate(from, to, onSuccess) {
+﻿function fetchExchangeRate(from, to, onSuccess, onError) {
     $.ajax({
         url: "/Expenses/ExchangeRate",
         type: "get",
@@ -6,6 +6,7 @@
             from: from,
             to: to
         },
-        success: onSuccess
+        success: onSuccess,
+        error: onError
     });
 }

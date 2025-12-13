@@ -102,7 +102,7 @@
                                inputmode="decimal"
                                pattern="[0-9]*[.,]?[0-9]*"
                                placeholder="1.000000" />
-                        <span asp-validation-for="ExchangeRateValue" class="text-danger"></span>
+                        <span asp-validation-for="ExchangeRateValue" class="text-danger" id="exchange-error"></span>
                     </div>
                 </div>
             </div>
@@ -252,6 +252,8 @@
             }
 
             function fetchExchangeRate(target){
+                errorContainer = document.getElementById('exchange-error');
+                if (errorContainer) errorContainer.innerHTML = "";
                 $.ajax({
                   url: "/Expenses/ExchangeRate",
                   type: "get",
@@ -261,6 +263,10 @@
                   },
                   success: function( result ) {
                     $exchangeRateInput.val(result);
+                  },
+                  error: result => {
+                    errorContainer = document.getElementById('exchange-error');
+                    if (errorContainer) errorContainer.innerHTML = "Failed to fetch exchange rate";
                   }
                 });
             }

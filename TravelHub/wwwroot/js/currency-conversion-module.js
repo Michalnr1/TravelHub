@@ -1,12 +1,19 @@
-﻿//Needs defined $selected and tripCurrency
+﻿//Needs defined $selected, $exchangeRateInput, and tripCurrency
 
 $(() => {
     function setExchangeRate(selectedOption) {
+        errorContainer = document.getElementById('exchange-error');
+        if (errorContainer) errorContainer.innerHTML = "";
         var rate = selectedOption.data('rate');
         if (rate) {
             $exchangeRateInput.val(parseFloat(rate).toFixed(6));
         } else {
-            fetchExchangeRate(selectedOption.val(), tripCurrency, result => { $exchangeRateInput.val(result); });
+            fetchExchangeRate(selectedOption.val(), tripCurrency,
+                result => { $exchangeRateInput.val(result); },
+                result => {
+                    errorContainer = document.getElementById('exchange-error');
+                    if (errorContainer) errorContainer.innerHTML = "Failed to fetch exchange rate";
+                });
         }
     }
 

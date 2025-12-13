@@ -141,7 +141,7 @@
                             <div class="form-group mb-3">
                                 <label asp-for="ExpenseExchangeRateValue" class="form-label">Exchange Rate (to Base)</label>
                                 <input asp-for="ExpenseExchangeRateValue" class="form-control" type="number" step="0.000001" />
-                                <span asp-validation-for="ExpenseExchangeRateValue" class="text-danger"></span>
+                                <span asp-validation-for="ExpenseExchangeRateValue" class="text-danger" id="exchange-error"></span>
                             </div>
                         </div>
                     </div>
